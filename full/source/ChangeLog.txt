@@ -5,6 +5,23 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.1.2
+[*] Changed the MultiByte to Unicode support calls to use CP_ACP instead of
+    CP_OEMCP, because the latter was not working for some folks using Cyrillic
+    code pages natively.
+[*] Changed the ordering of attachments so that embedded attachments come
+    first, inline attachments are second, text attachments are third, and
+    binary attachments are last.  It was reported that the prior ordering did
+    not work for some users, and the new ordering now works for the user who
+    reported an issue.
+[*] -LOG does not require a filename.  If no filename is given, then Blat will
+    write everything to the stdout (screen).
+[-] Fixed the Try count INFINITE to work as intended.
+[-] Removed some code that attempted to use the shortest encoded attachment
+    name that spanned multiple lines.  The change returns the encoded lines
+    back to the same as done with versions 3.0.0 through 3.0.4.
+[-] Found UTF-7 encoding was adding an extra hyphen in some cases.
+-------------------------------------------------------------------------------
 3.1.1
 [-] Fixed a problem with parsing the command line and email addresses that have
     an ampersand (&) or a percent sign (%) by themselves, not using HTML

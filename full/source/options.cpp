@@ -2624,8 +2624,13 @@ static int checkLogMessages ( int argc, LPTSTR * argv, int this_arg, int startar
         fclose( logOut );
         logOut = 0;
     }
-    if ( !argv[this_arg+1] || !argv[this_arg+1][0] )
-        return(-1);
+    if ( !argv[this_arg+1]                  ||
+         (argv[this_arg+1][0] == __T('\0')) ||
+         (argv[this_arg+1][0] == __T('-') ) ||
+         (argv[this_arg+1][0] == __T('/') ) ) {
+        logFile[0] = __T('\0');
+        return(0);
+    }
 
     _tcsncpy( logFile, argv[this_arg+1], _MAX_PATH - 1 );
     logFile[_MAX_PATH - 1] = __T('\0');
@@ -3503,7 +3508,7 @@ _BLATOPTIONS blatOptionsList[] = {
     { __T("-q")             ,              NULL      , TRUE , 0, checkQuietMode      ,   __T("              : suppresses all output to the screen") },
     { __T("-debug")         ,              NULL      , TRUE , 0, checkDebugMode      ,       __T("          : echoes server communications to a log file or screen") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  (overrides -q if echoes to the screen)") },
-    { __T("-log")           ,              NULL      , TRUE , 1, checkLogMessages    ,     __T(" <file>     : log everything but usage to <file>") },
+    { __T("-log")           ,              NULL      , TRUE , 0, checkLogMessages    ,     __T(" <file>     : log everything but usage to <file>") },
     { __T("-timestamp")     ,              NULL      , FALSE, 0, checkTimestamp      ,           __T("      : when -log is used, a timestamp is added to each log line") },
     { __T("-overwritelog")  ,              NULL      , TRUE , 0, checkLogOverwrite   ,              __T("   : when -log is used, overwrite the log file") },
     { __T("-ti")            , __T("timeout")         , FALSE, 1, checkTimeout        ,    __T(" <n>         : set timeout to 'n' seconds.  Blat will wait 'n' seconds for") },

@@ -335,7 +335,7 @@ int send_news( size_t msgBodySize,
         }
 
         n_of_try = noftry();
-        for ( k = 1; k <= n_of_try || n_of_try == -1; k++ ) {
+        for ( k = 1; (k <= n_of_try) || (n_of_try == -1); k++ ) {
             retcode = say_hello( AUTHLogin.Get(), AUTHPassword.Get() );
             if ( (retcode == 0) || (retcode == -2) )
                 break;
@@ -400,7 +400,7 @@ int send_news( size_t msgBodySize,
                 }
                 // send the message to the NNTP server!
                 n_of_try = noftry();
-                for ( k=1; k<=n_of_try || n_of_try == -1; k++ ) {
+                for ( k = 1; (k <= n_of_try) || (n_of_try == -1); k++ ) {
                     if ( n_of_try > 1 )
                         printMsg(__T("Try number %d of %d.\n"), k, n_of_try);
 
@@ -474,7 +474,7 @@ int send_news( size_t msgBodySize,
         }
         // send the message to the NNTP server!
         n_of_try = noftry();
-        for ( k=1; k<=n_of_try || n_of_try == -1; k++ ) {
+        for ( k = 1; (k <= n_of_try) || (n_of_try == -1); k++ ) {
             if ( n_of_try > 1 )
                 printMsg(__T("Try number %d of %d.\n"), k, n_of_try);
 

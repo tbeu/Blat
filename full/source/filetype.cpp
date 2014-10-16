@@ -20,7 +20,6 @@ extern _TCHAR       yEnc;
 extern _TCHAR       mime;
 
 
-extern void fixup(LPTSTR string, Buf * tempstring2, int headerLen, int linewrap);
 extern void fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewrap );
 
 static struct {

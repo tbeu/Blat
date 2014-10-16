@@ -132,7 +132,7 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * pUTF, 
 
                 tempString.Clear();
                 prevC      = TRUE;
-                pUTF8Found  = TRUE;
+                pUTF8Found = TRUE;
                 // needHyphen = FALSE;
                 for ( ; bufL; ) {
                     value = pp[0];
@@ -190,8 +190,10 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * pUTF, 
                 outputText.Add( __T('+') );  /* marker for base64 encoding to follow */
                 base64_encode( tempString, outputText, FALSE, FALSE );
                 // if ( needHyphen )
+                {
                     outputText.Add( __T('-') );
-
+                    prevC = FALSE;
+                }
                 if ( charset ) {
                     _tcscpy(charset, __T("UTF-7"));
                     charset = 0;
@@ -440,8 +442,10 @@ void convertUnicode( Buf &sourceText, int * pUTF, LPTSTR charset, int pUTFReques
                     base64_encode( tempString, outputText, FALSE, FALSE );
                     tempString.Free();
                     // if ( needHyphen )
+                    {
                         outputText.Add( __T('-') );
-
+                        prevC = FALSE;
+                    }
                     if ( charset ) {
                         _tcscpy(charset, __T("UTF-7"));
                         charset = 0;

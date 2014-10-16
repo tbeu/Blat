@@ -24,8 +24,8 @@
 #endif
 //#include <tchar.h>
 
-#include "gensock.h"
 #include "blat.h"
+#include "gensock.h"
 #include "punycode.h"
 #if SUPPORT_GSSAPI
 #include "gssfuncs.h" // Please read the comments here for information about how to use GssSession

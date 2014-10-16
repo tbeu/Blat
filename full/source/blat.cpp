@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.1.1")
+#define BLAT_VERSION    __T("3.1.2")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -1343,11 +1343,11 @@ BLATDLL_API int APIENTRY SendW (LPCWSTR sCmd)
 #else
     iResult = 0;
 
-    int byteCount = WideCharToMultiByte( CP_UTF8, 0, sCmd, -1, NULL, 0, NULL, NULL );
+    int byteCount = WideCharToMultiByte( CP_ACP, 0, sCmd, -1, NULL, 0, NULL, NULL );
     if ( byteCount > 1 ) {
         char * pCharCmd = (char *) new char[byteCount+1];
         if ( pCharCmd ) {
-            WideCharToMultiByte( CP_UTF8, 0, sCmd, -1, pCharCmd, byteCount, NULL, NULL );
+            WideCharToMultiByte( CP_ACP, 0, sCmd, -1, pCharCmd, byteCount, NULL, NULL );
 
             iResult = localSend( (LPCSTR)pCharCmd );
         }
@@ -1365,11 +1365,11 @@ BLATDLL_API int APIENTRY SendA (LPCSTR sCmd)
 #if defined(_UNICODE) || defined(UNICODE)
     iResult = 0;
 
-    int byteCount = MultiByteToWideChar( CP_OEMCP, 0, sCmd, -1, NULL, 0 );
+    int byteCount = MultiByteToWideChar( CP_ACP, 0, sCmd, -1, NULL, 0 );
     if ( byteCount > 1 ) {
         wchar_t * pWCharCmd = (wchar_t *) new wchar_t[(size_t)byteCount+1];
         if ( pWCharCmd ) {
-            MultiByteToWideChar( CP_OEMCP, 0, sCmd, -1, pWCharCmd, byteCount );
+            MultiByteToWideChar( CP_ACP, 0, sCmd, -1, pWCharCmd, byteCount );
 
             iResult = localSend( (LPCWSTR)pWCharCmd );
         }
@@ -1428,11 +1428,11 @@ BLATDLL_API int _stdcall BlatW(int argc, LPWSTR argv[]) {
     if ( newArgv ) {
         ZeroMemory( newArgv, sizeof(char *) * (argc+1) );
         for ( x = 0; x < argc; x++ ) {
-            byteCount = WideCharToMultiByte( CP_UTF8, 0, argv[x], -1, NULL, 0, NULL, NULL );
+            byteCount = WideCharToMultiByte( CP_ACP, 0, argv[x], -1, NULL, 0, NULL, NULL );
             if ( byteCount > 1 ) {
                 newArgv[x] = (char *) new char[byteCount+1];
                 if ( newArgv[x] ) {
-                    WideCharToMultiByte( CP_UTF8, 0, argv[x], -1, newArgv[x], byteCount, NULL, NULL );
+                    WideCharToMultiByte( CP_ACP, 0, argv[x], -1, newArgv[x], byteCount, NULL, NULL );
                 }
             }
             if ( !newArgv[x] )
@@ -1466,11 +1466,11 @@ BLATDLL_API int _stdcall BlatA(int argc, LPSTR argv[]) {
     if ( newArgv ) {
         ZeroMemory( newArgv, sizeof(wchar_t *) * (argc+1) );
         for ( x = 0; x < argc; x++ ) {
-            byteCount = MultiByteToWideChar( CP_OEMCP, 0, argv[x], -1, NULL, 0 );
+            byteCount = MultiByteToWideChar( CP_ACP, 0, argv[x], -1, NULL, 0 );
             if ( byteCount > 1 ) {
                 newArgv[x] = (wchar_t *) new wchar_t[(size_t)byteCount+1];
                 if ( newArgv[x] ) {
-                    MultiByteToWideChar( CP_OEMCP, 0, argv[x], -1, newArgv[x], byteCount );
+                    MultiByteToWideChar( CP_ACP, 0, argv[x], -1, newArgv[x], byteCount );
                 }
             }
             if ( !newArgv[x] )
@@ -1514,11 +1514,11 @@ static void printDLLW(LPTSTR pString) {
 #if defined(_UNICODE) || defined(UNICODE)
         pPrintDLL( (LPTSTR)pString );
 #else
-        int byteCount = MultiByteToWideChar( CP_OEMCP, 0, (LPSTR)pString, -1, NULL, 0 );
+        int byteCount = MultiByteToWideChar( CP_ACP, 0, (LPSTR)pString, -1, NULL, 0 );
         if ( byteCount > 1 ) {
             LPWSTR pWCharString = (LPWSTR) new wchar_t[byteCount+1];
             if ( pWCharString ) {
-                MultiByteToWideChar( CP_OEMCP, 0, (LPSTR)pString, -1, pWCharString, byteCount );
+                MultiByteToWideChar( CP_ACP, 0, (LPSTR)pString, -1, pWCharString, byteCount );
 
                 pPrintDLL( (LPTSTR)pWCharString );
             }
@@ -1534,11 +1534,11 @@ static void printDLLA(LPTSTR pString) {
 
     if (pPrintDLL) {
 #if defined(_UNICODE) || defined(UNICODE)
-        int byteCount = WideCharToMultiByte( CP_UTF8, 0, (LPWSTR)pString, -1, NULL, 0, NULL, NULL );
+        int byteCount = WideCharToMultiByte( CP_ACP, 0, (LPWSTR)pString, -1, NULL, 0, NULL, NULL );
         if ( byteCount > 1 ) {
             LPSTR pCharString = (LPSTR) new char[(size_t)byteCount+1];
             if ( pCharString ) {
-                WideCharToMultiByte( CP_UTF8, 0, (LPWSTR)pString, -1, pCharString, byteCount, NULL, NULL );
+                WideCharToMultiByte( CP_ACP, 0, (LPWSTR)pString, -1, pCharString, byteCount, NULL, NULL );
 
                 pPrintDLL( (LPTSTR)pCharString );
             }

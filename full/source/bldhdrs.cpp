@@ -335,15 +335,17 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
                 outS.Add( __T("\r\n ") );
                 headerLen = 1;
 
-                if ( !CheckIfNeedQuotedPrintable( tempstring.Get(), TRUE ) ) {
-                    // quoting not necessary for the remaining balance
-                    pStr = tempstring.Get();
-                    while ( *pStr == __T(' ') )
-                        pStr++;
-
-                    addStringToHeaderNoQuoting(pStr, outS, headerLen, linewrap );
-                    tempstring.SetLength(0);
-                }
+//#if 0 // if this is enabled, then email clients will tend to insert an unintended space in the decoded string.
+//                if ( !CheckIfNeedQuotedPrintable( tempstring.Get(), TRUE ) ) {
+//                    // quoting not necessary for the remaining balance
+//                    pStr = tempstring.Get();
+//                    while ( *pStr == __T(' ') )
+//                        pStr++;
+//
+//                    addStringToHeaderNoQuoting(pStr, outS, headerLen, linewrap );
+//                    tempstring.SetLength(0);
+//                }
+//#endif
             }
         } while ( tempstring.Length() );
 
@@ -1321,12 +1323,12 @@ void build_headers( BLDHDRS & bldHdrs )
         {
             if ( attach ) {
 #if BLAT_LITE
-                    contentType.Add( __T("MIME-Version: 1.0\r\n") );
-                    contentType.Add( __T("Content-Type:") );
-                    contentType.Add( __T(" multipart/mixed;\r\n") );
-                    contentType.Add( __T(" boundary=\"") BOUNDARY_MARKER );
-                    contentType.Add( boundary2);
-                    contentType.Add( __T("\r\nThis is a multi-part message in MIME format.\r\n") );
+                contentType.Add( __T("MIME-Version: 1.0\r\n") );
+                contentType.Add( __T("Content-Type:") );
+                contentType.Add( __T(" multipart/mixed;\r\n") );
+                contentType.Add( __T(" boundary=\"") BOUNDARY_MARKER );
+                contentType.Add( boundary2);
+                contentType.Add( __T("\r\nThis is a multi-part message in MIME format.\r\n") );
 #else
                 if ( uuencode || yEnc_This || !bldHdrs.buildSMTP ) {
  /*

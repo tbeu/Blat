@@ -569,7 +569,7 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
 
     no_of_try = noftry();
     tryCount = 0;
-    for ( ; tryCount < no_of_try; tryCount++ ) {
+    for ( ; (tryCount < no_of_try) || (no_of_try == -1); tryCount++ ) {
         if ( tryCount ) {
 #if INCLUDE_SUPERDEBUG
             if ( superDebug ) {
@@ -1890,7 +1890,7 @@ int send_email( size_t msgBodySize,
             }
 
             n_of_try = noftry();
-            for ( k = 1; k <= n_of_try || n_of_try == -1; k++ ) {
+            for ( k = 1; (k <= n_of_try) || (n_of_try == -1); k++ ) {
                 retcode = 0;
                 if ( !serverOpen )
                     retcode = say_hello( my_hostname_wanted );
@@ -1992,7 +1992,7 @@ int send_email( size_t msgBodySize,
 
                     // send the message to the SMTP server!
                     n_of_try = noftry();
-                    for ( k=1; k<=n_of_try || n_of_try == -1; k++ ) {
+                    for ( k = 1; (k <= n_of_try) || (n_of_try == -1); k++ ) {
                         if ( n_of_try > 1 )
                             printMsg( __T("Try number %d of %d.\n"), k, n_of_try);
 
@@ -2130,7 +2130,7 @@ int send_email( size_t msgBodySize,
             n_of_try = noftry();
 //            printMsg( __T(" ... number of try attempts is %d\n"), n_of_try );
 //            printMsg( __T(" ... server connection is%s open\n"), serverOpen ? __T("") : __T(" not") );
-            for ( k=1; (k<=n_of_try) || (n_of_try == -1); k++ ) {
+            for ( k = 1; (k <= n_of_try) || (n_of_try == -1); k++ ) {
                 int anticipatedNameCount;
 
                 if ( maxNames <= 0 )
