@@ -1,0 +1,475 @@
+# Microsoft Developer Studio Generated NMAKE File, Based on blat.dsp
+
+!IF "$(OS)" == "Windows_NT"
+NULL=
+!ELSE
+NULL=nul
+!ENDIF
+
+exeRelDir=.\Release
+exeDbgDir=.\Debug
+dllRelDir=.\blatdll\Release
+dllDbgDir=.\blatdll\Debug
+
+ALL   : $(exeDbgDir) \
+        $(exeRelDir) \
+        $(dllDbgDir) \
+        $(dllRelDir) \
+        $(exeDbgDir)\blat.exe \
+        $(dllDbgDir)\blat.dll \
+        $(exeRelDir)\blat.exe \
+        $(dllRelDir)\blat.dll
+
+CLEAN : $(exeDbgDir) \
+        $(exeRelDir) \
+        $(dllDbgDir) \
+        $(dllRelDir)
+        -@if exist $(exeRelDir)\*.obj   erase $(exeRelDir)\*.obj
+        -@if exist $(exeRelDir)\blat*.* erase $(exeRelDir)\blat*.*
+        -@if exist $(exeRelDir)\vc?0.*  erase $(exeRelDir)\vc?0.*
+        -@if exist $(exeDbgDir)\*.obj   erase $(exeDbgDir)\*.obj
+        -@if exist $(exeDbgDir)\blat*.* erase $(exeDbgDir)\blat*.*
+        -@if exist $(exeDbgDir)\vc?0.*  erase $(exeDbgDir)\vc?0.*
+        -@if exist $(dllRelDir)\*.obj   erase $(dllRelDir)\*.obj
+        -@if exist $(dllRelDir)\blat*.* erase $(dllRelDir)\blat*.*
+        -@if exist $(dllRelDir)\vc?0.*  erase $(dllRelDir)\vc?0.*
+        -@if exist $(dllDbgDir)\*.obj   erase $(dllDbgDir)\*.obj
+        -@if exist $(dllDbgDir)\blat*.* erase $(dllDbgDir)\blat*.*
+        -@if exist $(dllDbgDir)\vc?0.*  erase $(dllDbgDir)\vc?0.*
+
+$(exeRelDir) :
+    @if not exist $(exeRelDir)\$(NULL) mkdir $(exeRelDir)
+
+$(exeDbgDir) :
+    @if not exist $(exeDbgDir)\$(NULL) mkdir $(exeDbgDir)
+
+$(dllRelDir) :
+    @if not exist $(dllRelDir)\$(NULL) mkdir $(dllRelDir)
+
+$(dllDbgDir) :
+    @if not exist $(dllDbgDir)\$(NULL) mkdir $(dllDbgDir)
+
+CPP=cl.exe
+#exeRel_CPP_PROJ=/nologo /GL /EHsc /Zp1 /MD  /W4       /O1 /Os /Og /Oy /Ob0 /D NDEBUG /D WIN32 /D _CONSOLE /D _MBCS                               /D WINVER=0x0400 /Fp$(exeRelDir)\blat.pch    /Fo$(exeRelDir)\ /Fd$(exeRelDir)\ /FD       /c
+#exeDbg_CPP_PROJ=/nologo /GL /EHsc /Zp1 /MDd /W4 /EHsc         /Od          /D _DEBUG /D WIN32 /D _CONSOLE /D _MBCS                               /D WINVER=0x0400 /Fp$(exeDbgDir)\blat.pch    /Fo$(exeDbgDir)\ /Fd$(exeDbgDir)\ /FD /RTC1 /c
+#dllRel_CPP_PROJ=/nologo /GL /EHsc /Zp1 /MT  /W4 /vd0  /O1         /Oy /Ob0 /D NDEBUG /D WIN32 /D _WINDOWS /D _MBCS /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=0x0400 /Fp$(dllRelDir)\blatdll.pch /Fo$(dllRelDir)\ /Fd$(dllRelDir)\ /FD       /c
+#dllDbg_CPP_PROJ=/nologo /GL /EHsc /Zp1 /MTd /W4 /EHsc         /Od          /D _DEBUG /D WIN32 /D _WINDOWS /D _MBCS /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=0x0400 /Fp$(dllDbgDir)\blatdll.pch /Fo$(dllDbgDir)\ /Fd$(dllDbgDir)\ /FD /RTC1 /c
+exeRel_CPP_PROJ=/nologo     /EHsc /Zp1 /MD  /W4        /O1 /Os /Og /Oy /Ob0 /D NDEBUG /D WIN32 /D _CONSOLE /D _MBCS                               /D WINVER=0x0400 /Fp$(exeRelDir)\blat.pch    /YX /Fo$(exeRelDir)\ /Fd$(exeRelDir)\ /FD   /c
+exeDbg_CPP_PROJ=/nologo     /EHsc /Zp1 /MDd /W4 /EHsc  /Gm /ZI /Od          /D _DEBUG /D WIN32 /D _CONSOLE /D _MBCS                               /D WINVER=0x0400 /Fp$(exeDbgDir)\blat.pch    /Fo$(exeDbgDir)\ /Fd$(exeDbgDir)\ /FD       /c
+dllRel_CPP_PROJ=/nologo     /EHsc /Zp1 /MT  /W4 /vd0   /O1         /Oy /Ob0 /D NDEBUG /D WIN32 /D _WINDOWS /D _MBCS /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=0x0400 /Fp$(dllRelDir)\blatdll.pch /Fo$(dllRelDir)\ /Fd$(dllRelDir)\ /FD       /c
+dllDbg_CPP_PROJ=/nologo     /EHsc /Zp1 /MTd /W4 /EHsc  /Gm /ZI /Od          /D _DEBUG /D WIN32 /D _WINDOWS /D _MBCS /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=0x0400 /Fp$(dllDbgDir)\blatdll.pch /Fo$(dllDbgDir)\ /Fd$(dllDbgDir)\ /FD       /c
+
+.cpp{$(exeRelDir)}.obj::
+   $(CPP) @<<
+   $(exeRel_CPP_PROJ) $<
+<<
+
+.cpp{$(exeDbgDir)}.obj::
+   $(CPP) @<<
+   $(exeDbg_CPP_PROJ) $<
+<<
+
+.cpp{$(dllRelDir)}.obj::
+   $(CPP) @<<
+   $(dllRel_CPP_PROJ) $<
+<<
+
+.cpp{$(dllDbgDir)}.obj::
+   $(CPP) @<<
+   $(dllDbg_CPP_PROJ) $<
+<<
+
+.c{$(exeRelDir)}.obj::
+   $(CPP) @<<
+   $(exeRel_CPP_PROJ) $<
+<<
+
+.c{$(exeDbgDir)}.obj::
+   $(CPP) @<<
+   $(exeDbg_CPP_PROJ) $<
+<<
+
+.c{$(dllRelDir)}.obj::
+   $(CPP) @<<
+   $(dllRel_CPP_PROJ) $<
+<<
+
+.c{$(dllDbgDir)}.obj::
+   $(CPP) @<<
+   $(dllDbg_CPP_PROJ) $<
+<<
+
+RSC=rc.exe
+exeRel_RSC_PROJ=/l 0x409 /fo$(exeRelDir)\blat.res /d NDEBUG
+exeDbg_RSC_PROJ=/l 0x409 /fo$(exeDbgDir)\blat.res /d _DEBUG
+dllRel_RSC_PROJ=/l 0x409 /fo$(dllRelDir)\blat.res /d NDEBUG
+dllDbg_RSC_PROJ=/l 0x409 /fo$(dllDbgDir)\blat.res /d _DEBUG
+
+dll_DEF_FILE=.\blatdll\blat.def
+
+LIB32 =lib.exe
+exeRel_LIB32_FLAGS=/machine:X86 /subsystem:CONSOLE /nologo /out:$(exeRelDir)\blatproj.lib
+exeDbg_LIB32_FLAGS=/machine:X86 /subsystem:CONSOLE /nologo /out:$(exeDbgDir)\blatproj.lib
+dllRel_LIB32_FLAGS=/machine:X86 /subsystem:CONSOLE /nologo /out:$(dllRelDir)\blatproj.lib
+dllDbg_LIB32_FLAGS=/machine:X86 /subsystem:CONSOLE /nologo /out:$(dllDbgDir)\blatproj.lib
+
+exeRel_LIB32_OBJS= \
+        $(exeRelDir)\attach.obj   \
+        $(exeRelDir)\base64.obj   \
+        $(exeRelDir)\blatcgi.obj  \
+        $(exeRelDir)\bldhdrs.obj  \
+        $(exeRelDir)\filetype.obj \
+        $(exeRelDir)\gensock.obj  \
+        $(exeRelDir)\gssfuncs.obj \
+        $(exeRelDir)\makeargv.obj \
+        $(exeRelDir)\md5.obj      \
+        $(exeRelDir)\mime.obj     \
+        $(exeRelDir)\msgbody.obj  \
+        $(exeRelDir)\options.obj  \
+        $(exeRelDir)\parsing.obj  \
+        $(exeRelDir)\reg.obj      \
+        $(exeRelDir)\sendnntp.obj \
+        $(exeRelDir)\sendsmtp.obj \
+        $(exeRelDir)\server.obj   \
+        $(exeRelDir)\unicode.obj  \
+        $(exeRelDir)\uuencode.obj \
+        $(exeRelDir)\yenc.obj
+
+exeDbg_LIB32_OBJS= \
+        $(exeDbgDir)\attach.obj   \
+        $(exeDbgDir)\base64.obj   \
+        $(exeDbgDir)\blatcgi.obj  \
+        $(exeDbgDir)\bldhdrs.obj  \
+        $(exeDbgDir)\filetype.obj \
+        $(exeDbgDir)\gensock.obj  \
+        $(exeDbgDir)\gssfuncs.obj \
+        $(exeDbgDir)\makeargv.obj \
+        $(exeDbgDir)\md5.obj      \
+        $(exeDbgDir)\mime.obj     \
+        $(exeDbgDir)\msgbody.obj  \
+        $(exeDbgDir)\options.obj  \
+        $(exeDbgDir)\parsing.obj  \
+        $(exeDbgDir)\reg.obj      \
+        $(exeDbgDir)\sendnntp.obj \
+        $(exeDbgDir)\sendsmtp.obj \
+        $(exeDbgDir)\server.obj   \
+        $(exeDbgDir)\unicode.obj  \
+        $(exeDbgDir)\uuencode.obj \
+        $(exeDbgDir)\yenc.obj
+
+dllRel_LIB32_OBJS= \
+        $(dllRelDir)\attach.obj   \
+        $(dllRelDir)\base64.obj   \
+        $(dllRelDir)\blatcgi.obj  \
+        $(dllRelDir)\bldhdrs.obj  \
+        $(dllRelDir)\filetype.obj \
+        $(dllRelDir)\gensock.obj  \
+        $(dllRelDir)\gssfuncs.obj \
+        $(dllRelDir)\makeargv.obj \
+        $(dllRelDir)\md5.obj      \
+        $(dllRelDir)\mime.obj     \
+        $(dllRelDir)\msgbody.obj  \
+        $(dllRelDir)\options.obj  \
+        $(dllRelDir)\parsing.obj  \
+        $(dllRelDir)\reg.obj      \
+        $(dllRelDir)\sendnntp.obj \
+        $(dllRelDir)\sendsmtp.obj \
+        $(dllRelDir)\server.obj   \
+        $(dllRelDir)\unicode.obj  \
+        $(dllRelDir)\uuencode.obj \
+        $(dllRelDir)\yenc.obj
+
+dllDbg_LIB32_OBJS= \
+        $(dllDbgDir)\attach.obj   \
+        $(dllDbgDir)\base64.obj   \
+        $(dllDbgDir)\blatcgi.obj  \
+        $(dllDbgDir)\bldhdrs.obj  \
+        $(dllDbgDir)\filetype.obj \
+        $(dllDbgDir)\gensock.obj  \
+        $(dllDbgDir)\gssfuncs.obj \
+        $(dllDbgDir)\makeargv.obj \
+        $(dllDbgDir)\md5.obj      \
+        $(dllDbgDir)\mime.obj     \
+        $(dllDbgDir)\msgbody.obj  \
+        $(dllDbgDir)\options.obj  \
+        $(dllDbgDir)\parsing.obj  \
+        $(dllDbgDir)\reg.obj      \
+        $(dllDbgDir)\sendnntp.obj \
+        $(dllDbgDir)\sendsmtp.obj \
+        $(dllDbgDir)\server.obj   \
+        $(dllDbgDir)\unicode.obj  \
+        $(dllDbgDir)\uuencode.obj \
+        $(dllDbgDir)\yenc.obj
+
+
+LINK32=link.exe
+#exeRel_LINK32_FLAGS=$(exeRelDir)\blatproj.lib msvcrt.lib   wsock32.lib kernel32.lib user32.lib advapi32.lib /nologo /subsystem:console /LTCG /pdb:$(exeRelDir)\blat.pdb /map:$(exeRelDir)\blat.map        /machine:I386 /nodefaultlib                      /out:$(exeRelDir)\blat.exe /opt:nowin98
+#exeDbg_LINK32_FLAGS=$(exeDbgDir)\blatproj.lib msvcrt71.lib wsock32.lib kernel32.lib user32.lib advapi32.lib /nologo /subsystem:console /LTCG /pdb:$(exeDbgDir)\blat.pdb /map:$(exeDbgDir)\blat.map /debug /machine:I386 /nodefaultlib                      /out:$(exeDbgDir)\blat.exe
+#dllRel_LINK32_FLAGS=$(dllRelDir)\blatproj.lib msvcrt.lib   wsock32.lib kernel32.lib user32.lib advapi32.lib /nologo /dll               /LTCG /pdb:$(dllRelDir)\blat.pdb /map:$(dllRelDir)\blat.map        /machine:I386 /nodefaultlib /def:$(dll_DEF_FILE) /out:$(dllRelDir)\blat.dll /implib:$(dllRelDir)\blat.lib /opt:nowin98
+#dllDbg_LINK32_FLAGS=$(dllDbgDir)\blatproj.lib msvcrt71.lib wsock32.lib kernel32.lib user32.lib advapi32.lib /nologo /dll               /LTCG /pdb:$(dllDbgDir)\blat.pdb /map:$(dllDbgDir)\blat.map /debug /machine:I386 /nodefaultlib /def:$(dll_DEF_FILE) /out:$(dllDbgDir)\blat.dll /implib:$(dllDbgDir)\blat.lib
+exeRel_LINK32_FLAGS=$(exeRelDir)\blatproj.lib msvcrt.lib wsock32.lib kernel32.lib user32.lib advapi32.lib /nologo /subsystem:console /incremental:no  /pdb:$(exeRelDir)\blat.pdb /map:$(exeRelDir)\blat.map        /machine:I386 /nodefaultlib                      /out:$(exeRelDir)\blat.exe /opt:nowin98
+exeDbg_LINK32_FLAGS=$(exeDbgDir)\blatproj.lib msvcrt.lib wsock32.lib kernel32.lib user32.lib advapi32.lib /nologo /subsystem:console /incremental:yes /pdb:$(exeDbgDir)\blat.pdb /map:$(exeDbgDir)\blat.map /debug /machine:I386 /nodefaultlib                      /out:$(exeDbgDir)\blat.exe
+dllRel_LINK32_FLAGS=$(dllRelDir)\blatproj.lib msvcrt.lib wsock32.lib kernel32.lib user32.lib advapi32.lib /nologo /dll               /incremental:no  /pdb:$(dllRelDir)\blat.pdb /map:$(dllRelDir)\blat.map        /machine:I386 /nodefaultlib /def:$(dll_DEF_FILE) /out:$(dllRelDir)\blat.dll /implib:$(dllRelDir)\blat.lib /opt:nowin98
+dllDbg_LINK32_FLAGS=$(dllDbgDir)\blatproj.lib msvcrt.lib wsock32.lib kernel32.lib user32.lib advapi32.lib /nologo /dll               /incremental:yes /pdb:$(dllDbgDir)\blat.pdb /map:$(dllDbgDir)\blat.map /debug /machine:I386 /nodefaultlib /def:$(dll_DEF_FILE) /out:$(dllDbgDir)\blat.dll /implib:$(dllDbgDir)\blat.lib
+
+exeRel_LINK32_OBJS= \
+        $(exeRelDir)\blat.obj \
+        $(exeRelDir)\blat.res
+
+exeDbg_LINK32_OBJS= \
+        $(exeDbgDir)\blat.obj \
+        $(exeDbgDir)\blat.res
+
+dllRel_LINK32_OBJS= \
+        $(dllRelDir)\blat.obj \
+        $(dllRelDir)\blat.res
+
+dllDbg_LINK32_OBJS= \
+        $(dllDbgDir)\blat.obj \
+        $(dllDbgDir)\blat.res
+
+
+$(exeRelDir)\blatproj.lib : $(exeRelDir) $(exe_DEF_FILE) $(exeRel_LIB32_OBJS)
+    -@if exist $(exeRelDir)\blatproj.lib erase $(exeRelDir)\blatproj.lib
+    -@if exist $(exeRelDir)\blat.obj erase $(exeRelDir)\blat.obj
+    $(LIB32) @<<
+  $(exeRel_LIB32_FLAGS) $(exeRel_LIB32_OBJS)
+<<
+
+$(exeRelDir)\blat.exe : $(exeRelDir) $(exe_DEF_FILE) $(exeRelDir)\blatproj.lib \
+                        $(exeRel_LINK32_OBJS)
+    $(LINK32) @<<
+  $(exeRel_LINK32_FLAGS) $(exeRel_LINK32_OBJS)
+<<
+
+$(exeDbgDir)\blatproj.lib : $(exeDbgDir) $(exe_DEF_FILE) $(exeDbg_LIB32_OBJS)
+    -@if exist $(exeDbgDir)\blatproj.lib erase $(exeDbgDir)\blatproj.lib
+    -@if exist $(exeDbgDir)\blat.obj erase $(exeDbgDir)\blat.obj
+    $(LIB32) @<<
+  $(exeDbg_LIB32_FLAGS) $(exeDbg_LIB32_OBJS)
+<<
+
+$(exeDbgDir)\blat.exe : $(exeDbgDir) $(exe_DEF_FILE) $(exeDbgDir)\blatproj.lib \
+                        $(exeDbg_LINK32_OBJS)
+    $(LINK32) @<<
+  $(exeDbg_LINK32_FLAGS) $(exeDbg_LINK32_OBJS)
+<<
+
+$(dllRelDir)\blatproj.lib : $(dllRelDir) $(dll_DEF_FILE) $(dllRel_LIB32_OBJS)
+    -@if exist $(dllRelDir)\blatproj.lib erase $(dllRelDir)\blatproj.lib
+    -@if exist $(dllRelDir)\blat.obj erase $(dllRelDir)\blat.obj
+    $(LIB32) @<<
+  $(dllRel_LIB32_FLAGS) $(dllRel_LIB32_OBJS)
+<<
+
+$(dllRelDir)\blat.dll : $(dllRelDir) $(dll_DEF_FILE) $(dllRelDir)\blatproj.lib \
+                        $(dllRel_LINK32_OBJS)
+    $(LINK32) @<<
+  $(dllRel_LINK32_FLAGS) $(dllRel_LINK32_OBJS)
+<<
+
+$(dllDbgDir)\blatproj.lib : $(dllDbgDir) $(dll_DEF_FILE) $(dllDbg_LIB32_OBJS)
+    -@if exist $(dllDbgDir)\blatproj.lib erase $(dllDbgDir)\blatproj.lib
+    -@if exist $(dllDbgDir)\blat.obj erase $(dllDbgDir)\blat.obj
+    $(LIB32) @<<
+  $(dllDbg_LIB32_FLAGS) $(dllDbg_LIB32_OBJS)
+<<
+
+$(dllDbgDir)\blat.dll : $(dllDbgDir) $(dll_DEF_FILE) $(dllDbgDir)\blatproj.lib \
+                        $(dllDbg_LINK32_OBJS)
+    $(LINK32) @<<
+  $(dllDbg_LINK32_FLAGS) $(dllDbg_LINK32_OBJS)
+<<
+
+
+#
+# EXE Release files
+#
+$(exeRelDir)\attach.obj       : .\attach.cpp      $(exeRelDir) .\blat.h .\buf.h .\winfile.h
+
+$(exeRelDir)\base64.obj       : .\base64.cpp      $(exeRelDir) .\blat.h .\buf.h
+
+$(exeRelDir)\blat.obj         : .\blat.cpp        $(exeRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(exeRelDir)\blat.res         : .\blat.rc         $(exeRelDir)
+        $(RSC) $(exeRel_RSC_PROJ) .\blat.rc
+
+$(exeRelDir)\blatcgi.obj      : .\blatcgi.cpp     $(exeRelDir) .\blat.h .\buf.h
+
+$(exeRelDir)\bldhdrs.obj      : .\bldhdrs.cpp     $(exeRelDir) .\blat.h .\buf.h .\gensock.h
+
+$(exeRelDir)\filetype.obj     : .\filetype.cpp    $(exeRelDir) .\blat.h .\buf.h
+
+$(exeRelDir)\gensock.obj      : .\gensock.cpp     $(exeRelDir) .\blat.h .\buf.h .\gensock.h
+
+$(exeRelDir)\gssfuncs.obj     : .\gssfuncs.cpp    $(exeRelDir) .\blat.h .\buf.h .\gensock.h .\gssapi_generic.h .\gssapi\gssapi.h .\win-mac.h
+
+$(exeRelDir)\makeargv.obj     : .\makeargv.cpp    $(exeRelDir)
+
+$(exeRelDir)\md5.obj          : .\md5.c           $(exeRelDir) .\md5.h
+
+$(exeRelDir)\mime.obj         : .\mime.cpp        $(exeRelDir) .\blat.h .\buf.h
+
+$(exeRelDir)\msgbody.obj      : .\msgbody.cpp     $(exeRelDir) .\blat.h .\buf.h .\winfile.h
+
+$(exeRelDir)\options.obj      : .\options.cpp     $(exeRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(exeRelDir)\parsing.obj      : .\parsing.cpp     $(exeRelDir) .\blat.h .\buf.h
+
+$(exeRelDir)\reg.obj          : .\reg.cpp         $(exeRelDir) .\blat.h .\buf.h
+
+$(exeRelDir)\sendnntp.obj     : .\sendnntp.cpp    $(exeRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(exeRelDir)\sendsmtp.obj     : .\sendsmtp.cpp    $(exeRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h .\md5.h
+
+$(exeRelDir)\server.obj       : .\server.cpp      $(exeRelDir) .\blat.h .\buf.h
+
+$(exeRelDir)\unicode.obj      : .\unicode.cpp     $(exeRelDir) .\blat.h .\buf.h
+
+$(exeRelDir)\uuencode.obj     : .\uuencode.cpp    $(exeRelDir) .\blat.h .\buf.h
+
+$(exeRelDir)\yenc.obj         : .\yenc.cpp        $(exeRelDir) .\blat.h .\buf.h
+
+#
+# EXE Debug files
+#
+$(exeDbgDir)\attach.obj       : .\attach.cpp      $(exeDbgDir) .\blat.h .\buf.h .\winfile.h
+
+$(exeDbgDir)\base64.obj       : .\base64.cpp      $(exeDbgDir) .\blat.h .\buf.h
+
+$(exeDbgDir)\blat.obj         : .\blat.cpp        $(exeDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(exeDbgDir)\blat.res         : .\blat.rc         $(exeDbgDir)
+        $(RSC) $(exeDbg_RSC_PROJ) .\blat.rc
+
+$(exeDbgDir)\blatcgi.obj      : .\blatcgi.cpp     $(exeDbgDir) .\blat.h .\buf.h
+
+$(exeDbgDir)\bldhdrs.obj      : .\bldhdrs.cpp     $(exeDbgDir) .\blat.h .\buf.h .\gensock.h
+
+$(exeDbgDir)\filetype.obj     : .\filetype.cpp    $(exeDbgDir) .\blat.h .\buf.h
+
+$(exeDbgDir)\gensock.obj      : .\gensock.cpp     $(exeDbgDir) .\blat.h .\buf.h .\gensock.h
+
+$(exeDbgDir)\gssfuncs.obj     : .\gssfuncs.cpp    $(exeDbgDir) .\blat.h .\buf.h .\gensock.h .\gssapi_generic.h .\gssapi\gssapi.h .\win-mac.h
+
+$(exeDbgDir)\makeargv.obj     : .\makeargv.cpp    $(exeDbgDir)
+
+$(exeDbgDir)\md5.obj          : .\md5.c           $(exeDbgDir) .\md5.h
+
+$(exeDbgDir)\mime.obj         : .\mime.cpp        $(exeDbgDir) .\blat.h .\buf.h
+
+$(exeDbgDir)\msgbody.obj      : .\msgbody.cpp     $(exeDbgDir) .\blat.h .\buf.h .\winfile.h
+
+$(exeDbgDir)\options.obj      : .\options.cpp     $(exeDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(exeDbgDir)\parsing.obj      : .\parsing.cpp     $(exeDbgDir) .\blat.h .\buf.h
+
+$(exeDbgDir)\reg.obj          : .\reg.cpp         $(exeDbgDir) .\blat.h .\buf.h
+
+$(exeDbgDir)\sendnntp.obj     : .\sendnntp.cpp    $(exeDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(exeDbgDir)\sendsmtp.obj     : .\sendsmtp.cpp    $(exeDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h .\md5.h
+
+$(exeDbgDir)\server.obj       : .\server.cpp      $(exeDbgDir) .\blat.h .\buf.h
+
+$(exeDbgDir)\unicode.obj      : .\unicode.cpp     $(exeDbgDir) .\blat.h .\buf.h
+
+$(exeDbgDir)\uuencode.obj     : .\uuencode.cpp    $(exeDbgDir) .\blat.h .\buf.h
+
+$(exeDbgDir)\yenc.obj         : .\yenc.cpp        $(exeDbgDir) .\blat.h .\buf.h
+
+#
+# DLL Release files
+#
+$(dllRelDir)\attach.obj       : .\attach.cpp      $(dllRelDir) .\blat.h .\buf.h .\winfile.h
+
+$(dllRelDir)\base64.obj       : .\base64.cpp      $(dllRelDir) .\blat.h .\buf.h
+
+$(dllRelDir)\blat.obj         : .\blat.cpp        $(dllRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(dllRelDir)\blat.res         : .\blatdll\blat.rc $(dllRelDir)
+        $(RSC) $(dllRel_RSC_PROJ) .\blatdll\blat.rc
+
+$(dllRelDir)\blatcgi.obj      : .\blatcgi.cpp     $(dllRelDir) .\blat.h .\buf.h
+
+$(dllRelDir)\bldhdrs.obj      : .\bldhdrs.cpp     $(dllRelDir) .\blat.h .\buf.h .\gensock.h
+
+$(dllRelDir)\filetype.obj     : .\filetype.cpp    $(dllRelDir) .\blat.h .\buf.h
+
+$(dllRelDir)\gensock.obj      : .\gensock.cpp     $(dllRelDir) .\blat.h .\buf.h .\gensock.h
+
+$(dllRelDir)\gssfuncs.obj     : .\gssfuncs.cpp    $(dllRelDir) .\blat.h .\buf.h .\gensock.h .\gssapi_generic.h .\gssapi\gssapi.h .\win-mac.h
+
+$(dllRelDir)\makeargv.obj     : .\makeargv.cpp    $(dllRelDir)
+
+$(dllRelDir)\md5.obj          : .\md5.c           $(dllDbgDir) .\md5.h
+
+$(dllRelDir)\mime.obj         : .\mime.cpp        $(dllRelDir) .\blat.h .\buf.h
+
+$(dllRelDir)\msgbody.obj      : .\msgbody.cpp     $(dllRelDir) .\blat.h .\buf.h .\winfile.h
+
+$(dllRelDir)\options.obj      : .\options.cpp     $(dllRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(dllRelDir)\parsing.obj      : .\parsing.cpp     $(dllRelDir) .\blat.h .\buf.h
+
+$(dllRelDir)\reg.obj          : .\reg.cpp         $(dllRelDir) .\blat.h .\buf.h
+
+$(dllRelDir)\sendnntp.obj     : .\sendnntp.cpp    $(dllRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(dllRelDir)\sendsmtp.obj     : .\sendsmtp.cpp    $(dllRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h .\md5.h
+
+$(dllRelDir)\server.obj       : .\server.cpp      $(dllRelDir) .\blat.h .\buf.h
+
+$(dllRelDir)\unicode.obj      : .\unicode.cpp     $(dllRelDir) .\blat.h .\buf.h
+
+$(dllRelDir)\uuencode.obj     : .\uuencode.cpp    $(dllRelDir) .\blat.h .\buf.h
+
+$(dllRelDir)\yenc.obj         : .\yenc.cpp        $(dllRelDir) .\blat.h .\buf.h
+
+#
+# DLL Debug files
+#
+$(dllDbgDir)\attach.obj       : .\attach.cpp      $(dllDbgDir) .\blat.h .\buf.h .\winfile.h
+
+$(dllDbgDir)\base64.obj       : .\base64.cpp      $(dllDbgDir) .\blat.h .\buf.h
+
+$(dllDbgDir)\blat.obj         : .\blat.cpp        $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(dllDbgDir)\blat.res         : .\blatdll\blat.rc $(dllDbgDir)
+        $(RSC) $(dllDbg_RSC_PROJ) .\blatdll\blat.rc
+
+$(dllDbgDir)\blatcgi.obj      : .\blatcgi.cpp     $(dllDbgDir) .\blat.h .\buf.h
+
+$(dllDbgDir)\bldhdrs.obj      : .\bldhdrs.cpp     $(dllDbgDir) .\blat.h .\buf.h .\gensock.h
+
+$(dllDbgDir)\filetype.obj     : .\filetype.cpp    $(dllDbgDir) .\blat.h .\buf.h
+
+$(dllDbgDir)\gensock.obj      : .\gensock.cpp     $(dllDbgDir) .\blat.h .\buf.h .\gensock.h
+
+$(dllDbgDir)\gssfuncs.obj     : .\gssfuncs.cpp    $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\gssapi_generic.h .\gssapi\gssapi.h .\win-mac.h
+
+$(dllDbgDir)\makeargv.obj     : .\makeargv.cpp    $(dllDbgDir)
+
+$(dllDbgDir)\md5.obj          : .\md5.c           $(dllDbgDir) .\md5.h
+
+$(dllDbgDir)\mime.obj         : .\mime.cpp        $(dllDbgDir) .\blat.h .\buf.h
+
+$(dllDbgDir)\msgbody.obj      : .\msgbody.cpp     $(dllDbgDir) .\blat.h .\buf.h .\winfile.h
+
+$(dllDbgDir)\options.obj      : .\options.cpp     $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(dllDbgDir)\parsing.obj      : .\parsing.cpp     $(dllDbgDir) .\blat.h .\buf.h
+
+$(dllDbgDir)\reg.obj          : .\reg.cpp         $(dllDbgDir) .\blat.h .\buf.h
+
+$(dllDbgDir)\sendnntp.obj     : .\sendnntp.cpp    $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+
+$(dllDbgDir)\sendsmtp.obj     : .\sendsmtp.cpp    $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h .\md5.h
+
+$(dllDbgDir)\server.obj       : .\server.cpp      $(dllDbgDir) .\blat.h .\buf.h
+
+$(dllDbgDir)\unicode.obj      : .\unicode.cpp     $(dllDbgDir) .\blat.h .\buf.h
+
+$(dllDbgDir)\uuencode.obj     : .\uuencode.cpp    $(dllDbgDir) .\blat.h .\buf.h
+
+$(dllDbgDir)\yenc.obj         : .\yenc.cpp        $(dllDbgDir) .\blat.h .\buf.h

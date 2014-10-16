@@ -1,0 +1,49 @@
+## Makefile for use with gnu make and MinGW32 gnu gcc
+
+CC=g++
+LINK=g++
+
+LFLAGS= -o
+CPPFLAGS= -O2 -W -Wall
+
+OBJS = blat.o attach.o base64.o blatcgi.o bldhdrs.o filetype.o \
+       gensock.o gssfuncs.o makeargv.o md5.o mime.o msgbody.o \
+       options.o parsing.o reg.o sendnntp.o sendsmtp.o server.o \
+       unicode.o uuencode.o yenc.o
+
+LIBFILES = -lwsock32
+
+BINNAME=blat.exe
+
+$(BINNAME): $(OBJS)
+        $(LINK) $(LFLAGS) $(BINNAME) $(OBJS) $(LIBPATH) $(LIBFILES)
+#       strip $(BINNAME)
+
+clean:
+        rm -f $(OBJS)
+        rm -f $(BINNAME)
+
+attach.o       : attach.cpp   blat.h buf.h winfile.h
+base64.o       : base64.cpp   blat.h buf.h
+blat.o         : blat.cpp     blat.h buf.h gensock.h winfile.h
+blatcgi.o      : blatcgi.cpp  blat.h buf.h
+bldhdrs.o      : bldhdrs.cpp  blat.h buf.h gensock.h
+filetype.o     : filetype.cpp blat.h buf.h
+gensock.o      : gensock.cpp  blat.h buf.h gensock.h
+gssfuncs.o     : gssfuncs.cpp blat.h buf.h gensock.h gssapi_generic.h gssapi\gssapi.h win-mac.h
+makeargv.o     : makeargv.cpp
+md5.o          : md5.c        md5.h
+mime.o         : mime.cpp     blat.h buf.h
+msgbody.o      : msgbody.cpp  blat.h buf.h winfile.h
+options.o      : options.cpp  blat.h buf.h gensock.h winfile.h
+parsing.o      : parsing.cpp  blat.h buf.h
+reg.o          : reg.cpp      blat.h buf.h
+sendnntp.o     : sendnntp.cpp blat.h buf.h gensock.h winfile.h
+sendsmtp.o     : sendsmtp.cpp blat.h buf.h gensock.h winfile.h md5.h
+server.o       : server.cpp   blat.h buf.h
+unicode.o      : unicode.cpp  blat.h buf.h
+uuencode.o     : uuencode.cpp blat.h buf.h
+yenc.o         : yenc.cpp     blat.h buf.h
+
+# vi: set noet :
+

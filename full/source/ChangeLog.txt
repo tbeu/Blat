@@ -1,0 +1,696 @@
+ ============================
+[   Blat ChangeLog Legend:   ]
+[ + Added feature            ]
+[ * Improved/changed feature ]
+[ - Bug fixed (we hope)      ]
+ ============================
+
+2.7.5
+[-] Fixed a problem with looking for default extension types.  The instruction
+    ordering was backwards, causing a crash if the file type was not listed in
+    our source file (filetype.cpp).
+-------------------------------------------------------------------------------
+2.7.4a
+[+] Removed first attempt at wide char/unicode for the time being.  I do not
+    have any way to test it.
+[+] Added X-MimeOLE: header for Blat with its version number when adding header
+    X-MSMail-Priority.
+[-] Fixed the help text for spelling error and alignment.
+-------------------------------------------------------------------------------
+2.7.4
+[+] First attempt at making the code compatible with wide character / Unicode
+    compiles.
+[*] Small changes for encoding headers when 8-bit characters are used.
+-------------------------------------------------------------------------------
+2.7.3
+[*] OpenWatcom v1.8 can now build Blat after making changes to makefile.w32 and
+    some of the source files.
+[*] I made some preliminary changes for compiling as 64-bit with Visual Studio
+    2005, but there needs to be more changes so VS 2k5 will build in 64-bit
+    mode.  For now, the changes do not affect the 32-bit builds.  When I get
+    the 64-bit build working, Blat will identify itself as "a Win64 (AMD64)
+    SMTP mailer" instead of "a Win32 SMTP mailer".  I am running Vista 64-bit
+    so I can test Blat when I have it building as 64-bit.  The goal is to have
+    both 32-bit and 64-bit versions available to choose from.
+[-] Fixed a memcpy() bug in options.cpp that I introduced with version 2.7.2; I
+    had used an ampersand (&) with the first argument when I should not have.
+[-] Removed ampersands from the fifth (5th) argument to RegQueryValueEx() in
+    regs.cpp.  These ampersands have existed from before I took on the source.
+-------------------------------------------------------------------------------
+2.7.2
+[*] When delaying between messages, and if POP3 access is requested, then delay
+    after the POP3 access before sending the first SMTP message.  Some service
+    providers require a delay after POP3 access before they will acknowledge
+    and allow SMTP access.  This time delay is unknown, so a little testing is
+    required to find what delay value works and what does not.
+[-] Use "strncpy" instead of "memcpy" to avoid potential page faults in
+    gensock.cpp and options.cpp.
+-------------------------------------------------------------------------------
+2.7.1
+[*] Allow -log to be used without a filename.  When no filename was specified
+    before, this could have caused problems with Blat.
+[*] Force the -contenttype option to be available for all builds *except* LITE.
+[-] If the body filename is not specified with the -bodyf option, allow Blat to
+    continue without crashing.
+-------------------------------------------------------------------------------
+2.7.0
+[+] Added "-nomd5" option to disable CRAM-MD5 authentication.  This is for
+    users who know their SMTP server/service provider has a flawed CRAM-MD5
+    implementation.
+[+] Added "-contentType <string>" option so users can specify the ContentType
+    header for attachments that do not have a registered content type for the
+    extension.  For example: -contenttype "text/calendar"
+[*] Removed an extra "m" in the word "comments" associated with the -comment
+    help text.
+[*] If the POP3 server name has not been specified, and POP3 access is
+    requested, then use the SMTP server name as the POP3 server name.  In some
+    cases this is true, but most cases I have seen these functions are handled
+    by different servers and using the SMTP server name as the POP3 server name
+    would fail the POP3 access.  Using POP3 access without specifying the POP3
+    server name should be used carefully.
+[*] When an error message is written to the log, preface it with
+    "*** Error ***" so these messages can be found more easily.
+[*] Allow "-mps" / "-multipart" option to be used without a specified size,
+    and to use the SMTP server's maximum message size to be the guide for
+    breaking up attachments for multiple part messages.
+[-] Changed "ISO-8859-1" to "iso-8859-1".
+[-] Changed base64 encoding and quoted encoding to use lower case 'b' and 'q'
+    respectively, even though the RFC that I read originally had upper case.
+    This was causing some email clients and/or servers to have problems with
+    encoded headers.
+-------------------------------------------------------------------------------
+2.6.3
+[+] Added "-pwd" option for -password.  It was pointed out that this was
+    mentioned in text somewhere.
+[-] Changed the way email addresses are encoded for headers to encode only the
+    name, not the email address itself.  This was causing some servers to have
+    problems, where the server was expecting the email address itself to be in
+    the clear.
+[-] When closing the POP3 session, make sure to send QUIT to the server before
+    disconnecting, and wait for a possible response.
+
+-------------------------------------------------------------------------------
+2.6.2
+[+] Add -overwritelog option to delete an existing log file and start writing
+    a new log.  This is used with the -log option.
+[+] Add -bodyF option to specify a filename that contains the message body.
+    This could be used in an options file to specify a default text file.
+[*] Use MSVCRT.DLL instead of MSVCRT71.DLL.
+[*] Allow command line -t/-to options to override and eliminate -t/-to settings
+    from a default options file.  This change also effects -c/-cc, -b/-bcc,
+    -tf, -cf, and -bf.  Previously, if any of these were specified in the
+    options file, users could not override them from the command line.
+[*] Allow zero length attachments to be sent, as a notification that such files
+    were created by some other activity.
+[*] Changed the method of checking Windows version.  The new method was found
+    at Microsoft's MSDN website.
+[-] Checking for a message body file has been improved to not leave files
+    locked.  Files that have been opened will be closed.  This was overlooked
+    before.
+[-] Fix memory leak, by removing the last allocated block of memory.
+
+-------------------------------------------------------------------------------
+2.6.1
+    I started to make changes to support Microsoft Visual Studio 2005.  The
+    changes are to define some global compile time switches so I won't have to
+    make source level changes. The code still builds from Visual Studio 6.0 and
+    Visual Studio .Net.
+[+] When the user requests authentication, if that authentication fails for
+    CRAM-MD5, try to use AUTH PLAIN.  If authentication fails for AUTH PLAIN,
+    try using AUTH LOGIN.  I do not check if the server supports AUTH LOGIN,
+    just try it anyway if earlier authentication methods do not work.  This was
+    done to get around bugs in servers that advertise CRAM-MD5 but do not
+    support it correctly.
+[-] Encoding of headers for non-USASCII values has changed so client programs
+    can interpret the headers correctly.  This has been tested with Outlook
+    Express, and Blat's output has itself been compared to the output from OE.
+[-] The change I made for 2.6.0 to open files with the Microsoft recommended
+    32-bit API call does not work for Windows 98/ME.  Its been reported that
+    this change failed to open files under Win2000, also, although I have not
+    experienced any problems with my Win2000 on my office laptop.  This version
+    will use the old 16-bit type Windows function call for Windows versions up
+    to and including Win2000, but use the recommended 32-bit call for Windows
+    XP and beyond.
+
+-------------------------------------------------------------------------------
+2.6
+[+] support for XTND XMIT command for Eudora users.  This is a shortcut to use
+    a POP3 server as an SMTP server.  The non-standard option was created as an
+    extension for the Unix Popper server.  Without this command support, users
+    are unable to use SMTP with their ISP's Popper server.  -B recipients are
+    put into a Bcc: header line so the Popper server software knows how to send
+    messages to those recipients since the server does not support the RCPT TO:
+    SMTP command.  The command line option is -xtndxmit.
+[+] support IMAP before SMTP, similar to POP3 before SMTP.
+[+] add support for message sensitivity using the Sensitivity: header.  The
+    command line option is -sensitivity=x where x is 0 for personal, 1 for
+    private, and 2 is for company confidential.
+[+] add Priority: and Importance: headers for Lotus Notes users.
+[+] add the CPU clock count (rdtsc) to the Message Id: header value.  This is
+    useful in cases where multiple copies of Blat are running.  Nothing is
+    foolproof, but this is better than before, for making unique message id
+    values.
+[*] added Reply To: header when the -reply option is used with the -i option.
+[*] moved the cram-md5 support to its own function so it can be called for
+    IMAP login as well as SMTP login.
+[*] server responses are recognized faster, almost instantly now, which means
+    email is sent quicket.
+[-] fix the makefile for md5.obj, to put it into the correct directory.
+[-] clear the socket handle when the connection is closed.  This will allow
+    Blat to open a new connection instead of trying to reuse a closed/old
+    socket connection.
+[-] fix the -install option to accept normal command options to specify the
+    server, from address, etc.  For example:
+    blat -install -server smtp.example.com -f me@mozilla -u abc -pw xyz
+[-] fix Unicode support.
+
+-------------------------------------------------------------------------------
+2.5
+[+] when parsing the command line, if the first character is a forward slash
+    (/), this is changed to a hyphen.  BEWARE that this _will_ effect text
+    within strings, such as your subject line and message body.
+[+] allow the use of normal command line options with -install.  For example:
+    blat -install -server smtp.xyz.com -u me -pw goaway -try 1 -port 900
+    -f myemailaddy
+[+] added -nomps to disable automatic multipart messages.  If the message is
+    larger than the SMTP allows, Blat will exit with code 14.
+[+] added support for Unicode files as the message body.  The file content will
+    be converted to UTF-7 and the Charset changed also.
+[+] added -attachI to allow inline text attachments, similar to the former
+    definition of -attachT.
+[+] for the .DLL, created a cSend() entry point that uses C style entry/exit
+    code, for an Oracle database application.
+[*] changed some of the help text, hoping to make it clearer.
+[*] -attachT changed to use "Content-Disposition: ATTACHMENT".
+[*] allocate enough memory to contain the encoded attachments, rather than
+    continually realloc memory as the buffer grows.  This can speed up the
+    encoding process significantly on Win9x systems.
+[*] perform smarter header encoding when headers have quotable characters.
+[*] message IDs will include the process ID value, so two or more copies of
+    blat may execute at the same time on the same system.
+[*] Try count will be used when attempting to establish a connection to the
+    server.  Previously, this was used only for the sending of messages after
+    a connection was established.  The purpose is to allow Blat to connect to
+    busy or slow response servers.
+[*] any text sent to the server will have a carriage return for each line feed,
+    and a line feed for each carriage return.  Messages without carriage
+    returns have caused problems for some servers.
+[-] when adding a new boundary layer, the last byte of the boundary marker is
+    incremented within the limits of the defined boundary character set.
+[-] changed the attachment sorting sequence to have embedded attachments first,
+    binary attachments second, then text and inline attachments.  This fixes a
+    bug in the boundary headers with adding attachments to messages.
+[-] remove the space between "MAIL FROM:" and the From address, to be aligned
+    with the RFCs.  At least one mail server did not like a space after the
+    colon (:), and rejected the messages.
+[-] remove the space between "RCPT TO:" and the To address, to be aligned
+    with the RFCs.
+[-] fix up file positioning for Win9x.  Multipart messages was causing
+    problems for Win98 users.
+
+-------------------------------------------------------------------------------
+2.4
+[+] support multihomed servers.  No visible change for this, it is done
+    at the connection state.  If the primary IP address does not answer,
+    alternate IP addresses will be attempted, if available.
+[+] added "To: Undisclosed recipients:;" when only using the -bcc option.
+    This is in RFC 2822.  Use -ur option if you want this.
+[+] added "forced" authentication for NNTP if -u/-pw options are used.  This
+    means that if the server does not specifically request authentication,
+    Blat will attempt it anyway if the userid is specified on the command
+    line.
+[+] added support for format=flowed when adding alternate text.  This was
+    not added for the regular message body since the message could be
+    binary.
+[+] added -af, -atf, and -aef options that take a filename parameter.  These
+    new options are for using a file that contains a list of attachments to
+    be sent.  -Af is for binary files, similar to using -attach.  -Atf is
+    for text files, like using -attacht.  Lastly, -aef is for embedded files
+    in the same way as using -embed option.  Each attachment named can be on
+    separate lines, or be separated by commas.  Quotation marks (") are not
+    needed.  Do not use two backslash characters for your path delimiter.
+[+] added content-type defaults for these filename extensions: pdf, xls,
+    gif, jpg, bmp, png.  This was done in case the registry does not have
+    them defined.
+[+] support packet sizes up to 64240 bytes.  This will allow more efficient
+    data transmission than using only 512 byte packets.
+[+] print how many parts of a message will be sent if more than one.
+[*] disable -base64 if attachments are included.  This only effects the
+    message body so that it does not get encoded with base64 *if* there are
+    any attachments/embedded files.
+[*] changed the Content-Type header when adding alternate text and embedded,
+    to be compliant with RFC 2387.
+[*] changed the access mode when opening a message file, to allow sharing on
+    read and write mode.  This was needed to send files that may still be
+    open by another application.
+[*] increased the transmit buffer size to almost 64K, and ask Windows for
+    the size of its send buffer.  This allows Blat to be more efficient when
+    transmitting.
+[*] when adding a plain text message with -alttextf, the message will not be
+    converted to quoted printed if the text contains only US-ASCII, tab,
+    carriage return, and newline characters.  Any other control character,
+    or 8-bit byte will be converted as before.
+[*] some code cleanup to support 64-bit compilation for AMD Opterons.
+[*] makefile.w32 tweaked for Watcom C/C++ 10.6 and newer.
+[*] makefile.g32 tweaked for Gnu gcc.
+[*] yEnc will display the original filesize in the subject line, so people
+    who are math challenged can determine if they want to spend dial-up time
+    to download files.
+[-] changed how the different parts of a message are constructed when
+    sending attachments, especially when also sending html with embedded
+    objects.  This now lets Outlook and Outlook Express show their paperclip
+    when attachments are included.  Thanks to Richard (a.k.a. crazymitchuk2)
+    for alerting me to this problem with Outlook.
+[-] increased the server timeout when looking for responses from one second
+    to the global timeout value, which by default is 30 seconds.
+[-] clear _all_ global variables at initialization, do not expect them to be
+    preset.  This will allow blat.dll to be called multiple times without
+    unloading it between calls.
+
+-------------------------------------------------------------------------------
+2.3
+[+] add support for GSSAPI authentication using Kerberos v5.  This change also
+    supports encrypted packets using Kerberos.  You need gssapi.dll from MIT.
+    http://web.mit.edu/kerberos/www/
+    Joseph Calzaretta from MIT provided the code.
+[+] new command line options for GSSAPI: -k, -kc, -service, -level.
+
+-------------------------------------------------------------------------------
+2.2.2 (2004.02.26)
+[-] fixed a bug where a socket was being left open after sending mail.  A break
+    instruction in a for() loop needed to be removed, in sendmail.cpp.  Thanks
+    go to Tim Musson for the suggestion, and Denis Mikhailitsky for reporting
+    it.
+[-] fixed a bug in parsing email addresses where the address is 31 bytes long.
+    Thanks to Doug Jenkins for reporting this issue.
+[-] minor changes to the options list.
+
+-------------------------------------------------------------------------------
+2.2.1 (2003.12.20)
+[+] more command line options have been allowed for cgi script support, such as
+    -debug and -log options.
+[+] support a comment character in options files and recipient list files.  The
+    command line option for this is -comment <char>, where <char> is the
+    character to be used as the start of a comment.  In DOS batch files, this
+    would be the semicolon (;), which is the default character in Blat.  In
+    Perl scripts, this would be a hash or pound sign (#).  If the comment
+    character is found in an options file, or recipients list file, the rest
+    of that line will be ignored.  You can use the comment character to add
+    comments to your recipients list that would help you remember important
+    items about each recipient.
+[+] support accessing a POP3 server prior to sending to SMTP.  Use the new
+    -installPOP3 to place your server name, login name and password values into
+    the registry.  The format of this command line option is:
+        blat -installPOP3 servername - - port {profile} loginname password
+    The profile in the above line is optional.  If not needed, then replace it
+    with a hyphen.  The other hyphens mean those values are not used with
+    -installPOP3.  The default value for the port number is 110.
+    When Blat wants to send a message to the SMTP server, if a POP3 server has
+    been defined for the profile being used, Blat will perform the following
+    steps:
+        1. Connect to POP3 server.
+        2. Send USER xxxx using the user's POP3 login name, wait for +OK.
+        3. Send PASS yyyy using the user's POP3 password, wait for +OK.
+        4. Send STAT command to get a count of messages, wait for +OK.
+        5. Send QUIT, wait for +OK.
+    After the Quit is issued, Blat will proceed to send email to the SMTP
+    server.
+    The requirement for POP3 before SMTP is an attempt by some ISPs to stop
+    spam from originating through their service.  They justify this tactic by
+    requiring people to have a paid account, but do not enforce any real kind
+    of SMTP authentication or tracking.
+[+] added -alttext and -alttextf options.  These should be more meaningful
+    than -althtml or -htmaltf options.  The latter two take a filename argument
+    that contains the plain text to be associated with the intended message
+    body.  -Alttext takes text on the command line as its argument,
+    while -alttextf takes a filename.  It is my intention to drop -htmaltf
+    and -althtml options at some future date.  The usage text already drops
+    them both in favor of -alttextf.  The original code to use -althtml was a
+    hack, to get something quick for testing.  Changing the name to -alttextf
+    seems to be more meaningful and has wider application.
+    Please stop using -htmalf and -althtmf, use -alttextf instead because it
+    should make this clearer.  The -alttext is new, it accepts text on the
+    command line only, like between quotation marks (").  If the pipe character
+    is in the text, it will be effected by the -binary option just like it
+    would be if used with the -body option.
+[+] added -hkcu to -install[SMTP|NNTP|POP3] to place Blat's values into
+    HKEY_CURRENT_USER instead of HKEY_LOCAL_MACHINE.  -hkcu has also been
+    added to the -profile -delete command line options to delete Blat's values
+    from HKEY_CURRENT_USER.  An example of its use might look like this:
+        blat -install server emailaddy -hkcu
+    or
+        blat -profile -delete -hkcu oldisp oldnntp
+    When listing profiles from the registry, if any profiles exist in
+    HKEY_CURRENT_USER, Blat will first print "Profile(s) for current user --".
+    When listing profiles from HKEY_LOCAL_MACHINE, Blat will first print
+    "Profile(s) for all users of this computer --" if it finds there are
+    profiles in HKEY_CURRENT_USER.  The -hkcu option is not accepted when
+    listing the profiles; it will be ignored if found.
+[+] Blat will look for its values in HKEY_CURRENT_USER before it looks in
+    HKEY_LOCAL_MACHINE, but will not generate any errors if it cannot find
+    profile data in HKEY_CURRENT_USER.
+[+] when storing profile data to the registry, if Blat encounters an access
+    denied error when trying to use HKEY_LOCAL_MACHINE, Blat will try to store
+    the profile data to HKEY_CURRENT_USER.  The purpose for this is to allow
+    users of multiuser machines to keep their personal Blat preferences and
+    system administrators to put access restrictions on HKEY_LOCAL_MACHINE.
+    A request for this came from 'wolfgangbeyer2' on the Blat mailing list.
+[*] added "<all>" and "<default>" to -profile -delete, to delete all profiles
+    and the default profile, respectively.  Use the quotation marks to ensure
+    the < and > characters are included.  Without the quotation marks, Windows
+    will interpret these characters as something else.
+[*] crtdll.dll will no longer be used by blat.exe.  Instead, Blat will use
+    msvcrt.dll after it was discovered that msvcrt.dll is significantly faster
+    than crtdll.dll.  According to Microsoft, only Windows 95 was shipped
+    without msvcrt.dll.  By this time, Win95 users should have installed this
+    .dll as a result of some other program they installed in the intervening
+    years.  The speed difference between the two DLLs is most apparent when
+    using large amounts of memory.  Otherwise, the size of Blat's executable
+    increased by only 512 bytes.
+[*] if authentication is required for the server, and no password is given,
+    the username will still be sent.  Not all users have a password.
+[*] If there is no default profile and the user creates a profile (eg. test),
+    there is a possibility Win2K will return garbage in the userid/password
+    variables when trying to read the default profile.  Checks were added to
+    reg.cpp to look for this condition.  Windows XP does not exhibit this bad
+    behavior.
+[*] when building headers for attachments, Blat will not include the pathname
+    in those headers.  It will now look for the last path delimiter or a colon
+    to remove the pathname.  Your recipients do not need to know where you
+    store your files.
+[*] options for cgi support have been moved out of blatcgi.cpp and into
+    options.cpp next to their respective command line names.  This should allow
+    new cgi options to be added or turned on easier.  In the process, usage.cpp
+    has been removed, the help text moved to options.cpp, so that as new
+    command line options are added, the corresponding help text can also be
+    added at the same time in the same file.  This will help eliminate adding
+    options in one area of Blat and forgetting to add them in another.
+[*] allow binary files to be sent as the message body with base64 encoding for
+    email systems that do not understand normal attachment rules.  This was
+    identified by "mduitz" on the blat mailing list on September 3, 2003.
+[*] some minor changes to the usage text, mostly for consistency.
+[-] changed "MAIL From:" and "RCPT To:" commands to all uppercase.  These two
+    commands have been in Blat as shown since at least 1.9.4.  A problem with
+    them appeared recently when a Yahoo proxy program would not accept the
+    lowercase versions.
+[-] Blat can now send a file as your message body to SMTP and NNTP servers at
+    the same time.  Blat used to close the file during the SMTP process, which
+    caused the NTNP process to fail.
+[-] Blat no longer causes a GPF when quoted header lines exceeds 80 characters.
+    Quoted headers has been improved.  Please test this very thoroughly and
+    report any issues you find.  Credit goes to Pavel Savara from the Czech
+    Republic for finding this issue.
+[-] the requirement for quoted headers has been relaxed a bit, in case all the
+    characters are lower ASCII.  Bert/blatax pointed out on the Blat mailing
+    list that his ancient fax software was not able to accept quoted subject
+    lines.
+[-] fixed the command line parsing for blat.dll so it can accept a single
+    backslash (\) character as a path delimiter, just as the blat.exe command
+    line does.
+[-] when sending to a long list of email addresses, Blat will not GPF.  The GPF
+    was caused if the length of the email addresses exceeded 8190 bytes.  Tim
+    Kustner found this issue on October 16.
+[-] fixed a bug that resulted from a cut/paste operation, then forgetting to
+    remove an argument to a function.  It causes no stability issues, but when
+    viewing the received email it was noticed the charset= said html instead of
+    ISO-8859-1.
+[-] added the -delay option to the usage text.
+[-] the first command line option for blat.exe must be a hyphen or a filename.
+[-] blat has been tested with IIS6 under Windows 2003 Server, and is now
+    working after a few minor changes to how variables are defined internal to
+    blat source code.
+[-] when blat is run from other applications, blat will return back gracefully.
+    In previous versions, blat would issue a hard exit when it processed a
+    -install or -profile command, which caused the calling program to exit.
+
+-------------------------------------------------------------------------------
+2.2.0 (2003.09.17)
+[+] attempt to support binarymime.  If the SMTP indicates 250-BINARYMIME, and
+    the message is using quoted-printable mime, then only two bytes will be
+    converted to quoted-printable: the equals sign (=), and binary zero.  All
+    other byte values will be sent as-is.
+[+] add Message-ID: to the headers.
+[+] add support for -delay <seconds> to pause between messages when using
+    the -maxnames option or when sending multipart messages.  It is used only
+    for sending mail, not for posting to newsgroups.
+[+] add support for -maxnames <count> to send messages to blocks of <count>
+    recipients.  This is useful for home-based email lists with restrictions
+    from their ISP on how many names can be sent to per message.  It does not
+    change the To: or Cc: lines in the message, it only changes how many RCPT
+    names are sent to the SMTP server.
+[+] support for alternative plain text messages has been added.  Use the
+    -htmaltf <filename> option to specify a plain text file that should be used
+    with your HTML message.  Recipients who do not have html email support will
+    see the plain text.  Others will see the HTML.
+[*] when adding a new profile, the opposite server (SMTP v NNTP) will not be
+    created at the same time.  If creating a new SMTP profile, NNTP server
+    information will not be created in the registry.  If creating a new NNTP
+    profile, SMTP server info will not be created.
+[-] fixed a bug that prevented binary files being sent as the message body.  To
+    send binary files as the body of a message, the -uuencode or -base64 option
+    must be used.  For example: blat binfile.exe -to me -s test -base64.
+
+-------------------------------------------------------------------------------
+2.1.1 (2003.08.13)
+[*] removed support for gwinsock.dll and gensock.dll, since that functionality
+    is built into blat.
+[*] when using the -profile option to list available profiles, quotation marks
+    (") will be surround the email address, just in case a people name is used
+    with it.
+[-] one global and one static buffer variables are now being initialized /
+    cleared properly in the .DLL.
+[-] parsing email addresses was causing memory to be corrupted if the list of
+    email addresses did not include people names.
+[-] when checking options for missing arguments, check each argument against
+    the list of known options and stop if one is found.  This will allow
+    hyphens to be used at the beginning of arguments if those arguments are
+    not also known option names.  For example,
+        blat - -body "-testing-" -s "subject matter" -to me.
+[-] userid/password variables cleared if there is an error reading these
+    values from the registry.  In this condition, Win2K placed garbage in
+    these variables, while WinXP does not.
+
+-------------------------------------------------------------------------------
+2.1.0 (2003.07.22)
+[+] lite version selectable with a compile option.
+[+] add support for comma delimited filenames with -attach or -attacht or
+    -embed.  For example, -attach *.jpg,*.gif
+[+] support for signature files.  Blat will include the '-- '.  Use the new
+    option '-sigfile' or '-sig' followed by a filename.
+[+] support for a random tagline through a compile-time switch.  Use '-tag'
+    or '-tagfile' followed by a filename.  This file must be text.  Each
+    tagline must be on a single line.  To have line breaks in the outgoing
+    email, use "\n" in the text.  For example: "This is a line break.\nChip"
+    would become
+        This is a line break.
+        Chip
+[+] support for postscript lines (PS.), like instructions for how to
+    unsubscribe from a mailing list.  Use the option '-ps' followed by a
+    filename.
+[+] support for automatic detection of salutations.  When an email address for
+    the -to option has text that follows the '>', this is used as a salutation
+    for the message body.  If the salutation has a comma, the text must be
+    surrounded with quotation marks.
+    For example: blat file -to "Chip <nul@localhost> \"Dear Chip,\"" In this
+    example, the "Dear Chip," will be the first line of the message, which will
+    be sent to "Chip <nul@localhost>".  Please notice the \ before each
+    quotation mark, this is to tell the command line parser to keep the next
+    character.  The two quotation marks at the end are for delimiting the
+    salutation, and for delimiting the whole name/email/salutation text.  If
+    the salutation does not have a comma, then you do not need an extra pair
+    of quotation marks.
+    Salutation support does not work with -cc or -bcc names.
+[+] support for the 250-pipelining option at compile time.  The net effect is
+    to increase the .exe size by 1K without gaining anything useful at runtime.
+    In other words, do not bother with it.
+[+] multipart message support at compile time.  When the sum size of
+    attachments exceeds the server's maximum message size, or the size
+    pecified with the -mps/-multipart option, each attachment will be sent in
+    a separate message, split as necessary.  The resulting messages can be
+    ieced back together by client software that is aware of multipart messages
+    (see RFCs 1341 and 2046).  To make this work, messages will be sent encoded
+    with UUEncode (default) or yEnc (user selected).
+[+] support for -embed option, used with sending html with embedded images and
+    other ojects into the message.  Usage is:
+        -embed <filenames>
+[*] -plain removed since the SMTP server responses are now parsed properly,
+    and the AUTH options recognized.
+[*] -penguin with attachments only works when using -uuencode or -yenc, and
+    then only when all attachments can be sent in a single message.
+    Multipart messages and -base64 will cancel -penguin.
+[*] modular source files.
+[*] .rc changes from Tim Musson.
+[*] authorization will now look for "PLAIN" and "LOGIN" options to the
+    "250-AUTH" response from the EHLO command.  This should eliminate the need
+    for -plain command line option.
+[*] when the server rejects a recipient address, blat will continue until all
+    the recipients have been checked.  The log will reflect errors for all bad
+    recipient addresses.  The server's actual error message will be listed with
+    each address.  In some cases, it may be necessary for the user to supply
+    -u/-pw options to authenticate themselves to the server.
+[*] blat's title line will be put into the log file as well as printed to the
+    screen, to make it easier to identify which version built which part of
+    the log.
+[*] the chosen/default character set will be included in message headers as a
+    separate line item.
+[-] supply '<' and '>' surrounding the email address for the "Mail from:"
+    command sent to the SMTP server.  Some servers require this, while others
+    do not.
+[-] newsgroups will be listed in the "Sending to..." message when sending to
+    NNTP.  The message used to list SMTP recipients if present.
+[-] error logging fixed so SMTP server information prefetch ruotines do not
+    halt the program prematurely.
+[-] dll Send() function now exported.
+[-] SMTP and NNTP authorization now account for slow servers, and does not
+    issue empty AUTH/AUTHINFO commands.  It was found that when a server issues
+    the welcome line, it may not include the remaining "250-" option messages
+    immediately.  One server in particular delayed sending the rest of the
+    multiline response for about 1/2 second (500ms).  If a multiline response
+    is received, blat will now wait up to one second for the rest of the
+    response before timing out and processing what it received.
+[-] -a1 and -a2 support has been put back in, except that these user defined
+    custom headers will be added _after_ the regular headers instead of before
+    the regular headers.  Prior versions placed these custom headers at the
+    beginning, but this could be used for spamming by allowing forged header
+    lines.  Placing the custom header lines at the end of the list reduces the
+    chances that a spammer will use Blat successfully.
+[-] error values are now being properly returned for processing after blat
+    exits.
+
+Special notes for version 2.1.0:
+When multipart support is enabled at compile time, the following conditions
+will exist when sending attachments.
+
+1. If the combined size of the message and all attachments exceeds the maximum
+   size allowed for the SMTP server, or the size specified by the -mps option
+   (for SMTP or NNTP), then each attachment will be sent in a separate message
+   with its name added to the subject line.  If an attachment itself is too
+   large for a single message, the attachment will be sent in a series of
+   messages, with the subject line showing each part in the series.
+
+   The format of the subject line will be:
+   subject_text {file xx of yy} {yEnc} filename [aa/bb]
+
+   xx of yy shows which file this is (xx) out of the total (yy).
+       If there is only one file to send, this text will not be added to the
+       subject line.
+
+   aa/bb shows this part is (aa) of how many parts (bb).
+       If there only one part (single message), this text will not
+       be added to the subject line.
+
+   yEnc is included when the attachments are encoded with yEnc.
+
+   This is useful when you know the intended recipient has trouble receiving
+   attachments, such as my friend who lives on a farm miles/kilometers from
+   town.
+
+2. When the combined size of all attachments plus the message body is less than
+   the maximum size allowed by the SMTP server, or less than the size specified
+   by the -mps option, then a single message with all attachments will be sent
+   without adding the attachment names to the subject line.  This is in keeping
+   with previous versions of Blat.
+
+3. When you want to force the attachment filename into the subject line, use
+   -mps with a size value that is less than the total size of all attachments
+   to be sent.
+
+4. Sending a single attachment may not put that attachment's name into the
+   subject line, unless it meets #1 above.
+
+It is recommended that you use -yenc only when you know the recipient has a
+mail reader with yEnc support built in.  Outlook and Outlook Express do not
+support yEnc attachments.
+
+With the changes to attachment support, Blat will not send a zero length file.
+Blat will not send files that exceed 4G bytes.  If the total size of all
+attachments exceeds 4G bytes, Blat will exit.
+
+Prior versions of Blat would load all attachments into memory before sending
+the message.  In this version, with multipart support enabled, when the
+combined size of all attachments meets criteria #1 above, Blat will load only
+as much of each attachment as it needs to send an individual message.  This
+could result in lower memory use by Blat.
+-------------------------------------------------------------------------------
+2.0.1 (2003.06.29)
+[+] -ua to include User-Agent: header line instead of X-Mailer:
+[+] yEnc for attachments as a compile time option.  A separate set of binaries
+    has been provided.
+[*] option parsing has been improved to catch malformed options easier.
+[*] blat only displays full help with the -h switch, but if other switches are
+    malformed, it lists the first one it had a problem with. Yes, you can send
+    this to the log also!
+[*] parsing of email addresses has been moved to its own function, to make it
+    easier to call for the Mailfrom: and RCPT: server commands.
+[*] Content-description: header line for newsgroups will now say "News message
+    body" instead of "Mail message body" when appropriate.
+[-] when sending to newsgroups with yEnc attachments, the
+    Content-Transfer-Encoding: will say "8BiT" instead of "7BIT".
+[-] Before exiting the program, if a log file is open, an "End of Session"
+    message will be written.
+-------------------------------------------------------------------------------
+2.0.0 (2003.06.26)
+[*] New order for the syntax output when running Blat with no parameters.
+[+] -of <filename> : text file containing more options (also -optionfile)
+[+] -ss : suppress subject line if not defined
+[+] -charset <cs> : user defined charset. The default is ISO-8859-1
+[+] -hdrencb : use base64 for encoding headers, if necessary
+[+] -hdrencq : use quoted-printable for encoding headers, if necessary
+[-] When building headers, certain fields were being fixed to conform to RFC
+    standards. The fixes were implemented in place, which could have caused
+    problems if blat is used to send smtp and nntp at the same time. This has
+    been corrected.
+[*] The encoder routines have been modified to use Buf constructs instead of
+    relying on malloc(). The Buf construct will automatically issue malloc() as
+    needed.
+[*] One routine was consolidated into its only caller, for minor efficiency.
+    This was done for the -sf option.
+[*] The various encoder routines have been moved to the top of the file, to
+    eliminate the predefinitions of these routines. This also made it much
+    easier to implement Buf style parameter passing along side char*
+    parameters. C++ allows function overloading, so the quoted-printable and
+    base64 encocders have been overloaded to facilitate buffer encoding versus
+    header line encoding.
+[*] If no recipient email addresses and no newsgroups are specified, an error
+    message is displayed and the program aborts.
+[*] Extra carriage returns and line feeds in the log file have been removed by
+    scanning the resulting string for duplicate line feeds.
+[*] The timestamp delimiter line has been put back in, with a new format to say
+    "Start of Session/End of Session".
+[+] -timestamp : when -log is used, a timestamp is added to each log line
+[+] -binary : do not convert ASCII | (pipe, 0x7c) to CrLf in the message body
+[*] Blatcgi now knows 'ORGANIZATION' and 'CHARSET' values.  The original code
+    knew 'ORGANISATION', now the US spelling has been added.
+[+] -dsn to request a change in default delivery status notification behavior.
+    The default behavior is to receive a notification for all failed and
+    delayed deliveries. -dsn allows this to change so only the status
+    notifications you want will be sent back, if at all.  The available options
+    for this are: n (never), s (successful), f (failed), and d (delayed).
+    These can be used in any combination, but n will always take precedence.
+[+] -installSMTP to install SMTP related server information.  This is a
+    duplicate of -install option.
+[+] -installNNTP to install NNTP related server information.  This has the same
+    syntax and format as -install, but this information is strictly for NNTP
+    servers.
+[+] -groups <usenet groups> : list of newsgroups (comma separated)
+[+] Added support for storing user login and password information into the
+    registry. These two fields will be encoded with base64 just to make it
+    unreadable from casual viewing of the registry. This allows a user to
+    remove these cleartext values from their batch files.
+[-] -uuencode applies to attachments, not to the message body.
+[+] yEnc has been added to use this encoding scheme for binary attachments. It
+    will likely only work for systems that fully support 8-bit data since there
+    is no provision to support 7-bit data streams in the protocol. There is a
+    failsafe check that if the SMTP server does not explicitely state 8bitmime,
+    then yEnc will be disabled for that email message. This has no effect on
+    NNTP traffic, yet. NNTP impact will have to be investigated a little
+    further to see if there is an equivalent EHLO command to give back extended
+    option support messages.
+[*] -charset does not require -mime for it to take effect.
+===============================================================================
+See changes-194.txt (or http://www.blat.net?changes-194.txt) for older changes.
+===============================================================================
+      (2003.06.15)
+[*] Moved to http://www.blat.net at SourceForge.net, managed by Tim Musson,
+    coded by many (credit given where due...)
+-------------------------------------------------------------------------------
