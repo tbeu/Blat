@@ -43,6 +43,7 @@ extern int  put_message_line( socktag sock, LPTSTR line );
 extern int  finish_server_message( void );
 extern int  close_server_socket( void );
 extern void server_error( LPTSTR message);
+extern void server_warning( LPTSTR message);
 extern int  send_edit_data (LPTSTR message, Buf * responseStr );
 extern int  send_edit_data (LPTSTR message, int expected_response, Buf * responseStr );
 extern int  noftry();
@@ -748,8 +749,10 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
     responseStr.Free();
 
     if ( tryCount == no_of_try ) {
-        if ( !socketError )
-            server_error( __T("SMTP server error") );
+        if ( !socketError ) {
+            server_error( __T("SMTP server error\n") );
+            finish_server_message();
+        }
         return(-1);
     }
 
@@ -878,7 +881,8 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
     if ( authgssapi ) {
 //        printMsg( __T(" ... AUTH GSSAPI requested.\n") );
         if (!gssapiAuthSupported) {
-            server_error( __T("The SMTP server will not accept AUTH GSSAPI value.") );
+            server_error( __T("The SMTP server will not accept AUTH GSSAPI value.\n") );
+            finish_server_message();
             return(-2);
         }
         try{
@@ -908,6 +912,7 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
             _TCHAR szMsg[1024];
             _stprintf(szMsg, __T("Cannot do AUTH GSSAPI: %s"), e.message());
             server_error(szMsg);
+            finish_server_message();
             pGss=NULL;
             return (-5);
         }
@@ -936,10 +941,10 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
             if ( get_server_response( NULL, &enhancedStatusCode ) == 235 ) {
                 return(0);                  // cram-md5 authentication successful
             }
-            printMsg( __T("The SMTP server did not accept Auth CRAM-MD5 value.\n") \
-                      __T("Are your login userid and password correct?\n") );
+            server_warning( __T("The SMTP server did not accept Auth CRAM-MD5 value.\n") \
+                            __T("Are your login userid and password correct?\n") );
         } else
-            printMsg( __T("The SMTP server claimed CRAM-MD5, but did not accept Auth CRAM-MD5 request.\n") );
+            server_warning( __T("The SMTP server claimed CRAM-MD5, but did not accept Auth CRAM-MD5 request.\n") );
 
         response.Free();
     }
@@ -968,8 +973,8 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
         if ( get_server_response( NULL, &enhancedStatusCode ) == 235 )
             return(0);                  // plain authentication successful
 
-        printMsg( __T("The SMTP server did not accept Auth PLAIN value.\n") \
-                  __T("Are your login userid and password correct?\n") );
+        server_warning( __T("The SMTP server did not accept Auth PLAIN value.\n") \
+                        __T("Are your login userid and password correct?\n") );
     }
 
 /* At this point, authentication was requested, but not it did not match the
@@ -995,8 +1000,8 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
 
         retval = get_server_response( &response, &enhancedStatusCode );
         if ( (retval != 334) && (retval != 235) ) {
-            printMsg( __T("The SMTP server does not require AUTH LOGIN.\n") \
-                      __T("Are you sure server supports AUTH?\n") );
+            server_warning( __T("The SMTP server does not require AUTH LOGIN.\n") \
+                            __T("Are you sure server supports AUTH?\n") );
             response.Free();
             return(0);
         }
@@ -1004,7 +1009,8 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
         if ( (retval != 235) && (response.Get()[3] == __T(' ')) ) {
             retval = get_server_response( &response, &enhancedStatusCode );
             if ( (retval != 334) && (retval != 235) ) {
-                server_error( __T("The SMTP server did not accept LOGIN name.") );
+                server_error( __T("The SMTP server did not accept LOGIN name.\n") );
+                finish_server_message();
                 response.Free();
                 return(-2);
             }
@@ -1014,7 +1020,8 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
             retval = get_server_response( &response, &enhancedStatusCode );
             if ( retval != 235 ) {
                 server_error( __T("The SMTP server did not accept Auth LOGIN PASSWD value.\n") \
-                              __T("Is your password correct?") );
+                              __T("Is your password correct?\n") );
+                finish_server_message();
                 response.Free();
                 return(-2);
             }
@@ -1028,8 +1035,8 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
         return(-1);
 
     if ( get_server_response( NULL, &enhancedStatusCode ) != 334 ) {
-        printMsg( __T("The SMTP server does not require AUTH LOGIN.\n") \
-                  __T("Are you sure server supports AUTH?\n") );
+        server_warning( __T("The SMTP server does not require AUTH LOGIN.\n") \
+                        __T("Are you sure server supports AUTH?\n") );
         return(0);
     }
 
@@ -1051,9 +1058,9 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
         if ( get_server_response( NULL, &enhancedStatusCode ) == 235 )
             return(0);
 
-        printMsg( __T("The SMTP server did not accept Auth LOGIN PASSWD value.\n") );
+        server_warning( __T("The SMTP server did not accept Auth LOGIN PASSWD value.\n") );
     } else
-        printMsg( __T("The SMTP server did not accept LOGIN name.\n") );
+        server_warning( __T("The SMTP server did not accept LOGIN name.\n") );
 
     finish_server_message();
     return(-2);
@@ -1084,7 +1091,8 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
     ptr = tmpBuf.Get();
     if ( !ptr ) {
         server_error( __T("No email address was found for the sender name.\n") \
-                      __T("Have you set your mail address correctly?") );
+                      __T("Have you set your mail address correctly?\n") );
+        finish_server_message();
         return(-2);
     }
 
@@ -1116,7 +1124,8 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
 
     if ( get_server_response( NULL, &enhancedStatusCode ) != 250 ) {
         server_error( __T("The SMTP server does not like the sender name.\n") \
-                      __T("Have you set your mail address correctly?") );
+                      __T("Have you set your mail address correctly?\n") );
+        finish_server_message();
         return(-2);
     }
 
@@ -1125,7 +1134,8 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
     pp = tmpBuf.Get();
     if ( !pp ) {
         server_error( __T("No email address was found for recipients.\n") \
-                      __T("Have you set the 'To:' field correctly?") );
+                      __T("Have you set the 'To:' field correctly?\n") );
+        finish_server_message();
         return(-2);
     }
 
@@ -1186,9 +1196,9 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
                 _tcscpy( out_data, index );
 
                 if ( ( ret_temp != 250 ) && ( ret_temp != 251 ) ) {
-                    printMsg( __T("The SMTP server does not like the name %s.\n") \
-                              __T("Have you set the 'To:' field correctly, or do you need authorization (-u/-pw) ?\n"), ptr);
-                    printMsg( __T("The SMTP server response was -> %s\n"), out_data );
+                    server_warning( __T("The SMTP server does not like the name %s.\n") \
+                                    __T("Have you set the 'To:' field correctly, or do you need authorization (-u/-pw) ?\n"), ptr);
+                    server_warning( __T("The SMTP server response was -> %s\n"), out_data );
                     errorsFound++;
                 }
 
@@ -1239,9 +1249,17 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
 
             ret_temp = get_server_response( &response, &enhancedStatusCode );
             if ( ( ret_temp != 250 ) && ( ret_temp != 251 ) ) {
-                printMsg( __T("The SMTP server does not like the name %s.\n") \
-                          __T("Have you set the 'To:' field correctly, or do you need authorization (-u/-pw) ?\n"), ptr);
-                printMsg( __T("The SMTP server response was -> %s\n"), response.Get() );
+                Buf tmpString;
+
+                tmpString.Add( __T("The SMTP server does not like the name ") );
+                tmpString.Add( ptr );
+                tmpString.Add( __T(".\n") \
+                               __T("Have you set the 'To:' field correctly, or do you need authorization (-u/-pw) ?\n") \
+                               __T("The SMTP server response was -> ") );
+                tmpString.Add( response.Get() );
+                tmpString.Add( __T("\n") );
+                server_warning( tmpString.Get() );
+                tmpString.Free();
                 errorsFound++;
             }
             response.Free();
@@ -1276,7 +1294,8 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
             return(-1);
 
         if ( get_server_response( NULL, &enhancedStatusCode ) != 354 ) {
-            server_error (__T("SMTP server error accepting message data"));
+            server_error (__T("SMTP server error accepting message data\n"));
+            finish_server_message();
             return(-1);
         }
     }
@@ -1745,7 +1764,7 @@ int send_email( size_t msgBodySize,
     getMaxMsgSize( TRUE, msgSize );
 
     if ( disableMPS && (totalsize > msgSize) ) {
-        printMsg( __T("Message is too big to send.  Please try a smaller message.\n") );
+        server_warning( __T("Message is too big to send.  Please try a smaller message.\n") );
         finish_server_message();
         close_server_socket();
         serverOpen = 0;
@@ -1878,7 +1897,8 @@ int send_email( size_t msgBodySize,
                 pp = tmpBuf.Get();
                 if ( !pp || (*pp == __T('\0')) ) {
                     server_error( __T("No email address was found for recipients.\n") \
-                                  __T("Have you set the 'To:' field correctly?") );
+                                  __T("Have you set the 'To:' field correctly?\n") );
+                    finish_server_message();
                     return(-2);
                 }
                 for ( ; *pp != __T('\0'); namesFound++ )
@@ -1962,7 +1982,7 @@ int send_email( size_t msgBodySize,
 
     if ( maxMessageSize ) {
         if ( disableMPS && (totalsize > maxMessageSize) ) {
-            printMsg( __T("Message is too big to send.  Please try a smaller message.\n") );
+            server_warning( __T("Message is too big to send.  Please try a smaller message.\n") );
             finish_server_message();
             close_server_socket();
             serverOpen = 0;

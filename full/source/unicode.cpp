@@ -253,6 +253,7 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, L
         if ( utf8Found )
             *utf = UTF_REQUESTED;
         else
+        if ( !BOM_found )
             *utf = FALSE;
     }
 }
@@ -432,14 +433,19 @@ void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequeste
                     outputText.Add( __T('-') );  /* terminate the utf-7 string */
             }
             sourceText = outputText;
-            localutf = 0;
-            if ( utf ) {
-                if ( utf8Found )
+            if ( utf8Found ) {
+                if ( utf )
                     *utf = UTF_REQUESTED;
-                else
-                    *utf = FALSE;
             }
-        } else
+            else {
+                if ( utf )
+                    *utf = 0;
+            }
+
+            outputText.Free();
+            return;
+        }
+
         if ( (pp[0] == 0xFF) && (pp[1] == 0xFE) && (pp[2] == 0x00) && (pp[3] == 0x00) && !(sourceText.Length() & 3) ) {
             BOM_found = TRUE;
             localutf = NATIVE_32BIT_UTF;     /* Looks like Unicode 32-bit in native format */

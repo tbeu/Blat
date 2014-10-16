@@ -5,6 +5,19 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.0.2
+[+] Changed subject handling to use Buf class, and to convert to UTF-8 right
+    away, if necessary.
+[+] Added "*** Warning ***" to certain messages related to authentication
+    and message size.  Added "*** Error ***" to additional messages related to
+    authentication.
+[*] Changed error messages related to opening / reading files to more
+    accurately tell what the problem is.  Previously, these messages simply
+    said "Error reading ...".
+[-] Fixed a potential crash with the network connection code when an error
+    occurs with the network.
+[-] Fixed -tf/-cf/-bf option to permit Unicode file content.
+-------------------------------------------------------------------------------
 3.0.1
 [+] When printing messages to a log, or to the screen, convert UTF-8 strings
     to Unicode when possible before writing to the log or screen.  This allows

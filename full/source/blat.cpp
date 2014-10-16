@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.0.1")
+#define BLAT_VERSION    __T("3.0.2")
 // Major revision level        *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level          *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level            *  Update this when bugs are fixed, but no other user experience changes.
@@ -165,7 +165,7 @@ _TCHAR  sendername[SENDER_SIZE+1];      // RFC 822 Sender: <sendername>
 _TCHAR  fromid[SENDER_SIZE+1];          // RFC 822 From: <fromid>
 _TCHAR  replytoid[SENDER_SIZE+1];       // RFC 822 Reply-To: <replytoid>
 _TCHAR  returnpathid[SENDER_SIZE+1];    // RFC 822 Return-Path: <returnpath>
-_TCHAR  subject[SUBJECT_SIZE+1];
+Buf     subject;
 Buf     alternateText;
 _TCHAR  clearLogFirst;
 _TCHAR  logFile[_MAX_PATH];
@@ -269,6 +269,7 @@ static void cleanUpBuffers( void )
     destination.Free();
     Recipients.Free();
     Sender.Free();
+    subject.Free();
     AUTHLogin.Free();
     AUTHPassword.Free();
 #if INCLUDE_IMAP
@@ -497,9 +498,9 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     fromid[0]               =           // RFC 822 From: <fromid>
     replytoid[0]            =           // RFC 822 Reply-To: <replytoid>
     returnpathid[0]         =           // RFC 822 Return-Path: <returnpath>subject[0] = '\0';
-    subject[0]              =
     bodyFilename[0]         =
     logFile[0]              = __T('\0');
+    subject.Clear();
     AUTHLogin.Clear();
     AUTHPassword.Clear();
 

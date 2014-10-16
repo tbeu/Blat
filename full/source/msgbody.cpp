@@ -65,7 +65,7 @@ extern Buf    salutation;
 #endif
 
 extern Buf    Recipients;
-extern _TCHAR subject[];
+extern Buf    subject;
 extern _TCHAR bodyFilename[];
 extern _TCHAR ConsoleDone;
 extern _TCHAR formattedContent;
@@ -564,7 +564,7 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
         else
             printMsg( __T("%s\n"), tmpstr.Get() );
 
-        if ( _tcslen(subject) ) printMsg( __T("Subject: %s\n"), subject);
+        if ( subject.Length() ) printMsg( __T("Subject: %s\n"), subject.Get());
         if ( _tcslen(loginname) ) printMsg( __T("Login name is %s\n"), loginname);
     }
 

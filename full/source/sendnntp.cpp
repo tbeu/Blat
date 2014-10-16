@@ -20,6 +20,7 @@ extern int  put_message_line( socktag sock, LPTSTR line );
 extern int  finish_server_message( void );
 extern int  close_server_socket( void );
 extern void server_error( LPTSTR message);
+extern void server_warning( LPTSTR message);
 extern int  send_edit_data (LPTSTR message, int expected_response, Buf * responseStr );
 extern int  noftry();
 extern void build_headers( BLDHDRS &bldHdrs );
@@ -75,7 +76,8 @@ static int authenticate_nntp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
     int    enhancedStatusCode;
 
     if ( loginAuth == NULL) {
-        server_error (__T("The NNTP server requires authentication,\n and you did not provide a userid."));
+        server_error (__T("The NNTP server requires authentication,\n and you did not provide a userid.\n"));
+        finish_server_message();
         return(-2);
     }
 
@@ -90,7 +92,8 @@ static int authenticate_nntp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
     }
 
     if ( ret_temp != 381 ) {
-        server_error (__T("The NNTP server did not accept Auth userid/pwd value."));
+        server_error (__T("The NNTP server did not accept Auth userid/pwd value.\n"));
+        finish_server_message();
         return(-2);
     }
 
@@ -101,7 +104,8 @@ static int authenticate_nntp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
 
     ret_temp = get_server_response( NULL, &enhancedStatusCode );
     if ( ret_temp != 281 ) {
-        server_error (__T("The NNTP server did not accept Auth userid/pwd value."));
+        server_error (__T("The NNTP server did not accept Auth userid/pwd value.\n"));
+        finish_server_message();
         return(-2);
     }
 
@@ -119,7 +123,8 @@ static int say_hello ( LPTSTR loginAuth, LPTSTR pwdAuth )
 
     ret_temp = get_server_response( NULL, &enhancedStatusCode );
     if ( ret_temp == 201 ) {
-        server_error (__T("NNTP server does not allow posting"));
+        server_error (__T("NNTP server does not allow posting\n"));
+        finish_server_message();
         return(-1);
     }
 
@@ -129,7 +134,8 @@ static int say_hello ( LPTSTR loginAuth, LPTSTR pwdAuth )
             return (ret_temp);
     } else {
         if ( ret_temp != 200 ) {
-            server_error (__T("NNTP server error"));
+            server_error (__T("NNTP server error\n"));
+            finish_server_message();
             return(-1);
         }
 
@@ -147,7 +153,8 @@ static int say_hello ( LPTSTR loginAuth, LPTSTR pwdAuth )
 
         ret_temp = get_server_response( NULL, &enhancedStatusCode );
         if ( ret_temp == 201 ) {
-            server_error (__T("NNTP server does not allow posting"));
+            server_error (__T("NNTP server does not allow posting\n"));
+            finish_server_message();
             return(-1);
         }
 
@@ -157,7 +164,8 @@ static int say_hello ( LPTSTR loginAuth, LPTSTR pwdAuth )
                 return (ret_temp);
         } else {
             if ( ret_temp != 200 ) {
-                server_error (__T("NNTP server error"));
+                server_error (__T("NNTP server error\n"));
+                finish_server_message();
                 return(-1);
             }
         }
@@ -184,7 +192,8 @@ static int prepare_nntp_message( LPTSTR loginAuth, LPTSTR pwdAuth )
                 return (ret_temp);
         } else {
             if ( ret_temp != 340 ) {
-                server_error (__T("NNTP server error"));
+                server_error (__T("NNTP server error\n"));
+                finish_server_message();
                 return(-1);
             }
         }
@@ -290,7 +299,7 @@ int send_news( size_t msgBodySize,
     getMaxMsgSize( FALSE, msgSize );
 
     if ( disableMPS && (totalsize > msgSize) ) {
-        printMsg(__T("Message is too big to send.  Please try a smaller message.\n") );
+        server_warning(__T("Message is too big to send.  Please try a smaller message.\n") );
         finish_server_message();
         close_server_socket();
         tmpBuf.Free();

@@ -82,7 +82,7 @@ extern _TCHAR       charset[];          // Added 25 Apr 2001 Tim Charron (defaul
 extern LPTSTR       days[];
 extern LPTSTR       stdinFileName;
 extern LPTSTR       defaultCharset;
-extern _TCHAR       subject[];
+extern Buf          subject;
 
 #if BLAT_LITE
 #else
@@ -1098,19 +1098,20 @@ void build_headers( BLDHDRS & bldHdrs )
     tmpstr[0] = __T('\0');
     shortNameBuf.Clear();
 
-    if ( !subject[0] ) {
+    if ( !subject.Length() ) {
         if ( !ssubject ) {          //$$ASD
+            subject.Free();
             if ( _tcscmp(bodyFilename, __T("-")) == 0 ) {
-                _tcscpy( subject, __T("Contents of console input") );
+                subject.Add( __T("Contents of console input") );
             } else {
-                _tcscpy( subject, __T("Contents of file: ") );
+                subject.Add( __T("Contents of file: ") );
                 shortNameBuf.Clear();
                 fixupFileName( bodyFilename, shortNameBuf, 27, TRUE );
-                _tcscat( subject, shortNameBuf.Get() );
+                subject.Add( shortNameBuf.Get() );
             }
         }
     }
-    if ( subject[0] ) {
+    if ( subject.Length() && subject.Get()[0] ) {
         Buf fixedSubject;
         Buf newSubject;
 

@@ -77,9 +77,11 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkIncremental>
-    <ExecutablePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(VSInstallDir)\SDK\v2.0\bin;$(ExecutablePath);C:\Program Files (x86)\Visual Leak Detector\bin</ExecutablePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IncludePath);C:\Program Files (x86)\Visual Leak Detector\include</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(LibraryPath);C:\Program Files (x86)\Visual Leak Detector\lib</LibraryPath>
+    <ExecutablePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(VSInstallDir)\SDK\v2.0\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IncludePath)</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IncludePath)</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
@@ -113,7 +115,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>msvcrt.lib;wsock32.lib</AdditionalDependencies>
+      <AdditionalDependencies>msvcrt.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(IntDir)blat.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
@@ -161,7 +163,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>msvcrt.lib;wsock32.lib</AdditionalDependencies>
+      <AdditionalDependencies>msvcrt.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(IntDir)blat.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
@@ -199,7 +201,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>msvcrt.lib;wsock32.lib</AdditionalDependencies>
+      <AdditionalDependencies>msvcrt.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(IntDir)blat.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
@@ -243,7 +245,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>msvcrt.lib;wsock32.lib</AdditionalDependencies>
+      <AdditionalDependencies>msvcrt.lib;wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(IntDir)blat.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>

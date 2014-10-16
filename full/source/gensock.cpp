@@ -130,19 +130,24 @@ connection::connection (void)
     out_index        = 0;
     in_buffer_total  = 0;
     out_buffer_total = 0;
-    pInBuffer        = 0;
+    last_winsock_error = 0;
 
     pInBuffer   = new char[SOCKET_BUFFER_SIZE];
     pOutBuffer  = new char[SOCKET_BUFFER_SIZE];
     buffer_size = SOCKET_BUFFER_SIZE;
 
-    last_winsock_error = 0;
+    owner_task = 0;
+    memset( &fds, 0, sizeof(fds) );
+    memset( &timeout, 0, sizeof(timeout) );
 }
 
 connection::~connection (void)
 {
-    delete [] pInBuffer;
-    delete [] pOutBuffer;
+    if ( pInBuffer )
+        delete [] pInBuffer;
+
+    if ( pOutBuffer )
+        delete [] pOutBuffer;
 }
 
 int
@@ -1095,7 +1100,7 @@ int
     retval = conn->get_connected (hostname, service);
     if ( retval ) {
         if ( gensock_close(conn) )
-            delete conn;
+            global_socket_list.remove(conn);
         *pst = 0;
         return(retval);
     }

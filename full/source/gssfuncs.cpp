@@ -37,7 +37,6 @@ extern "C" {
 
 extern _TCHAR quiet;
 extern void   printMsg( LPTSTR p, ... );
-extern void   server_error (LPTSTR message);
 extern _TCHAR debug;
 
 extern void base64_encode(_TUCHAR * in, size_t length, LPTSTR out, int inclCrLf);

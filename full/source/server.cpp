@@ -646,8 +646,55 @@ int finish_server_message( void )
 
 void server_error( LPTSTR message)
 {
-    printMsg(__T("*** Error ***  %s\n"),message);
-    finish_server_message();
+    Buf      outString;
+    _TCHAR * pChar;
+
+    if ( message && (message[0] != __T('\0')) ) {
+        outString.Clear();
+        for ( ; ; ) {
+            pChar = _tcschr( message, __T('\n') );
+            if ( !pChar )
+                break;
+
+            outString.Add( __T("*** Error ***  ") );
+            outString.Add( message, (&pChar[1] - message) );
+            message = &pChar[1];
+        }
+        if ( message[0] != __T('\0') ) {
+            outString.Add( __T("*** Error ***  ") );
+            outString.Add( message );
+        }
+        if ( outString.Get() && *outString.Get() )
+            printMsg( outString.Get() );
+        outString.Free();
+    }
+}
+
+
+void server_warning( LPTSTR message)
+{
+    Buf      outString;
+    _TCHAR * pChar;
+
+    if ( message && (message[0] != __T('\0')) ) {
+        outString.Clear();
+        for ( ; ; ) {
+            pChar = _tcschr( message, __T('\n') );
+            if ( !pChar )
+                break;
+
+            outString.Add( __T("*** Warning ***  ") );
+            outString.Add( message, (&pChar[1] - message) );
+            message = &pChar[1];
+        }
+        if ( message[0] != __T('\0') ) {
+            outString.Add( __T("*** Warning ***  ") );
+            outString.Add( message );
+        }
+        if ( outString.Get() && *outString.Get() )
+            printMsg( outString.Get() );
+        outString.Free();
+    }
 }
 
 
@@ -738,7 +785,8 @@ int send_edit_data (LPTSTR message, Buf * responseStr )
         return(retval);
 
     if ( get_pop3_server_response( responseStr ) ) {
-        server_error (__T("Message not accepted by server"));
+        server_error (__T("Message not accepted by server\n"));
+        finish_server_message();
         return(-1);
     }
 
@@ -757,7 +805,8 @@ int send_edit_data (LPTSTR message, int expected_response, Buf * responseStr )
         return(retval);
 
     if ( get_server_response( responseStr, &enhancedStatusCode ) != expected_response ) {
-        server_error (__T("Message not accepted by server"));
+        server_error (__T("Message not accepted by server\n"));
+        finish_server_message();
         return(-1);
     }
 

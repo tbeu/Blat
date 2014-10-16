@@ -140,7 +140,7 @@ extern _TCHAR       sendername[SENDER_SIZE+1];      // RFC 822 Sender: <senderna
 extern _TCHAR       fromid[SENDER_SIZE+1];          // RFC 822 From: <fromid>
 extern _TCHAR       replytoid[SENDER_SIZE+1];       // RFC 822 Reply-To: <replytoid>
 extern _TCHAR       returnpathid[SENDER_SIZE+1];    // RFC 822 Return-Path: <returnpath>
-extern _TCHAR       subject[SUBJECT_SIZE+1];
+extern Buf          subject;
 extern _TCHAR       textmode[TEXTMODE_SIZE+1];      // added 15 June 1999 by James Greene "greene@gucc.org"
 extern _TCHAR       bodyFilename[_MAX_PATH];
 extern Buf          bodyparameter;
@@ -258,32 +258,44 @@ static int ReadNamesFromFile(LPTSTR type, LPTSTR namesfilename, Buf &listofnames
     LPTSTR  tmpstr;
 
     if ( !fileh.OpenThisFile(namesfilename)) {
-        printMsg(__T("error reading %s, aborting\n"),namesfilename);
+        printMsg(__T("error opening %s, aborting\n"), namesfilename);
         return(3);
     }
     filesize = fileh.GetSize();
     tmpstr = (LPTSTR)malloc( (filesize + 1)*sizeof(_TCHAR) );
     if ( !tmpstr ) {
         fileh.Close();
-        printMsg(__T("error reading %s, aborting\n"),namesfilename);
+        printMsg(__T("error allocating memory for reading %s, aborting\n"), namesfilename);
         return(5);
     }
 
     if ( !fileh.ReadThisFile(tmpstr, filesize, &dummy, NULL) ) {
         fileh.Close();
         free(tmpstr);
-        printMsg(__T("error reading %s, aborting\n"),namesfilename);
+        printMsg(__T("error reading %s, aborting\n"), namesfilename);
         return(5);
     }
     fileh.Close();
 
     tmpstr[filesize] = __T('\0');
+  #if defined(_UNICODE) || defined(UNICODE)
+    Buf    sourceText;
+    int    utf;
+
+    utf = 0;
+    sourceText.Add( tmpstr, filesize );
+    convertUnicode( sourceText, &utf, NULL, 8 );
+    if ( utf )
+        _tcscpy( tmpstr, sourceText.Get() );
+
+    sourceText.Free();
+  #endif
     parseCommaDelimitString( tmpstr, p, FALSE );
     free(tmpstr);
     tmpstr = p.Get();
 
     if ( !tmpstr ) {
-        printMsg(__T("error reading %s, aborting\n"),namesfilename);
+        printMsg(__T("error finding email addresses in %s, aborting\n"), namesfilename);
         return(5);
     }
 
@@ -297,7 +309,7 @@ static int ReadNamesFromFile(LPTSTR type, LPTSTR namesfilename, Buf &listofnames
         found++;
     }
 
-    printMsg(__T("Read %d %s addresses from %s\n"),found,type,namesfilename);
+    printMsg(__T("Read %d %s address%s from %s\n"), found, type, (found == 1) ? __T("") : __T("es"), namesfilename);
 
     p.Free();
     return(0);                                   // indicates no error.
@@ -1710,9 +1722,19 @@ static int checkSubjectOption ( int argc, LPTSTR * argv, int this_arg, int start
     this_arg  = this_arg;
     startargv = startargv;
 
-    _tcsncpy( subject, argv[this_arg+1], SUBJECT_SIZE );
-    subject[SUBJECT_SIZE] = __T('\0');
+    subject.Free();
+    if ( argv[this_arg+1][0] != __T('\0') ) {
+  #if defined(_UNICODE) || defined(UNICODE)
+        int    utf;
 
+        subject.Add( (_TCHAR)0xFEFF );          /* Prepend a UTF-16 BOM */
+        subject.Add( argv[this_arg+1] );
+        utf = 0;
+        convertUnicode( subject, &utf, NULL, 8 );
+  #else
+        subject.Add( argv[this_arg+1] );
+  #endif
+    }
     return(1);
 }
 
@@ -1723,46 +1745,52 @@ static int checkSubjectFile ( int argc, LPTSTR * argv, int this_arg, int startar
 {
     FILE * infile;
     int    x;
+    LPTSTR pString;
+    _TCHAR tmpSubject[SUBJECT_SIZE+1];
 
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
+    subject.Free();
     infile = _tfopen(argv[this_arg+1], __T("r"));
     if ( infile ) {
-        memset(subject, 0x00, SUBJECT_SIZE*sizeof(_TCHAR));
-        _fgetts(subject, SUBJECT_SIZE, infile);    //lint !e534 ignore return
+        memset(tmpSubject, 0x00, SUBJECT_SIZE*sizeof(_TCHAR));
+        _fgetts(tmpSubject, SUBJECT_SIZE, infile);    //lint !e534 ignore return
+        tmpSubject[SUBJECT_SIZE] = __T('\0');
         fclose(infile);
+        subject.Add( tmpSubject );
 
   #if defined(_UNICODE) || defined(UNICODE)
         Buf    sourceText;
         int    utf;
 
         utf = 0;
-        sourceText.Add( subject, SUBJECT_SIZE );
+        sourceText.Add( subject.Get(), SUBJECT_SIZE );
         convertUnicode( sourceText, &utf, NULL, 8 );
         if ( utf )
-            _tcscpy( subject, sourceText.Get() );
+            subject = sourceText;
 
         sourceText.Free();
   #endif
-        for ( x = 0; subject[x]; x++ ) {
-            if ( (subject[x] == __T('\n')) || (subject[x] == __T('\t')) )
-                subject[x] = __T(' ');   // convert LF and tabs to spaces
+        pString = subject.Get();
+        for ( x = 0; pString[x]; x++ ) {
+            if ( (pString[x] == __T('\n')) || (pString[x] == __T('\t')) )
+                pString[x] = __T(' ');  // convert LF and tabs to spaces
             else
-            if ( subject[x] == __T('\r') ) {
-                _tcscpy( &subject[x], &subject[x+1] );
+            if ( pString[x] == __T('\r') ) {
+                _tcscpy( &pString[x], &pString[x+1] );
                 x--;            // Remove CR bytes.
             }
         }
         for ( ; x; ) {
-            if ( subject[--x] != __T(' ') )
+            if ( pString[--x] != __T(' ') )
                 break;
 
-            _tcscpy( &subject[x], &subject[x+1] );   // Strip off trailing spaces.
+            _tcscpy( &pString[x], &pString[x+1] );  // Strip off trailing spaces.
         }
+        subject.SetLength();
     } else {
-        _tcsncpy(subject, argv[this_arg+1], SUBJECT_SIZE-1);
-        subject[SUBJECT_SIZE-1] = __T('\0');
+        subject.Add( argv[this_arg+1] );
     }
 
     return(1);
@@ -2488,7 +2516,7 @@ static int ReadFilenamesFromFile(LPTSTR namesfilename, _TCHAR aType) {
     LPTSTR  tmpstr;
 
     if ( !fileh.OpenThisFile(namesfilename)) {
-        printMsg(__T("error reading %s, aborting\n"), namesfilename);
+        printMsg(__T("error opening %s, aborting\n"), namesfilename);
         return(-3);
     }
     filesize = fileh.GetSize();
@@ -2819,7 +2847,7 @@ static int checkAltTextFile ( int argc, LPTSTR * argv, int this_arg, int startar
     tmpstr.Free();
 
     if ( !atf.OpenThisFile(alternateTextFile) ) {
-        printMsg( __T("Error reading %s, Alternate Text will not be added.\n"), alternateTextFile );
+        printMsg( __T("Error opening %s, Alternate Text will not be added.\n"), alternateTextFile );
     } else {
         fileSize = atf.GetSize();
         alternateText.Clear();
@@ -2860,7 +2888,7 @@ static int checkSigFile ( int argc, LPTSTR * argv, int this_arg, int startargv )
 
     this_arg++;
     if ( !fileh.OpenThisFile(argv[this_arg]) ) {
-        printMsg( __T("Error reading signature file %s, signature will not be added\n"), argv[this_arg] );
+        printMsg( __T("Error opening signature file %s, signature will not be added\n"), argv[this_arg] );
         return(1);
     }
 
@@ -2895,7 +2923,7 @@ static int checkTagFile ( int argc, LPTSTR * argv, int this_arg, int startargv )
 
     this_arg++;
     if ( !fileh.OpenThisFile(argv[this_arg]) ) {
-        printMsg( __T("Error reading tagline file %s, a tagline will not be added.\n"), argv[this_arg] );
+        printMsg( __T("Error opening tagline file %s, a tagline will not be added.\n"), argv[this_arg] );
         return(1);
     }
 
@@ -2952,7 +2980,7 @@ static int checkPostscript ( int argc, LPTSTR * argv, int this_arg, int startarg
 
     this_arg++;
     if ( !fileh.OpenThisFile(argv[this_arg]) ) {
-        printMsg( __T("Error reading P.S. file %s, postscript will not be added\n"), argv[this_arg] );
+        printMsg( __T("Error opening P.S. file %s, postscript will not be added\n"), argv[this_arg] );
         return(1);
     }
 
