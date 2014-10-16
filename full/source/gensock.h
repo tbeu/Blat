@@ -32,29 +32,35 @@ extern "C" {
 #endif
 /* function prototypes */
 
-int FAR gensock_connect      (char FAR * hostname,
-                              char FAR * service,
+int     gensock_connect      (LPTSTR hostname,
+                              LPTSTR service,
                               socktag FAR * pst);
 
-int FAR gensock_getchar      (socktag st,
+int     gensock_getchar      (socktag st,
                               int wait,
-                              char FAR * ch);
+                              LPTSTR ch);
 
-int FAR gensock_put_data     (socktag st,
-                              char FAR * data,
+int     gensock_put_data     (socktag st,
+                              LPTSTR pData,
                               unsigned long length);
 
-int FAR gensock_close        (socktag st);
+int     gensock_close        (socktag st);
 
-char FAR * gensock_getdomainfromhostname (char FAR * name);
+#if defined(_UNICODE) || defined(UNICODE)
+#define gensock_getdomainfromhostname gensock_getdomainfromhostnameW
+LPTSTR  gensock_getdomainfromhostnameW (LPTSTR pName);
+#else
+#define gensock_getdomainfromhostname gensock_getdomainfromhostnameA
+char *  gensock_getdomainfromhostnameA (char * pName);
+#endif
 
-int FAR gensock_gethostname  (char FAR * name, int namelen);
+int     gensock_gethostname  (LPTSTR pName, int namelen);
 
-int FAR gensock_put_data_buffered (socktag st,
-                                   char FAR * data,
+int     gensock_put_data_buffered (socktag st,
+                                   LPTSTR pData,
                                    unsigned long length);
 
-int FAR gensock_put_data_flush (socktag st);
+int     gensock_put_data_flush (socktag st);
 
 extern int globaltimeout;
 

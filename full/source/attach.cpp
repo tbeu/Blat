@@ -16,39 +16,40 @@
 
 #if BLAT_LITE
 #else
-extern void   douuencode(Buf & source, Buf & out, const char * filename, int part, int lastpart);
+extern void   douuencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart);
 #endif
 extern void   base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
-extern void   printMsg(const char *p, ... );              // Added 23 Aug 2000 Craig Morrison
-extern void   fixup(char * string, Buf * tempstring2, int headerLen, int linewrap);
-extern char * getShortFileName (char * fileName);
-extern void   getContentType(char *sDestBuffer, char *foundType, char *defaultType, char *sFileName);
-extern void   incrementBoundary( char boundary[] );
-extern void   decrementBoundary( char boundary[] );
+extern void   printMsg(LPTSTR p, ... );                     // Added 23 Aug 2000 Craig Morrison
+extern void   fixup(LPTSTR string, Buf * tempstring2, int headerLen, int linewrap);
+extern LPTSTR getShortFileName (LPTSTR fileName);
+extern void   getContentType(Buf & pDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName);
+extern void   incrementBoundary( _TCHAR boundary[] );
+extern void   decrementBoundary( _TCHAR boundary[] );
 
 #if SUPPORT_YENC
-extern void   yEncode( Buf & source, Buf & out, char * filename, long fulllen,
+extern void   yEncode( Buf & source, Buf & out, LPTSTR filename, long fulllen,
                        int part, int lastpart, unsigned long &full_crc_val );
 #endif
 #if INCLUDE_NNTP
-extern Buf     groups;
+extern Buf    groups;
 #endif
 
-extern char    textmode[TEXTMODE_SIZE+1];      // added 15 June 1999 by James Greene "greene@gucc.org"
-extern char    formattedContent;
-extern int     attach;
-extern char    attachfile[64][MAX_PATH+1];
-extern char    charset[40];
-extern char    attachtype[64];
-extern char    boundaryPosted;
-extern char    needBoundary;
+extern _TCHAR textmode[TEXTMODE_SIZE+1];        // added 15 June 1999 by James Greene "greene@gucc.org"
+extern _TCHAR formattedContent;
+extern int    attach;
+extern _TCHAR attachfile[64][MAX_PATH+1];
+extern _TCHAR charset[40];
+extern _TCHAR attachtype[64];
+extern _TCHAR boundaryPosted;
+extern _TCHAR needBoundary;
+extern int    attachFoundFault;
 
 #if BLAT_LITE
 #else
-extern char    uuencode;
-extern char    base64;
-extern char    yEnc;
-extern char    eightBitMimeSupported;
+extern _TCHAR uuencode;
+extern _TCHAR base64;
+extern _TCHAR yEnc;
+extern _TCHAR eightBitMimeSupported;
 
 extern unsigned long maxMessageSize;
 extern unsigned int  uuencodeBytesLine;
@@ -61,7 +62,7 @@ WIN32_FIND_DATA FindFileData;
 
 typedef struct NODES {
     NODES * next;
-    char  * attachmentName;
+    LPTSTR  attachmentName;
     int     fileType;
     DWORD   fileSize;
 } _NODES;
@@ -79,7 +80,7 @@ static void releaseNode ( NODES * &nextNode )
 }
 
 
-void getAttachmentInfo( int attachNbr, char * & attachName, DWORD & attachSize, int & attachType )
+void getAttachmentInfo( int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType )
 {
     NODES * tmpNode;
 
@@ -104,12 +105,12 @@ int collectAttachmentInfo ( DWORD & totalsize, int msgBodySize )
     int     i, x;
     HANDLE  ihandle;
     int     filewasfound;
-    char    path[MAX_PATH+1];
-    char  * pathptr;
+    _TCHAR  path[MAX_PATH+1];
+    LPTSTR  pathptr;
     int     nbrOfFilesFound;
     WinFile fileh;
     NODES * tmpNode;
-    char    attachedfile[MAX_PATH+1];
+    _TCHAR  attachedfile[MAX_PATH+1];
     int     errorFound;
 
     attachList = NULL;
@@ -118,29 +119,33 @@ int collectAttachmentInfo ( DWORD & totalsize, int msgBodySize )
     totalsize = (DWORD)msgBodySize;
     nbrOfFilesFound = 0;
     errorFound = FALSE;
+    attachFoundFault = FALSE;
 
     // Process any attachments
     for ( i = 0; (i < attach) && !errorFound; i++ ) {
 
         // Get the path for opening file
-        strcpy(path, attachfile[i]);
-        pathptr = strrchr(path,'\\');
+        _tcscpy(path, attachfile[i]);
+        pathptr = _tcsrchr(path,__T('\\'));
         if ( !pathptr )
-            pathptr = strrchr(path,':');
+            pathptr = _tcsrchr(path,__T(':'));
 
         if ( pathptr ) {
-            *(pathptr+1) = 0;
+            *(pathptr+1) = __T('\0');
         } else {
-            path[0] = '\0';
+            path[0] = __T('\0');
         }
 
-        ihandle = FindFirstFile(attachfile[i], &FindFileData);
+        ihandle = FindFirstFile((LPTSTR)attachfile[i], &FindFileData);
         filewasfound = (ihandle != INVALID_HANDLE_VALUE);
+        if ( !filewasfound ) {
+            attachFoundFault = TRUE;
+        }
 
         while ( filewasfound && !errorFound ) {
             if ( !(FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ) {
-                strcpy(attachedfile, path);
-                strcat(attachedfile,FindFileData.cFileName);
+                _tcscpy(attachedfile, path);
+                _tcscat(attachedfile,FindFileData.cFileName);
                 if ( fileh.OpenThisFile(attachedfile) ) {
                     // if ( fileh.IsDiskFile() && FindFileData.nFileSizeLow && !FindFileData.nFileSizeHigh ) {
                     if ( fileh.IsDiskFile() && !FindFileData.nFileSizeHigh ) {
@@ -160,8 +165,8 @@ int collectAttachmentInfo ( DWORD & totalsize, int msgBodySize )
 
                             tmpNode->next = NULL;
 
-                            x = (int)strlen(attachedfile) + 1;
-                            tmpNode->attachmentName = (char *) malloc( x );
+                            x = (int)(_tcslen(attachedfile) + 1) * sizeof(_TCHAR);
+                            tmpNode->attachmentName = (LPTSTR) malloc( x );
                             memcpy( tmpNode->attachmentName, attachedfile, x );
 
                             tmpNode->fileType = attachtype[i];
@@ -214,23 +219,23 @@ void getMaxMsgSize ( int buildSMTP, DWORD &length )
 }
 
 
-int add_one_attachment ( Buf &messageBuffer, int buildSMTP, char * attachment_boundary,
+int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
                          DWORD startOffset, DWORD &length,
                          int part, int totalparts, int attachNbr, int * prevAttachType )
 {
     int           yEnc_This;
-    char          tmpstr1[0x200];
-    char          tmpstr2[0x200];
-    char        * p;
+    Buf           tmpstr2;
+    LPTSTR        p;
     DWORD         dummy;
     Buf           localHdr;
     DWORD         attachSize, fullFileSize;
     int           attachType;
-    char        * attachName;
-    char        * shortname;
+    LPTSTR        attachName;
+    LPTSTR        shortname;
     Buf           fileBuffer;
     unsigned long full_crc_val;
     WinFile       fileh;
+    Buf           shortNameBuf;
 
 #if BLAT_LITE
     buildSMTP  = buildSMTP; // remove compiler warnings.
@@ -244,36 +249,57 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, char * attachment_bo
 #endif
         yEnc_This = FALSE;
 
+    tmpstr2.Clear();
     getAttachmentInfo( attachNbr, attachName, fullFileSize, attachType );
+    shortNameBuf.Clear();
     shortname = getShortFileName(attachName);
+    for ( size_t x = 0; ; x++ ) {
+
+#if defined(_UNICODE) || defined(UNICODE)
+        if ( (_TUCHAR)shortname[x] > 0x00FF ) {
+            shortNameBuf.Clear();
+            if ( (_TUCHAR)shortname[0] != 0xFEFF ) {
+                _TUCHAR BOM;
+
+                BOM = 0xFEFF;
+                shortNameBuf.Add( (LPTSTR)&BOM, 1 );
+            }
+            shortNameBuf.Add( shortname );
+            break;
+        }
+#endif
+        shortNameBuf.Add( shortname[x] );
+        if ( shortname[x] == __T('\0') )
+            break;
+    }
 
     // Process the attachment
     if ( startOffset == 0 ) {
         // Do the header bit...
         p = messageBuffer.GetTail() - 3;
-        if ( p[2] != '\n' ) {
-            messageBuffer.Add( "\r\n" );
-            localHdr = "\r\n";
+        if ( p[2] != __T('\n') ) {
+            messageBuffer.Add( __T("\r\n") );
+            localHdr = __T("\r\n");
         } else {
-            if ( p[0] != '\n' )
-                localHdr = "\r\n";
+            if ( p[0] != __T('\n') )
+                localHdr = __T("\r\n");
         }
 
         full_crc_val = (unsigned long)(-1L);
 
         if ( attachType == EMBED_ATTACHMENT )
-            printMsg("Embedded binary file: %s\n",attachName);
+            printMsg(__T("Embedded binary file: %s\n"),attachName);
         else
         if ( attachType == BINARY_ATTACHMENT )
-            printMsg("Attached binary file: %s\n",attachName);
+            printMsg(__T("Attached binary file: %s\n"),attachName);
         else
-            printMsg("Attached text file: %s\n",attachName);
+            printMsg(__T("Attached text file: %s\n"),attachName);
 
 #if BLAT_LITE
 #else
         if ( uuencode || yEnc_This || (!buildSMTP && !base64) ) {
             if ( needBoundary && !boundaryPosted ) {
-                localHdr.Add( "--" BOUNDARY_MARKER );
+                localHdr.Add( __T("--") BOUNDARY_MARKER );
                 localHdr.Add( attachment_boundary );
                 boundaryPosted = TRUE;
             }
@@ -281,9 +307,12 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, char * attachment_bo
 #endif
         {
             Buf tmpstr3;
+            Buf tmpstr1;
 
-            fixup( shortname, &tmpstr3, 22, TRUE );
+            fixup( shortNameBuf.Get(), &tmpstr3, 22, TRUE );
 
+            tmpstr1.Alloc( _MAX_PATH*5 );
+            tmpstr1.Clear();
             if ( attachType == EMBED_ATTACHMENT ) {
 
                 // 9/18/1998 by Toby Korn
@@ -293,51 +322,76 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, char * attachment_bo
 #else
                 getContentType (tmpstr1, NULL, userContentType.Get(), shortname);
 #endif
-                sprintf( tmpstr2, "Content-ID: <%s>\r\n", tmpstr3.Get() );
-                strcat(  tmpstr2, "Content-Disposition: INLINE\r\n" );
-                strcat(  tmpstr2, "Content-Transfer-Encoding: BASE64\r\n" );
+                tmpstr2 = __T("Content-ID: <");
+                tmpstr2.Add( tmpstr3 );
+                tmpstr2.Add( __T(">\r\n") );
+                tmpstr2.Add( __T("Content-Disposition: INLINE\r\n") );
+                tmpstr2.Add( __T("Content-Transfer-Encoding: BASE64\r\n") );
             } else
             if ( attachType == BINARY_ATTACHMENT ) {
 
                 // 9/18/1998 by Toby Korn
                 // Replaced default Content-Type with a lookup based on file extension
                 getContentType (tmpstr1, NULL, NULL, shortname);
-                sprintf( tmpstr2, "Content-Disposition: ATTACHMENT;\r\n" \
-                                  " filename=\"%s\"\r\n", tmpstr3.Get() );
-                strcat(  tmpstr2, "Content-Transfer-Encoding: BASE64\r\n" );
+                tmpstr2    = __T("Content-Disposition: ATTACHMENT;\r\n");
+                tmpstr2.Add( __T(" filename=\"") );
+                tmpstr2.Add( tmpstr3 );
+                tmpstr2.Add( __T("\"\r\n") );
+                tmpstr2.Add( __T("Content-Transfer-Encoding: BASE64\r\n") );
             } else
             if ( attachType == TEXT_ATTACHMENT ) {
-                sprintf( tmpstr1, "Content-Type: text/%s; charset=%s\r\n",
-                                  textmode, ( charset[0] ) ? charset : "US-ASCII" );    // modified 15. June 1999 by JAG
-                sprintf( tmpstr2, "Content-Disposition: ATTACHMENT;\r\n" \
-                                  " filename=\"%s\"\r\n" \
-                                  "Content-Description: \"%s\"\r\n", tmpstr3.Get(), tmpstr3.Get() );
+                tmpstr1 = __T("Content-Type: text/");
+                tmpstr1.Add( textmode );
+                tmpstr1.Add( __T("; charset=") );
+                if ( charset[0] )
+                    tmpstr1.Add( charset );
+                else
+                    tmpstr1.Add( __T("US-ASCII") );    // modified 15. June 1999 by JAG
+                tmpstr1.Add( __T("\r\n") );
+                tmpstr2    = __T("Content-Disposition: ATTACHMENT;\r\n");
+                tmpstr2.Add( __T(" filename=\"") );
+                tmpstr2.Add( tmpstr3 );
+                tmpstr2.Add( __T("\"\r\n") );
+                tmpstr2.Add( __T("Content-Description: \"") );
+                tmpstr2.Add( tmpstr3 );
+                tmpstr2.Add( __T("\"\r\n") );
             } else
             /* if ( attachType == INLINE_ATTACHMENT ) */ {
-                sprintf( tmpstr1, "Content-Type: text/%s; charset=%s\r\n",
-                                  textmode, ( charset[0] ) ? charset : "US-ASCII" );    // modified 15. June 1999 by JAG
-                strcat(  tmpstr1, "Content-Disposition: INLINE\r\n" );
-                sprintf( tmpstr2, "Content-Description: \"%s\"\r\n", tmpstr3.Get() );
+                tmpstr1 = __T("Content-Type: text/");
+                tmpstr1.Add( textmode );
+                tmpstr1.Add( __T("; charset=") );
+                if ( charset[0] )
+                    tmpstr1.Add( charset );
+                else
+                    tmpstr1.Add( __T("US-ASCII") );    // modified 15. June 1999 by JAG
+                tmpstr1.Add( __T("\r\n") );
+                tmpstr1.Add( __T("Content-Disposition: INLINE\r\n") );
+                tmpstr2    = __T("Content-Description: \"");
+                tmpstr2.Add( tmpstr3 );
+                tmpstr2.Add( __T("\"\r\n") );
             }
 
-            if ( *prevAttachType == EMBED_ATTACHMENT )
+            if ( *prevAttachType == EMBED_ATTACHMENT ) {
                 if ( attachType != EMBED_ATTACHMENT ) {
-                    localHdr.Add( "--" BOUNDARY_MARKER );
+                    localHdr.Add( __T("--") BOUNDARY_MARKER );
                     localHdr.Add( attachment_boundary, 21 );
-                    localHdr.Add( "--\r\n\r\n" );
+                    localHdr.Add( __T("--\r\n\r\n") );
                     decrementBoundary( attachment_boundary );
                 }
-            localHdr.Add( "--" BOUNDARY_MARKER );
+            }
+            localHdr.Add( __T("--") BOUNDARY_MARKER );
             localHdr.Add( attachment_boundary );
             localHdr.Add( tmpstr1 );
             localHdr.Add( tmpstr2 );
             boundaryPosted = TRUE;
+            tmpstr1.Free();
+            tmpstr2.Free();
         }
 
         *prevAttachType = attachType;
         if ( formattedContent )
-            if ( (localHdr.Length() > 2) && (*(localHdr.GetTail()-3) != '\n') )
-                localHdr.Add( "\r\n" );
+            if ( (localHdr.Length() > 2) && (*(localHdr.GetTail()-3) != __T('\n')) )
+                localHdr.Add( __T("\r\n") );
 
         // put the localHdr at the end of existing message...
         messageBuffer.Add(localHdr);
@@ -345,15 +399,23 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, char * attachment_bo
 
     //get the text of the file into a string buffer
     if ( !fileh.OpenThisFile(attachName) ) {
-        printMsg("error reading %s, aborting\n",attachName);
+        printMsg(__T("error reading %s, aborting\n"),attachName);
+        tmpstr2.Free();
+        localHdr.Free();
+        fileBuffer.Free();
+        shortNameBuf.Free();
         return(3);
     }
 
 #if SUPPORT_MULTIPART
     if ( startOffset ) {
         if ( !fileh.SetPosition( (LONG)startOffset, 0, FILE_BEGIN ) ) {
-            printMsg("error reading %s, aborting\n", attachName);
+            printMsg(__T("error reading %s, aborting\n"), attachName);
             fileh.Close();
+            tmpstr2.Free();
+            localHdr.Free();
+            fileBuffer.Free();
+            shortNameBuf.Free();
             return(5);
         }
     }
@@ -367,8 +429,12 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, char * attachment_bo
     fileBuffer.SetLength( attachSize );
 
     if ( !fileh.ReadThisFile(fileBuffer.Get(), attachSize, &dummy, NULL) ) {
-        printMsg("error reading %s, aborting\n", attachName);
+        printMsg(__T("error reading %s, aborting\n"), attachName);
         fileh.Close();
+        tmpstr2.Free();
+        localHdr.Free();
+        fileBuffer.Free();
+        shortNameBuf.Free();
         return(5);
     }
     fileh.Close();
@@ -407,11 +473,15 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, char * attachment_bo
         length = (int)(p - fileBuffer.Get());
     }
 
+    tmpstr2.Free();
+    localHdr.Free();
+    fileBuffer.Free();
+    shortNameBuf.Free();
     return(0);
 }
 
 
-int add_attachments ( Buf &messageBuffer, int buildSMTP, char * attachment_boundary, int nbrOfAttachments )
+int add_attachments ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary, int nbrOfAttachments )
 {
     int   retval;
     DWORD length;

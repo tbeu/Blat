@@ -118,19 +118,28 @@ public:
         return GetFileSize(hFile, NULL);
         }
     bool ReadThisFile(
-        LPVOID lpBuffer,
+        LPTSTR lpBuffer,
         DWORD nNumberOfBytesToRead,
         LPDWORD lpNumberOfBytesRead,
         LPOVERLAPPED lpOverlapped
         ) {
         if (hFile != INVALID_HANDLE_VALUE) {
-            if (::ReadFile(
-                hFile,
-                lpBuffer,
-                nNumberOfBytesToRead,
-                lpNumberOfBytesRead,
-                lpOverlapped))
+            if ( ::ReadFile(hFile,
+                            (LPVOID)lpBuffer,
+                            nNumberOfBytesToRead,
+                            lpNumberOfBytesRead,
+                            lpOverlapped) ) {
+#if defined(_UNICODE) || defined(UNICODE)
+                unsigned char * pBuffer = (unsigned char *)lpBuffer;
+                DWORD x;
+                x = *lpNumberOfBytesRead;
+                while ( x ) {
+                    --x;
+                    lpBuffer[x] = pBuffer[x];
+                    }
+#endif
                 return true;
+                }
             }
         return false;
         }

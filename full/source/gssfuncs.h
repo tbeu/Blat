@@ -26,24 +26,24 @@ The public capabilities of GssSession are:
   ~GssSession()
     destroys the object, cleaning up and unloading the library as necessary.
 
-  const char* MechtypeText(char *szBuffer = NULL);
+  LPTSTR MechtypeText(LPTSTR szBuffer = NULL);
     determines the name of the default GSSAPI security mechanism, which can only be done at runtime.
     if a buffer is passed into szBuffer, the string is copied into it (and returned).
     if no buffer is passed, it returns a pointer to memory from within the object... this memory can
       be considered valid until the object is destroyed, and the data within it is valid until
       this function is called again.
 
-  const char* StatusText(OM_uint32 major_status, OM_uint32 minor_status, char *szBuffer = NULL)
+  LPTSTR StatusText(OM_uint32 major_status, OM_uint32 minor_status, LPTSTR szBuffer = NULL)
     takes a GSSAPI major and minor status codes and converts them to a string representation.
     if a buffer is passed into szBuffer, the string is copied into it (and returned).
     if no buffer is passed, it returns a pointer to memory from within the object... this memory can
       be considered valid until the object is destroyed, and the data within it is valid until
       this function is called again.
 
-  void Authenticate(BOOL (*getline) (char*), BOOL (*putline) (char*),const char* username, const char* servicename, BOOL mutual, protLev lev)
+  void Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR),LPTSTR username, LPTSTR servicename, BOOL mutual, protLev lev)
     This function does the actual authentication to the server.
 
-    getline and putline are pointers to functions taking a char* and returning a BOOL.
+    getline and putline are pointers to functions taking a LPTSTR and returning a BOOL.
       These functions are used by Authenticate() to talk to the server.  getline overwrites its argument,
       while putline just reads from its argument.  Both return TRUE for success and FALSE for failure.
       These functions are a compromise to preserve the abstraction barrier between GssSession and the
@@ -73,10 +73,10 @@ The public capabilities of GssSession are:
     determines if the GssSession object is ready to encrypt or decrypt messages.  Only is TRUE after Authenticate()
     has succeeded and if the protection level isn't set to GSSAUTH_P_NONE
 
-  Buf Encrypt(const Buf& msg)
+  Buf Encrypt(Buf& msg)
     Takes an unencrypted buffer as input, and returns the encrypted buffer as output.
 
-  Buf Decrypt(const Buf& msg)
+  Buf Decrypt(Buf& msg)
     Takes an encrypted buffer as input, and returns the decrypted buffer as output.
 
 */
@@ -86,14 +86,14 @@ typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_IMPORT_NAME)         (OM_ui
 typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_DISPLAY_NAME)        (OM_uint32 FAR *, gss_name_t, gss_buffer_t, gss_OID FAR * );
 typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_RELEASE_BUFFER)      (OM_uint32 FAR *, gss_buffer_t );
 typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_RELEASE_NAME)        (OM_uint32 FAR *, gss_name_t );
-typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_INIT_SEC_CONTEXT)    (OM_uint32 FAR *, gss_cred_id_t, gss_ctx_id_t FAR *, gss_name_t, gss_OID, OM_uint32, OM_uint32, gss_channel_bindings_t, gss_buffer_desc FAR *, gss_OID FAR *, gss_buffer_desc FAR *, OM_uint32 FAR *, OM_uint32 FAR * );
+typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_INIT_SEC_CONTEXT)    (OM_uint32 FAR *, gss_cred_id_t, gss_ctx_id_t FAR *, gss_name_t, gss_OID, OM_uint32, OM_uint32, gss_channel_bindings_t, gss_buffer_t, gss_OID FAR *, gss_buffer_t, OM_uint32 FAR *, OM_uint32 FAR * );
 typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_UNWRAP)              (OM_uint32 FAR *, gss_ctx_id_t, gss_buffer_t, gss_buffer_t, int FAR *, gss_qop_t FAR * );
-typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_WRAP)                (OM_uint32 FAR *, gss_ctx_id_t, int, gss_qop_t, gss_buffer_t, int FAR *, gss_buffer_desc FAR * );
+typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_WRAP)                (OM_uint32 FAR *, gss_ctx_id_t, int, gss_qop_t, gss_buffer_t, int FAR *, gss_buffer_t );
 typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_WRAP_SIZE_LIMIT)     (OM_uint32 FAR *, gss_ctx_id_t, int, gss_qop_t, OM_uint32, OM_uint32 *);
-typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_DELETE_SEC_CONTEXT)  (OM_uint32 FAR *, gss_ctx_id_t FAR *, gss_buffer_desc FAR * );
-typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_DISPLAY_STATUS)      (OM_uint32 FAR *, OM_uint32, int, gss_OID, OM_uint32 FAR *, gss_buffer_desc FAR * );
+typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_DELETE_SEC_CONTEXT)  (OM_uint32 FAR *, gss_ctx_id_t FAR *, gss_buffer_t );
+typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_DISPLAY_STATUS)      (OM_uint32 FAR *, OM_uint32, int, gss_OID, OM_uint32 FAR *, gss_buffer_t );
 typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_INDICATE_MECHS)      (OM_uint32 FAR *, gss_OID_set FAR * );
-typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_OID_TO_STR)          (OM_uint32 FAR *, gss_OID, gss_buffer_desc FAR * );
+typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_OID_TO_STR)          (OM_uint32 FAR *, gss_OID, gss_buffer_t );
 typedef GSS_DLLIMP OM_uint32 (KRB5_CALLCONV * MY_GSS_RELEASE_OID_SET)     (OM_uint32 FAR *, gss_OID_set FAR * );
 
 class GssSession {
@@ -103,53 +103,53 @@ public:
     // Exceptions
     class GssException {
     private:
-        char errmsg[1024];
-        char statusmsg[1024];
-        BOOL statusmsginit;
-        char bothmsgs[2049];
+        _TCHAR errmsg[1024];
+        _TCHAR statusmsg[1024];
+        BOOL  statusmsginit;
+        _TCHAR bothmsgs[2049];
     protected:
         OM_uint32 major_status;
         OM_uint32 minor_status;
-        void clear() {strcpy(errmsg,"");}
-        void add(const char* toadd) {if (!toadd) return; strncat(errmsg,toadd,1023-strlen(errmsg)); errmsg[1023]=0;}
+        void clear() {_tcscpy(errmsg,__T(""));}
+        void add(LPTSTR toadd) {if (!toadd) return; _tcsncat(errmsg,toadd,1023-_tcslen(errmsg)); errmsg[1023]=0;}
     public:
-        GssException(const char* szMsg = "An exception has occurred in GssSession.") :
+        GssException(LPTSTR szMsg = __T("An exception has occurred in GssSession.")) :
           major_status(0), minor_status(0), statusmsginit(FALSE)
           { clear(); add(szMsg);}
 
-        const char* error_message() const {return errmsg;} // Error message
-        const char* status_message();  // Error message representation of major_status/minor_status pair
-        const char* message(); // Return both error_message() and status_message()
+        LPTSTR error_message() {return (LPTSTR)errmsg;} // Error message
+        LPTSTR status_message();  // Error message representation of major_status/minor_status pair
+        LPTSTR message(); // Return both error_message() and status_message()
 
     };
 
     class GssNoLibrary : public GssException {
     public:
-        GssNoLibrary() : GssException("The library GSSAPI32.DLL could not be found.")
+        GssNoLibrary() : GssException(__T("The library GSSAPI32.DLL could not be found."))
         {}
     };
 
     class GssBadFunction : public GssException {
     public:
-        GssBadFunction(const char* szFunc = "??") : GssException("Function ")
-        {add(szFunc); add(" unavailable from GSSAPI32.DLL.");}
+        GssBadFunction(LPTSTR szFunc = __T("??")) : GssException(__T("Function "))
+        {add(szFunc); add(__T(" unavailable from GSSAPI32.DLL."));}
     };
 
     class GssBadObject : public GssException {
     public:
-        GssBadObject(const char* szObject = "??") : GssException("Object ")
-        {add(szObject); add(" unavailable from GSSAPI32.DLL.");}
+        GssBadObject(LPTSTR szObject = __T("??")) : GssException(__T("Object "))
+        {add(szObject); add(__T(" unavailable from GSSAPI32.DLL."));}
     };
 
     class GssNonzeroStatus : public GssException {
     public:
-        GssNonzeroStatus(OM_uint32 maj=0, OM_uint32 min=0, const char* szMsg=NULL) : GssException()
+        GssNonzeroStatus(OM_uint32 maj=0, OM_uint32 min=0, LPTSTR szMsg=NULL) : GssException()
         {major_status = maj; minor_status = min; if (szMsg) {clear(); add(szMsg);}}
     };
 
     class GssBadSocket : public GssException {
     public:
-        GssBadSocket() : GssException("Could not output to the socket.")
+        GssBadSocket() : GssException(__T("Could not output to the socket."))
         {}
     };
 
@@ -181,7 +181,7 @@ private:
     gss_ctx_id_t context; // security context gained during Authenticate()
     enum {Nothing, LoadedLibrary, Initialized, GettingContext, Authenticated, ReadyToCommunicate} state;
 
-    static int const extract_server_retval(const char* str); // extract the 3-digit SMTP return code from the server's response
+    int extract_server_retval(LPTSTR str); // extract the 3-digit SMTP return code from the server's response
 
     // unwind and cleanup
     void Cleanup();
@@ -190,15 +190,15 @@ public:
 
     GssSession();
     ~GssSession();
-    const char* StatusText(OM_uint32 major_status, OM_uint32 minor_status, char *szBuffer = NULL);
-    const char* MechtypeText(char *szBuffer = NULL);
-    void Authenticate(BOOL (*getline) (char*), BOOL (*putline) (char*),const char* username, const char* servicename, BOOL mutual, protLev lev);
+    LPTSTR StatusText(OM_uint32 major_status, OM_uint32 minor_status, LPTSTR szBuffer = NULL);
+    LPTSTR MechtypeText(LPTSTR szBuffer = NULL);
+    void Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR),LPTSTR username, LPTSTR servicename, BOOL mutual, protLev lev);
     protLev GetProtectionLevel() const {return protection_level;};
 
     BOOL IsReadyToEncrypt() const {return ((state==ReadyToCommunicate) && (protection_level != GSSAUTH_P_NONE));};
 
-    Buf Encrypt(const Buf& msg);
-    Buf Decrypt(const Buf& msg);
+    Buf Encrypt(Buf& msg);
+    Buf Decrypt(Buf& msg);
 
 
 };

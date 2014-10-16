@@ -22,6 +22,7 @@
 
 #include <tchar.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "md5.h"
 
@@ -29,20 +30,20 @@
 extern "C" {
 #endif
 
-#define GET_UINT32(n,b,i)                       \
-{                                               \
-    (n) = ( (uint32) (b)[(i)    ]       )       \
-        | ( (uint32) (b)[(i) + 1] <<  8 )       \
-        | ( (uint32) (b)[(i) + 2] << 16 )       \
-        | ( (uint32) (b)[(i) + 3] << 24 );      \
+#define GET_UINT32(n,b,i)                               \
+{                                                       \
+    (n) = ( (uint32_t) ( (b)[(i)    ] & 0x0FF)       )  \
+        | ( (uint32_t) ( (b)[(i) + 1] & 0x0FF) <<  8 )  \
+        | ( (uint32_t) ( (b)[(i) + 2] & 0x0FF) << 16 )  \
+        | ( (uint32_t) ( (b)[(i) + 3] & 0x0FF) << 24 ); \
 }
 
-#define PUT_UINT32(n,b,i)                       \
-{                                               \
-    (b)[(i)    ] = (uint8) ( (n)       );       \
-    (b)[(i) + 1] = (uint8) ( (n) >>  8 );       \
-    (b)[(i) + 2] = (uint8) ( (n) >> 16 );       \
-    (b)[(i) + 3] = (uint8) ( (n) >> 24 );       \
+#define PUT_UINT32(n,b,i)                               \
+{                                                       \
+    (b)[(i)    ] = (_TUCHAR) (( (n)       ) & 0x0FF);   \
+    (b)[(i) + 1] = (_TUCHAR) (( (n) >>  8 ) & 0x0FF);   \
+    (b)[(i) + 2] = (_TUCHAR) (( (n) >> 16 ) & 0x0FF);   \
+    (b)[(i) + 3] = (_TUCHAR) (( (n) >> 24 ) & 0x0FF);   \
 }
 
 void _cdecl md5_starts( md5_context *ctx )
@@ -50,16 +51,16 @@ void _cdecl md5_starts( md5_context *ctx )
     ctx->total[0] = 0;
     ctx->total[1] = 0;
 
-    ctx->state[0] = 0x67452301;
-    ctx->state[1] = 0xEFCDAB89;
-    ctx->state[2] = 0x98BADCFE;
-    ctx->state[3] = 0x10325476;
+    ctx->state[0] = 0x67452301ul;
+    ctx->state[1] = 0xEFCDAB89ul;
+    ctx->state[2] = 0x98BADCFEul;
+    ctx->state[3] = 0x10325476ul;
 }
 
-void md5_process( md5_context *ctx, uint8 data[64] )
+void md5_process( md5_context *ctx, _TUCHAR data[64] )
 {
-    uint32 X[16];
-    uint32 A, B, C, D;
+    uint32_t X[16];
+    uint32_t A, B, C, D;
 
     GET_UINT32( X[0],  data,  0 );
     GET_UINT32( X[1],  data,  4 );
@@ -78,7 +79,7 @@ void md5_process( md5_context *ctx, uint8 data[64] )
     GET_UINT32( X[14], data, 56 );
     GET_UINT32( X[15], data, 60 );
 
-#define S(x,n) ((x << n) | ((x & 0xFFFFFFFF) >> (32 - n)))
+#define S(x,n) ((x << n) | ((x & 0xFFFFFFFFul) >> (32 - n)))
 
 #define P(a,b,c,d,k,s,t)                                \
 {                                                       \
@@ -92,85 +93,85 @@ void md5_process( md5_context *ctx, uint8 data[64] )
 
 #define F(x,y,z) (z ^ (x & (y ^ z)))
 
-    P( A, B, C, D,  0,  7, 0xD76AA478 );
-    P( D, A, B, C,  1, 12, 0xE8C7B756 );
-    P( C, D, A, B,  2, 17, 0x242070DB );
-    P( B, C, D, A,  3, 22, 0xC1BDCEEE );
-    P( A, B, C, D,  4,  7, 0xF57C0FAF );
-    P( D, A, B, C,  5, 12, 0x4787C62A );
-    P( C, D, A, B,  6, 17, 0xA8304613 );
-    P( B, C, D, A,  7, 22, 0xFD469501 );
-    P( A, B, C, D,  8,  7, 0x698098D8 );
-    P( D, A, B, C,  9, 12, 0x8B44F7AF );
-    P( C, D, A, B, 10, 17, 0xFFFF5BB1 );
-    P( B, C, D, A, 11, 22, 0x895CD7BE );
-    P( A, B, C, D, 12,  7, 0x6B901122 );
-    P( D, A, B, C, 13, 12, 0xFD987193 );
-    P( C, D, A, B, 14, 17, 0xA679438E );
-    P( B, C, D, A, 15, 22, 0x49B40821 );
+    P( A, B, C, D,  0,  7, 0xD76AA478ul );
+    P( D, A, B, C,  1, 12, 0xE8C7B756ul );
+    P( C, D, A, B,  2, 17, 0x242070DBul );
+    P( B, C, D, A,  3, 22, 0xC1BDCEEEul );
+    P( A, B, C, D,  4,  7, 0xF57C0FAFul );
+    P( D, A, B, C,  5, 12, 0x4787C62Aul );
+    P( C, D, A, B,  6, 17, 0xA8304613ul );
+    P( B, C, D, A,  7, 22, 0xFD469501ul );
+    P( A, B, C, D,  8,  7, 0x698098D8ul );
+    P( D, A, B, C,  9, 12, 0x8B44F7AFul );
+    P( C, D, A, B, 10, 17, 0xFFFF5BB1ul );
+    P( B, C, D, A, 11, 22, 0x895CD7BEul );
+    P( A, B, C, D, 12,  7, 0x6B901122ul );
+    P( D, A, B, C, 13, 12, 0xFD987193ul );
+    P( C, D, A, B, 14, 17, 0xA679438Eul );
+    P( B, C, D, A, 15, 22, 0x49B40821ul );
 
 #undef F
 
 #define F(x,y,z) (y ^ (z & (x ^ y)))
 
-    P( A, B, C, D,  1,  5, 0xF61E2562 );
-    P( D, A, B, C,  6,  9, 0xC040B340 );
-    P( C, D, A, B, 11, 14, 0x265E5A51 );
-    P( B, C, D, A,  0, 20, 0xE9B6C7AA );
-    P( A, B, C, D,  5,  5, 0xD62F105D );
-    P( D, A, B, C, 10,  9, 0x02441453 );
-    P( C, D, A, B, 15, 14, 0xD8A1E681 );
-    P( B, C, D, A,  4, 20, 0xE7D3FBC8 );
-    P( A, B, C, D,  9,  5, 0x21E1CDE6 );
-    P( D, A, B, C, 14,  9, 0xC33707D6 );
-    P( C, D, A, B,  3, 14, 0xF4D50D87 );
-    P( B, C, D, A,  8, 20, 0x455A14ED );
-    P( A, B, C, D, 13,  5, 0xA9E3E905 );
-    P( D, A, B, C,  2,  9, 0xFCEFA3F8 );
-    P( C, D, A, B,  7, 14, 0x676F02D9 );
-    P( B, C, D, A, 12, 20, 0x8D2A4C8A );
+    P( A, B, C, D,  1,  5, 0xF61E2562ul );
+    P( D, A, B, C,  6,  9, 0xC040B340ul );
+    P( C, D, A, B, 11, 14, 0x265E5A51ul );
+    P( B, C, D, A,  0, 20, 0xE9B6C7AAul );
+    P( A, B, C, D,  5,  5, 0xD62F105Dul );
+    P( D, A, B, C, 10,  9, 0x02441453ul );
+    P( C, D, A, B, 15, 14, 0xD8A1E681ul );
+    P( B, C, D, A,  4, 20, 0xE7D3FBC8ul );
+    P( A, B, C, D,  9,  5, 0x21E1CDE6ul );
+    P( D, A, B, C, 14,  9, 0xC33707D6ul );
+    P( C, D, A, B,  3, 14, 0xF4D50D87ul );
+    P( B, C, D, A,  8, 20, 0x455A14EDul );
+    P( A, B, C, D, 13,  5, 0xA9E3E905ul );
+    P( D, A, B, C,  2,  9, 0xFCEFA3F8ul );
+    P( C, D, A, B,  7, 14, 0x676F02D9ul );
+    P( B, C, D, A, 12, 20, 0x8D2A4C8Aul );
 
 #undef F
 
 #define F(x,y,z) (x ^ y ^ z)
 
-    P( A, B, C, D,  5,  4, 0xFFFA3942 );
-    P( D, A, B, C,  8, 11, 0x8771F681 );
-    P( C, D, A, B, 11, 16, 0x6D9D6122 );
-    P( B, C, D, A, 14, 23, 0xFDE5380C );
-    P( A, B, C, D,  1,  4, 0xA4BEEA44 );
-    P( D, A, B, C,  4, 11, 0x4BDECFA9 );
-    P( C, D, A, B,  7, 16, 0xF6BB4B60 );
-    P( B, C, D, A, 10, 23, 0xBEBFBC70 );
-    P( A, B, C, D, 13,  4, 0x289B7EC6 );
-    P( D, A, B, C,  0, 11, 0xEAA127FA );
-    P( C, D, A, B,  3, 16, 0xD4EF3085 );
-    P( B, C, D, A,  6, 23, 0x04881D05 );
-    P( A, B, C, D,  9,  4, 0xD9D4D039 );
-    P( D, A, B, C, 12, 11, 0xE6DB99E5 );
-    P( C, D, A, B, 15, 16, 0x1FA27CF8 );
-    P( B, C, D, A,  2, 23, 0xC4AC5665 );
+    P( A, B, C, D,  5,  4, 0xFFFA3942ul );
+    P( D, A, B, C,  8, 11, 0x8771F681ul );
+    P( C, D, A, B, 11, 16, 0x6D9D6122ul );
+    P( B, C, D, A, 14, 23, 0xFDE5380Cul );
+    P( A, B, C, D,  1,  4, 0xA4BEEA44ul );
+    P( D, A, B, C,  4, 11, 0x4BDECFA9ul );
+    P( C, D, A, B,  7, 16, 0xF6BB4B60ul );
+    P( B, C, D, A, 10, 23, 0xBEBFBC70ul );
+    P( A, B, C, D, 13,  4, 0x289B7EC6ul );
+    P( D, A, B, C,  0, 11, 0xEAA127FAul );
+    P( C, D, A, B,  3, 16, 0xD4EF3085ul );
+    P( B, C, D, A,  6, 23, 0x04881D05ul );
+    P( A, B, C, D,  9,  4, 0xD9D4D039ul );
+    P( D, A, B, C, 12, 11, 0xE6DB99E5ul );
+    P( C, D, A, B, 15, 16, 0x1FA27CF8ul );
+    P( B, C, D, A,  2, 23, 0xC4AC5665ul );
 
 #undef F
 
 #define F(x,y,z) (y ^ (x | ~z))
 
-    P( A, B, C, D,  0,  6, 0xF4292244 );
-    P( D, A, B, C,  7, 10, 0x432AFF97 );
-    P( C, D, A, B, 14, 15, 0xAB9423A7 );
-    P( B, C, D, A,  5, 21, 0xFC93A039 );
-    P( A, B, C, D, 12,  6, 0x655B59C3 );
-    P( D, A, B, C,  3, 10, 0x8F0CCC92 );
-    P( C, D, A, B, 10, 15, 0xFFEFF47D );
-    P( B, C, D, A,  1, 21, 0x85845DD1 );
-    P( A, B, C, D,  8,  6, 0x6FA87E4F );
-    P( D, A, B, C, 15, 10, 0xFE2CE6E0 );
-    P( C, D, A, B,  6, 15, 0xA3014314 );
-    P( B, C, D, A, 13, 21, 0x4E0811A1 );
-    P( A, B, C, D,  4,  6, 0xF7537E82 );
-    P( D, A, B, C, 11, 10, 0xBD3AF235 );
-    P( C, D, A, B,  2, 15, 0x2AD7D2BB );
-    P( B, C, D, A,  9, 21, 0xEB86D391 );
+    P( A, B, C, D,  0,  6, 0xF4292244ul );
+    P( D, A, B, C,  7, 10, 0x432AFF97ul );
+    P( C, D, A, B, 14, 15, 0xAB9423A7ul );
+    P( B, C, D, A,  5, 21, 0xFC93A039ul );
+    P( A, B, C, D, 12,  6, 0x655B59C3ul );
+    P( D, A, B, C,  3, 10, 0x8F0CCC92ul );
+    P( C, D, A, B, 10, 15, 0xFFEFF47Dul );
+    P( B, C, D, A,  1, 21, 0x85845DD1ul );
+    P( A, B, C, D,  8,  6, 0x6FA87E4Ful );
+    P( D, A, B, C, 15, 10, 0xFE2CE6E0ul );
+    P( C, D, A, B,  6, 15, 0xA3014314ul );
+    P( B, C, D, A, 13, 21, 0x4E0811A1ul );
+    P( A, B, C, D,  4,  6, 0xF7537E82ul );
+    P( D, A, B, C, 11, 10, 0xBD3AF235ul );
+    P( C, D, A, B,  2, 15, 0x2AD7D2BBul );
+    P( B, C, D, A,  9, 21, 0xEB86D391ul );
 
 #undef F
 
@@ -180,9 +181,9 @@ void md5_process( md5_context *ctx, uint8 data[64] )
     ctx->state[3] += D;
 }
 
-void _cdecl md5_update( md5_context *ctx, uint8 *input, uint32 length )
+void _cdecl md5_update( md5_context *ctx, _TUCHAR *input, uint32_t length )
 {
-    uint32 left, fill;
+    uint32_t left, fill;
 
     if( ! length ) return;
 
@@ -190,7 +191,7 @@ void _cdecl md5_update( md5_context *ctx, uint8 *input, uint32 length )
     fill = 64 - left;
 
     ctx->total[0] += length;
-    ctx->total[0] &= 0xFFFFFFFF;
+    ctx->total[0] &= 0xFFFFFFFFul;
 
     if( ctx->total[0] < length )
         ctx->total[1]++;
@@ -198,7 +199,7 @@ void _cdecl md5_update( md5_context *ctx, uint8 *input, uint32 length )
     if( left && length >= fill )
     {
         memcpy( (void *) (ctx->buffer + left),
-                (void *) input, fill );
+                (void *) input, fill*sizeof(_TCHAR) );
         md5_process( ctx, ctx->buffer );
         length -= fill;
         input  += fill;
@@ -215,11 +216,11 @@ void _cdecl md5_update( md5_context *ctx, uint8 *input, uint32 length )
     if( length )
     {
         memcpy( (void *) (ctx->buffer + left),
-                (void *) input, length );
+                (void *) input, length*sizeof(_TCHAR) );
     }
 }
 
-static uint8 md5_padding[64] =
+static _TUCHAR md5_padding[64] =
 {
  0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -227,11 +228,11 @@ static uint8 md5_padding[64] =
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-void _cdecl md5_finish( md5_context *ctx, uint8 digest[16] )
+void _cdecl md5_finish( md5_context *ctx, _TUCHAR digest[16] )
 {
-    uint32 last, padn;
-    uint32 high, low;
-    uint8 msglen[8];
+    uint32_t  last, padn;
+    uint32_t  high, low;
+    _TUCHAR msglen[8];
 
     high = ( ctx->total[0] >> 29 )
          | ( ctx->total[1] <<  3 );
@@ -261,70 +262,70 @@ void _cdecl md5_finish( md5_context *ctx, uint8 digest[16] )
  * these are the standard RFC 1321 test vectors
  */
 
-static char *msg[] =
+static LPTSTR msg[] =
 {
-    "",
-    "a",
-    "abc",
-    "message digest",
-    "abcdefghijklmnopqrstuvwxyz",
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
-    "12345678901234567890123456789012345678901234567890123456789012345678901234567890"
+    __T(""),
+    __T("a"),
+    __T("abc"),
+    __T("message digest"),
+    __T("abcdefghijklmnopqrstuvwxyz"),
+    __T("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"),
+    __T("12345678901234567890123456789012345678901234567890123456789012345678901234567890")
 };
 
-static char *val[] =
+static LPTSTR val[] =
 {
-    "d41d8cd98f00b204e9800998ecf8427e",
-    "0cc175b9c0f1b6a831c399e269772661",
-    "900150983cd24fb0d6963f7d28e17f72",
-    "f96b697d7cb7938d525a2f31aaf161d0",
-    "c3fcd3d76192e4007dfb496cca67e13b",
-    "d174ab98d277d9f5a5611c2c9f419d9f",
-    "57edf4a22be3c955ac49da2e2107b67a"
+    __T("d41d8cd98f00b204e9800998ecf8427e"),
+    __T("0cc175b9c0f1b6a831c399e269772661"),
+    __T("900150983cd24fb0d6963f7d28e17f72"),
+    __T("f96b697d7cb7938d525a2f31aaf161d0"),
+    __T("c3fcd3d76192e4007dfb496cca67e13b"),
+    __T("d174ab98d277d9f5a5611c2c9f419d9f"),
+    __T("57edf4a22be3c955ac49da2e2107b67a")
 };
 
-int main( int argc, char *argv[] )
+int _tmain( int argc, LPTSTR* argv )
 {
     FILE *f;
     int i, j;
-    char output[33];
+    _TCHAR output[33];
     md5_context ctx;
-    unsigned char buf[1000];
-    unsigned char md5sum[16];
+    _TUCHAR buf[1000];
+    _TUCHAR md5sum[16];
 
     if( argc < 2 )
     {
-        printf( "\n MD5 Validation Tests:\n\n" );
+        _tprintf( __T("\n MD5 Validation Tests:\n\n") );
 
         for( i = 0; i < 7; i++ )
         {
-            printf( " Test %d ", i + 1 );
+            _tprintf( __T(" Test %d "), i + 1 );
 
             md5_starts( &ctx );
-            md5_update( &ctx, (uint8 *) msg[i], strlen( msg[i] ) );
+            md5_update( &ctx, (_TUCHAR *) msg[i], _tcslen( msg[i] ) );
             md5_finish( &ctx, md5sum );
 
             for( j = 0; j < 16; j++ )
             {
-                sprintf( output + j * 2, "%02x", md5sum[j] );
+                _stprintf( output + j * 2, __T("%02x"), md5sum[j] );
             }
 
             if( memcmp( output, val[i], 32 ) )
             {
-                printf( "failed!\n" );
+                _tprintf( __T("failed!\n") );
                 return( 1 );
             }
 
-            printf( "passed.\n" );
+            _tprintf( __T("passed.\n") );
         }
 
-        printf( "\n" );
+        _tprintf( __T("\n") );
     }
     else
     {
-        if( ! ( f = fopen( argv[1], "rb" ) ) )
+        if( ! ( f = _tfopen( argv[1], __T("rb") ) ) )
         {
-            perror( "fopen" );
+            _tperror( __T("_tfopen") );
             return( 1 );
         }
 
@@ -339,10 +340,10 @@ int main( int argc, char *argv[] )
 
         for( j = 0; j < 16; j++ )
         {
-            printf( "%02x", md5sum[j] );
+            _tprintf( __T("%02x"), md5sum[j] );
         }
 
-        printf( "  %s\n", argv[1] );
+        _tprintf( __T("  %s\n"), argv[1] );
     }
 
     return( 0 );

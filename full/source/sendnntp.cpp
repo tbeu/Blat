@@ -15,70 +15,72 @@
 
 #if INCLUDE_NNTP
 
-extern int  open_server_socket( char *host, char *userPort, const char *defaultPort, char *portName );
+extern int  open_server_socket( LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR portName );
 extern int  get_server_response( Buf * responseStr, int * enhancedStatusCode );
-extern int  put_message_line( socktag sock, const char * line );
+extern int  put_message_line( socktag sock, LPTSTR line );
 extern int  finish_server_message( void );
 extern int  close_server_socket( void );
-extern void server_error (const char * message);
-extern int  send_edit_data (char * message, int expected_response, Buf * responseStr );
+extern void server_error( LPTSTR message);
+extern int  send_edit_data (LPTSTR message, int expected_response, Buf * responseStr );
 extern int  noftry();
 extern void build_headers( BLDHDRS &bldHdrs );
+extern void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
   #if SUPPORT_MULTIPART
-extern int  add_one_attachment( Buf &messageBuffer, int buildSMTP, char * attachment_boundary,
-                                DWORD startOffset, DWORD &length,
+extern int  add_one_attachment( Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
+                                DWORD startOffset, DWORD & length,
                                 int part, int totalparts, int attachNbr, int * prevAttachType );
-extern void getAttachmentInfo( int attachNbr, char * & attachName, DWORD & attachSize, int & attachType );
-extern void getMaxMsgSize( int buildSMTP, DWORD &length );
+extern void getAttachmentInfo( int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType );
+extern void getMaxMsgSize( int buildSMTP, DWORD & length );
   #endif
 extern int  add_message_body( Buf &messageBuffer, int msgBodySize, Buf &multipartHdrs, int buildSMTP,
-                              char * attachment_boundary, DWORD startOffset, int part, int attachNbr );
-extern int  add_attachments( Buf &messageBuffer, int buildSMTP, char * attachment_boundary, int nbrOfAttachments );
-extern void add_msg_boundary( Buf &messageBuffer, int buildSMTP, char * attachment_boundary );
+                              LPTSTR attachment_boundary, DWORD startOffset, int part, int attachNbr );
+extern int  add_attachments( Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary, int nbrOfAttachments );
+extern void add_msg_boundary( Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary );
 
-extern void printMsg(const char *p, ... );              // Added 23 Aug 2000 Craig Morrison
+extern void printMsg( LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
 
 extern socktag ServerSocket;
 
-extern char    NNTPHost[];
-extern char    NNTPPort[];
-extern Buf     groups;
+extern _TCHAR   NNTPHost[];
+extern _TCHAR   NNTPPort[];
+extern Buf      groups;
 
-extern char    AUTHLogin[];
-extern char    AUTHPassword[];
-extern char    mime;
-extern char    base64;
-extern char    uuencode;
-extern char    yEnc;
-extern char    boundaryPosted;
+extern Buf      AUTHLogin;
+extern Buf      AUTHPassword;
+extern _TCHAR   mime;
+extern _TCHAR   base64;
+extern _TCHAR   uuencode;
+extern _TCHAR   yEnc;
+extern _TCHAR   boundaryPosted;
 
-extern char    eightBitMimeSupported;
-extern char    eightBitMimeRequested;
-extern char    binaryMimeSupported;
+extern _TCHAR   eightBitMimeSupported;
+extern _TCHAR   eightBitMimeRequested;
+extern _TCHAR   binaryMimeSupported;
+extern _TCHAR   chunkingSupported;
 
   #if SUPPORT_MULTIPART
 extern unsigned long multipartSize;
-extern char          disableMPS;
+extern _TCHAR        disableMPS;
   #endif
 
-extern char    my_hostname[];
-extern char    my_hostname_wanted[];
+extern _TCHAR   my_hostname[];
+extern _TCHAR   my_hostname_wanted[];
 
-const char * defaultNNTPPort = "119";
+LPTSTR defaultNNTPPort = __T("119");
 
 
-static int authenticate_nntp_user(char* loginAuth, char* pwdAuth)
+static int authenticate_nntp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
 {
-    char out_data[MAXOUTLINE];
-    int  ret_temp;
-    int  enhancedStatusCode;
+    _TCHAR out_data[MAXOUTLINE];
+    int    ret_temp;
+    int    enhancedStatusCode;
 
     if ( loginAuth == NULL) {
-        server_error ("The NNTP server requires authentication,\n and you did not provide a userid.");
+        server_error (__T("The NNTP server requires authentication,\n and you did not provide a userid."));
         return(-2);
     }
 
-    sprintf(out_data, "AUTHINFO USER %s\r\n", loginAuth);
+    _stprintf(out_data, __T("AUTHINFO USER %s\r\n"), loginAuth);
     if ( put_message_line( ServerSocket, out_data ) ) {
         return(-1);
     }
@@ -89,18 +91,18 @@ static int authenticate_nntp_user(char* loginAuth, char* pwdAuth)
     }
 
     if ( ret_temp != 381 ) {
-        server_error ("The NNTP server did not accept Auth userid/pwd value.");
+        server_error (__T("The NNTP server did not accept Auth userid/pwd value."));
         return(-2);
     }
 
-    sprintf(out_data, "AUTHINFO PASS %s\r\n", pwdAuth);
+    _stprintf(out_data, __T("AUTHINFO PASS %s\r\n"), pwdAuth);
     if ( put_message_line( ServerSocket, out_data ) ) {
         return(-1);
     }
 
     ret_temp = get_server_response( NULL, &enhancedStatusCode );
     if ( ret_temp != 281 ) {
-        server_error ("The NNTP server did not accept Auth userid/pwd value.");
+        server_error (__T("The NNTP server did not accept Auth userid/pwd value."));
         return(-2);
     }
 
@@ -108,17 +110,17 @@ static int authenticate_nntp_user(char* loginAuth, char* pwdAuth)
 }
 
 
-static int say_hello ( char* loginAuth, char* pwdAuth )
+static int say_hello ( LPTSTR loginAuth, LPTSTR pwdAuth )
 {
     int ret_temp;
     int enhancedStatusCode;
 
-    if ( open_server_socket( NNTPHost, NNTPPort, defaultNNTPPort, "nntp" ) )
+    if ( open_server_socket( NNTPHost, NNTPPort, defaultNNTPPort, __T("nntp") ) )
         return(-1);
 
     ret_temp = get_server_response( NULL, &enhancedStatusCode );
     if ( ret_temp == 201 ) {
-        server_error ("NNTP server does not allow posting");
+        server_error (__T("NNTP server does not allow posting"));
         return(-1);
     }
 
@@ -128,7 +130,7 @@ static int say_hello ( char* loginAuth, char* pwdAuth )
             return (ret_temp);
     } else {
         if ( ret_temp != 200 ) {
-            server_error ("NNTP server error");
+            server_error (__T("NNTP server error"));
             return(-1);
         }
 
@@ -140,13 +142,13 @@ static int say_hello ( char* loginAuth, char* pwdAuth )
     }
 
     for ( ret_temp = 0; ret_temp != 200; ) {
-        if ( put_message_line( ServerSocket, "MODE READER\r\n" ) ) {
+        if ( put_message_line( ServerSocket, __T("MODE READER\r\n") ) ) {
             return(-1);
         }
 
         ret_temp = get_server_response( NULL, &enhancedStatusCode );
         if ( ret_temp == 201 ) {
-            server_error ("NNTP server does not allow posting");
+            server_error (__T("NNTP server does not allow posting"));
             return(-1);
         }
 
@@ -156,7 +158,7 @@ static int say_hello ( char* loginAuth, char* pwdAuth )
                 return (ret_temp);
         } else {
             if ( ret_temp != 200 ) {
-                server_error ("NNTP server error");
+                server_error (__T("NNTP server error"));
                 return(-1);
             }
         }
@@ -166,13 +168,13 @@ static int say_hello ( char* loginAuth, char* pwdAuth )
 }
 
 
-static int prepare_nntp_message( char* loginAuth, char* pwdAuth )
+static int prepare_nntp_message( LPTSTR loginAuth, LPTSTR pwdAuth )
 {
     int ret_temp;
     int enhancedStatusCode;
 
     for ( ret_temp = 0; ret_temp != 340; ) {
-        if ( put_message_line( ServerSocket, "POST\r\n" ) ) {
+        if ( put_message_line( ServerSocket, __T("POST\r\n") ) ) {
             return(-1);
         }
 
@@ -183,7 +185,7 @@ static int prepare_nntp_message( char* loginAuth, char* pwdAuth )
                 return (ret_temp);
         } else {
             if ( ret_temp != 340 ) {
-                server_error ("NNTP server error");
+                server_error (__T("NNTP server error"));
                 return(-1);
             }
         }
@@ -195,7 +197,7 @@ static int prepare_nntp_message( char* loginAuth, char* pwdAuth )
 
 int send_news( int msgBodySize,
                Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
-               char * attachment_boundary, char * multipartID,
+               LPTSTR attachment_boundary, LPTSTR multipartID,
                int nbrOfAttachments, DWORD totalsize )
 {
     Buf     messageBuffer;
@@ -205,8 +207,11 @@ int send_news( int msgBodySize,
     int     n_of_try;
     int     retcode=0;
     int     k;
-    char    saved8bitSupport;
+    _TCHAR  saved8bitSupport;
+    _TCHAR  savedChunkingSupport;
     BLDHDRS bldHdrs;
+    Buf     tmpBuf, tmpBuf2;
+    int     utf;
 
 
     if ( !NNTPHost[0] || !groups.Length() )
@@ -227,18 +232,19 @@ int send_news( int msgBodySize,
     bldHdrs.addBccHeader          = FALSE;
 
     saved8bitSupport = eightBitMimeSupported;
+    savedChunkingSupport = chunkingSupported;
 /*
     if ( (nbrOfAttachments && yEnc) || eightBitMimeRequested ) {
         eightBitMimeSupported = TRUE;
         eightBitMimeRequested = FALSE;
         binaryMimeSupported = TRUE;
-    }
-    else
+    } else
         binaryMimeSupported = FALSE;
  */
     eightBitMimeSupported = TRUE;
     eightBitMimeRequested = FALSE;
     binaryMimeSupported   = 2;
+    chunkingSupported     = FALSE;
 
 /*
     if ( yEnc ) {
@@ -247,9 +253,23 @@ int send_news( int msgBodySize,
     }
  */
 
+    tmpBuf.Clear();
+    tmpBuf2 = AUTHLogin;
+    utf = 0;
+    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
+    if ( utf )
+        AUTHLogin = tmpBuf;
+
+    tmpBuf.Clear();
+    tmpBuf2 = AUTHPassword;
+    utf = 0;
+    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
+    if ( utf )
+        AUTHPassword = tmpBuf;
+
     if ( !my_hostname[0] ) {
         // Do a quick open/close to get the local hostname before building headers.
-        open_server_socket( NNTPHost, NNTPPort, defaultNNTPPort, "nntp" );
+        open_server_socket( NNTPHost, NNTPPort, defaultNNTPPort, __T("nntp") );
         close_server_socket();
     }
 
@@ -264,9 +284,15 @@ int send_news( int msgBodySize,
     getMaxMsgSize( FALSE, msgSize );
 
     if ( disableMPS && (totalsize > msgSize) ) {
-        printMsg("Message is too big to send.  Please try a smaller message.\n" );
+        printMsg(__T("Message is too big to send.  Please try a smaller message.\n") );
         finish_server_message();
         close_server_socket();
+        tmpBuf2.Free();
+        tmpBuf.Free();
+        header.Free();
+        varHeaders.Free();
+        multipartHdrs.Free();
+        messageBuffer.Free();
         return 14;
     }
 
@@ -279,12 +305,12 @@ int send_news( int msgBodySize,
         int     attachNbr;
         DWORD   attachSize;
         int     attachType, prevAttachType;
-        char *  attachName;
+        LPTSTR  attachName;
         int     thisPart, partsCount;
         DWORD   startOffset;
 
         if ( totalParts > 1 )
-            printMsg("Sending %u parts for this message.\n", totalParts );
+            printMsg(__T("Sending %u parts for this message.\n"), totalParts );
 
         if ( !yEnc ) {
             mime     = FALSE;
@@ -294,7 +320,7 @@ int send_news( int msgBodySize,
 
         n_of_try = noftry();
         for ( k = 1; k <= n_of_try || n_of_try == -1; k++ ) {
-            retcode = say_hello( AUTHLogin, AUTHPassword );
+            retcode = say_hello( AUTHLogin.Get(), AUTHPassword.Get() );
             if ( (retcode == 0) || (retcode == -2) )
                 break;
         }
@@ -327,9 +353,15 @@ int send_news( int msgBodySize,
 
                 retcode = add_message_body( messageBuffer, msgBodySize, multipartHdrs, FALSE,
                                             attachment_boundary, startOffset, thisPart, attachNbr );
-                if ( retcode )
+                if ( retcode ) {
+                    tmpBuf2.Free();
+                    tmpBuf.Free();
+                    header.Free();
+                    varHeaders.Free();
+                    multipartHdrs.Free();
+                    messageBuffer.Free();
                     return retcode;
-
+                }
                 msgBodySize = 0;    // Do not include the body in subsequent messages.
 
                 length = msgSize;
@@ -343,18 +375,24 @@ int send_news( int msgBodySize,
                     add_msg_boundary( messageBuffer, FALSE, attachment_boundary );
 
                 multipartHdrs.Clear();
-                if ( retcode )
+                if ( retcode ) {
+                    tmpBuf2.Free();
+                    tmpBuf.Free();
+                    header.Free();
+                    varHeaders.Free();
+                    multipartHdrs.Free();
+                    messageBuffer.Free();
                     return retcode;
-
+                }
                 // send the message to the NNTP server!
                 n_of_try = noftry();
                 for ( k=1; k<=n_of_try || n_of_try == -1; k++ ) {
                     if ( n_of_try > 1 )
-                        printMsg("Try number %d of %d.\n", k, n_of_try);
+                        printMsg(__T("Try number %d of %d.\n"), k, n_of_try);
 
                     if ( k > 1 ) Sleep(15000);
 
-                    retcode = prepare_nntp_message( AUTHLogin, AUTHPassword );
+                    retcode = prepare_nntp_message( AUTHLogin.Get(), AUTHPassword.Get() );
                     if ( 0 == retcode ) {
                         retcode = send_edit_data( messageBuffer.Get(), 240, NULL );
                         if ( 0 == retcode ) {
@@ -363,7 +401,7 @@ int send_news( int msgBodySize,
                         }
                     } else if ( -2 == retcode ) {
                         // This wasn't a connection error.  The server actively denied our connection.
-                        // Stop trying to send mail.
+                        // Stop trying to send messages.
                         n_of_try = 1;
                         k = 2;
                     }
@@ -394,6 +432,13 @@ int send_news( int msgBodySize,
                                     attachment_boundary, 0, 0, 0 );
         if ( retcode ) {
             eightBitMimeSupported = saved8bitSupport;
+            chunkingSupported = savedChunkingSupport;
+            tmpBuf2.Free();
+            tmpBuf.Free();
+            header.Free();
+            varHeaders.Free();
+            multipartHdrs.Free();
+            messageBuffer.Free();
             return retcode;
         }
 
@@ -402,20 +447,26 @@ int send_news( int msgBodySize,
 
         eightBitMimeSupported = saved8bitSupport;
 
-        if ( retcode )
+        if ( retcode ) {
+            tmpBuf2.Free();
+            tmpBuf.Free();
+            header.Free();
+            varHeaders.Free();
+            multipartHdrs.Free();
+            messageBuffer.Free();
             return retcode;
-
+        }
         // send the message to the NNTP server!
         n_of_try = noftry();
         for ( k=1; k<=n_of_try || n_of_try == -1; k++ ) {
             if ( n_of_try > 1 )
-                printMsg("Try number %d of %d.\n", k, n_of_try);
+                printMsg(__T("Try number %d of %d.\n"), k, n_of_try);
 
             if ( k > 1 ) Sleep(15000);
 
-            retcode = say_hello( AUTHLogin, AUTHPassword );
+            retcode = say_hello( AUTHLogin.Get(), AUTHPassword.Get() );
             if ( 0 == retcode )
-                retcode = prepare_nntp_message( AUTHLogin, AUTHPassword );
+                retcode = prepare_nntp_message( AUTHLogin.Get(), AUTHPassword.Get() );
 
             if ( 0 == retcode ) {
                 retcode = send_edit_data( messageBuffer.Get(), 240, NULL );
@@ -433,6 +484,13 @@ int send_news( int msgBodySize,
             close_server_socket();
         }
     }
+
+    tmpBuf2.Free();
+    tmpBuf.Free();
+    header.Free();
+    varHeaders.Free();
+    multipartHdrs.Free();
+    messageBuffer.Free();
 
     return(retcode);
 }

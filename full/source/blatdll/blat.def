@@ -1,12 +1,13 @@
 ; BLAT.def : Declares the module parameters for the DLL.
 
-LIBRARY      "BLAT"
-DESCRIPTION  "BLAT DLL Windows Dynamic Link Library"
-
 EXPORTS
-  Send @1
-  Blat @3
-  SetPrintFunc @2
-  cSend @4
+  SendW @1
+  SendA @2
+  BlatW @3
+  BlatA @4
+  SetPrintFuncW @5
+  SetPrintFuncA @6
+  cSendW @7
+  cSendA @8
 
 ; Explicit exports can go here

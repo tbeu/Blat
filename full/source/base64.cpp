@@ -12,21 +12,21 @@
 
 // MIME base64 Content-Transfer-Encoding
 
-#define PADCHAR '='
+#define PADCHAR __T('=')
 
-const char * base64table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+LPTSTR base64table = __T("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
 
 
-static unsigned char base64_dec( const unsigned char Ch )
+static _TUCHAR base64_dec( _TUCHAR Ch )
 {
     if ( Ch == PADCHAR )
         return 0;
 
     if ( Ch ) {
-        char * p = (char *)strchr( base64table, Ch );
+        LPTSTR p = (LPTSTR)_tcschr( base64table, Ch );
 
         if ( p )
-            return (unsigned char)( p - base64table );
+            return (_TUCHAR)(p - base64table);
     }
 
     // Any other character returns 0xFF since the character would be invalid.
@@ -44,64 +44,89 @@ static unsigned char base64_dec( const unsigned char Ch )
 //   assumes every input byte might be the last.  In this case, the
 //   malformed portion will be treated as representing zero.
 //
-int base64_decode(const unsigned char *in, char *out)
+int base64_decode( Buf & in, Buf & out )
 {
-    char        * outstart = out;
-    unsigned char cnew, cold;
-    int           b;
+    _TUCHAR * pIn;
+    _TUCHAR   cnew, cold;
+    int       b;
 
+    if ( !in.Get() )
+        return 0;
+
+    pIn = (_TUCHAR *)in.Get();
+    out.Clear();
     cold = 0;   // Fix a compiler warning.
-    for ( b = 0; (*in && (*in != PADCHAR)); in++ ) {
-        if ( (*in == '\r') || (*in == '\n') )
+    for ( b = 0; *pIn && (*pIn != PADCHAR); pIn++ ) {
+        if ( (*pIn == __T('\r')) || (*pIn == __T('\n')) )
             continue;
 
-        cnew = base64_dec( *in );
+        cnew = base64_dec( *pIn );
         if ( cnew == 0xFF ) {
             if (b)
-                *out++ = (char)(cold << (2*b));
+                out.Add( (_TCHAR)((cold << (2*b)) & 0xFF) );
             break;
         }
 
         if (b)
-            *out++ = (char)((cold << (2*b)) + (cnew >> (6-2*b)));
+            out.Add( (_TCHAR)(((cold << (2*b)) + (cnew >> (6-2*b)))& 0xFF) );
 
         cold = cnew;
         if (++b == 4)
             b = 0;
     }
-    *out = 0;
-    return (int)(out-outstart);
+    *out.GetTail() = __T('\0');
+    return (int)out.Length();
+}
+
+int base64_decode( _TUCHAR * in, LPTSTR out )
+{
+    Buf bufIn;
+    Buf bufOut;
+    int len;
+
+    if ( !in || !out )
+        return 0;
+
+    bufIn = (LPTSTR)in;
+    len = base64_decode( bufIn, bufOut );
+    if ( bufOut.Length() )
+        _tcscpy( out, bufOut.Get() );
+
+    return len;
 }
 
 
-#define B64_Mask(Ch) (char) base64table[ (Ch) & 0x3F ]
+#define B64_Mask(Ch) (_TUCHAR) base64table[ (Ch) & 0x3F ]
 
 void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad )
 {
-    DWORD           length;
-    DWORD           tempLength;
-    unsigned char * in;
+    size_t          length;
+    size_t          tempLength;
+    _TUCHAR *       in;
     int             bytes_out;
-    char            tmpstr[80];
+    _TCHAR          tmpstr[80];
     unsigned long   bitStream;
 
-    in     = (unsigned char *) source.Get();
+    in = (_TUCHAR *) source.Get();
+    if ( !in )
+        return;
+
     length = source.Length();
     tempLength = (((length *8)+5)/6);
     tempLength += (((tempLength + 71) / 72) * 2) + 1;
     out.Alloc( out.Length() + tempLength );
 
     // Ensure the data is padded with NULL to work the for() loop.
-    in[length] = '\0';
+    in[length] = __T('\0');
 
-    tmpstr[ 72 ] = '\0';
+    tmpstr[ 72 ] = __T('\0');
 
     for ( bytes_out = 0; length > 2; length -= 3, in += 3 ) {
         if ( bytes_out == 72 ) {
             out.Add( tmpstr );
             bytes_out = 0;
             if ( inclCrLf )
-                out.Add( "\r\n" );
+                out.Add( __T("\r\n") );
         }
 
         bitStream = (in[0] << 16) | (in[1] << 8) | in[2];
@@ -112,7 +137,7 @@ void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad )
     }
 
     /* If length == 0, then we're done.
-     * If length == 1 at this point, then the in[0] is the last byte of the file, and in[1] is a binary zero.
+     * If length == 1 at this point, then in[0] is the last byte of the string/file, and in[1] is a binary zero.
      * If length == 2 at this point, then in[0] and in[1] are the last bytes, while in[2] is a binary zero.
      * In all cases, in[2] is not needed.
      */
@@ -120,7 +145,7 @@ void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad )
         if ( bytes_out == 72 ) {
             out.Add( tmpstr );
             if ( inclCrLf )
-                out.Add( "\r\n" );
+                out.Add( __T("\r\n") );
 
             bytes_out = 0;
         }
@@ -131,33 +156,34 @@ void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad )
 
         if ( length == 2 )
             tmpstr[ bytes_out++ ] = B64_Mask( bitStream << 2 );
-        else
+        else {
             if ( inclPad )
                 tmpstr[ bytes_out++ ] = PADCHAR;
+        }
 
         if ( inclPad )
             tmpstr[ bytes_out++ ] = PADCHAR;
     }
 
     if ( bytes_out ) {
-        tmpstr[ bytes_out ] = '\0';
+        tmpstr[ bytes_out ] = __T('\0');
         out.Add( tmpstr );
         if ( inclCrLf )
-            out.Add( "\r\n" );
+            out.Add( __T("\r\n") );
     }
 }
 
 
-void base64_encode(const unsigned char *in, int length, char *out, int inclCrLf)
+void base64_encode(_TUCHAR * in, int length, LPTSTR out, int inclCrLf)
 {
     Buf inBuf;
     Buf outBuf;
 
-    *out = 0;
+    *out = __T('\0');
     if ( !length )
         return;
 
-    inBuf.Add( (const char *)in, length );
+    inBuf.Add( (LPTSTR)in, length );
     base64_encode( inBuf, outBuf, inclCrLf, TRUE );
-    strcpy( out, outBuf.Get() );
+    _tcscpy( out, outBuf.Get() );
 }

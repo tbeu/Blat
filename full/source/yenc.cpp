@@ -14,7 +14,7 @@
 
 #if SUPPORT_YENC
 /*
-unsigned long crcTable[256] = {
+unsigned long crc_32_table[256] = {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
     0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91,
     0x1db71064, 0x6ab020f2, 0xf3b97148, 0x84be41de, 0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7,
@@ -49,7 +49,7 @@ unsigned long crcTable[256] = {
     0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d };
 */
 
-extern LPCSTR GetNameWithoutPath(LPCSTR lpFn);
+extern void fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewrap );
 
 // yEnc encoding has been provided via the web.
 // The source code example for the yEncoder can be found at http://www.yenc.org/
@@ -61,7 +61,7 @@ extern LPCSTR GetNameWithoutPath(LPCSTR lpFn);
 //
 // The function is writing a binary source file (source) to the buffer (out).
 // The original filename is "filename"
-// "fulllen" is the size of the entire sourcefile
+// "full_len" is the size of the entire sourcefile
 //
 // For singlepart messages 'part' and 'lastpart' are set to zero.
 //
@@ -71,49 +71,42 @@ extern LPCSTR GetNameWithoutPath(LPCSTR lpFn);
 //
 #define YENC_LINELENGTH     128     // Must be 128 or 256, per the yEnc spec.
 
-#define CRC_MASK            0xEDB88320
+static unsigned long crc_32_table[] = { 0x00000000l, 0x1DB71064l, 0x3B6E20C8l, 0x26D930ACl,
+                                        0x76DC4190l, 0x6B6B51F4l, 0x4DB26158l, 0x5005713Cl,
+                                        0xEDB88320l, 0xF00F9344l, 0xD6D6A3E8l, 0xCB61B38Cl,
+                                        0x9B64C2B0l, 0x86D3D2D4l, 0xA00AE278l, 0xBDBDF21Cl,
+                                      };
 
-void yEncode( Buf & source, Buf & out, char * filename, long fulllen,
-              int part, int lastpart, unsigned long &full_crc_val )
+void yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len,
+              int part, int lastpart, unsigned long & full_crc_val )
 {
     DWORD           filesize;
     DWORD           bufsize;
     int             deslen;
-    unsigned char   c;
+    _TUCHAR         c;
     static DWORD    pbegin, pend;
     unsigned long   partial_crc_val;
-    char            tmpstr[0x300];
-    unsigned char * pSrc;
-    unsigned int    x, y;
-    unsigned long   crcTable[256];
+    _TCHAR          tmpstr[0x300];
+    _TUCHAR       * pSrc;
+    Buf             shortNameBuf;
 
 
-    // Build the CRC table so the file size can be reduced by 1K.
-    for ( x = 0; x < 256; x++ ) {
-        c = (unsigned char)x;
-        partial_crc_val = 0;
-        for ( y = 0; y < 8; y++ ) {
-            if ( ((unsigned char)partial_crc_val ^ c) & 1 )
-                partial_crc_val = (partial_crc_val >>1) ^ CRC_MASK;
-            else
-                partial_crc_val >>= 1;
+    if ( out.Get() && (out.Length() >= 3) ) {
+        if ( memcmp( (out.GetTail()-3), __T("\n\r\n"), 3*sizeof(_TCHAR) ) != 0 )
+            out.Add( __T("\r\n") );
+    } else
+        out.Add( __T("\r\n") );
 
-            c >>= 1;
-        }
-        crcTable[x] = partial_crc_val;
-    }
-
-    if ( memcmp( (out.GetTail()-3), "\n\r\n", 3 ) != 0 )
-        out.Add( "\r\n" );
-
-    bufsize = filesize = source.Length();
-    pSrc    = (unsigned char *) source.Get();
+    bufsize = filesize = (DWORD)source.Length();
+    pSrc    = (_TUCHAR *) source.Get();
     out.Alloc( out.Length() + (filesize*2) + 4 );
 
+    fixupFileName( filename, shortNameBuf, 0, FALSE );
+
     if ( !part || ((part == 1) && (lastpart == 1)) ) {  // SinglePart message
-        full_crc_val = (unsigned long)(-1);
-        sprintf( tmpstr, "=ybegin line=%ld size=%ld name=%s\r\n",
-                         YENC_LINELENGTH, filesize, GetNameWithoutPath(filename) );
+        full_crc_val = (unsigned long)(-1L);
+        _stprintf( tmpstr, __T("=ybegin line=%ld size=%ld name=%s\r\n"),
+                           YENC_LINELENGTH, filesize, shortNameBuf.Get() );
     } else {            // Multipart message
         if ( part == 1 ) {
             pbegin = 1;
@@ -123,54 +116,59 @@ void yEncode( Buf & source, Buf & out, char * filename, long fulllen,
             pend   = pend + filesize;
         }
 
-        sprintf( tmpstr, "=ybegin part=%d total=%d line=%ld size=%ld name=%s\r\n" \
-                         "=ypart begin=%ld end=%ld\r\n",
-                         part, lastpart, YENC_LINELENGTH, fulllen, GetNameWithoutPath(filename),
-                         pbegin, pend);
+        _stprintf( tmpstr, __T("=ybegin part=%d total=%d line=%ld size=%ld name=%s\r\n") \
+                           __T("=ypart begin=%ld end=%ld\r\n"),
+                           part, lastpart, YENC_LINELENGTH, full_len, shortNameBuf.Get(),
+                           pbegin, pend);
     }
     out.Add( tmpstr );
 
-    partial_crc_val = (unsigned long)(-1);
+    partial_crc_val = (unsigned long)(-1L);
     deslen = 0;
 
     while ( bufsize ) {
         bufsize--;
         c = *pSrc++;  // Get a source byte
-        partial_crc_val = (unsigned long)(crcTable[(unsigned char)(partial_crc_val ^ c)] ^ (partial_crc_val >> 8L));
-        full_crc_val    = (unsigned long)(crcTable[(unsigned char)(full_crc_val    ^ c)] ^ (full_crc_val    >> 8L));
+        c &= 0xFF;
+
+        partial_crc_val = (partial_crc_val >> 4) ^ crc_32_table[((partial_crc_val >> 0) ^ (c >> 0)) & 0x0F];
+        partial_crc_val = (partial_crc_val >> 4) ^ crc_32_table[((partial_crc_val >> 0) ^ (c >> 4)) & 0x0F];
+
+        full_crc_val    = (full_crc_val    >> 4) ^ crc_32_table[((full_crc_val    >> 0) ^ (c >> 0)) & 0x0F];
+        full_crc_val    = (full_crc_val    >> 4) ^ crc_32_table[((full_crc_val    >> 0) ^ (c >> 4)) & 0x0F];
 
         c += 42;        // and add the secret number
         if ( !c ||
-             (c == '\t') ||
-             (c == '\r') ||
-             (c == '\n') ||
-             (c == '=' ) ) {
-            tmpstr[ deslen++ ] = '=';   // Escape the next byte
+             (c == __T('\t')) ||
+             (c == __T('\r')) ||
+             (c == __T('\n')) ||
+             (c == __T('=' )) ) {
+            tmpstr[ deslen++ ] = __T('=');   // Escape the next byte
             c += 64;
         }
         tmpstr[ deslen++ ] = c;
 
         if ( (deslen >= YENC_LINELENGTH) || !bufsize ) {    // Block full - or end of file
-            tmpstr[ deslen++ ] = '\r';
-            tmpstr[ deslen++ ] = '\n';
-            tmpstr[ deslen++ ] = '\0';
+            tmpstr[ deslen++ ] = __T('\r');
+            tmpstr[ deslen++ ] = __T('\n');
+            tmpstr[ deslen++ ] = __T('\0');
             out.Add( tmpstr );
             deslen = 0;
         }
     }   // end of while ( bufsize )
 
-    partial_crc_val ^= (unsigned long)(-1);
+    partial_crc_val ^= (unsigned long)(-1L);
     if ( !part || ((part == 1) && (lastpart == 1)) )    // Single part message
-        sprintf( tmpstr, "=yend size=%ld crc32=%08lX\r\n", filesize, partial_crc_val );
+        _stprintf( tmpstr, __T("=yend size=%ld crc32=%08lX\r\n"), filesize, partial_crc_val );
     else {          // Multipart message
-        sprintf( tmpstr, "=yend size=%ld part=%d pcrc32=%08lX", filesize, part, partial_crc_val );
+        _stprintf( tmpstr, __T("=yend size=%ld part=%d pcrc32=%08lX"), filesize, part, partial_crc_val );
         out.Add( tmpstr );
-        tmpstr[0]= '\0';
+        tmpstr[0]= __T('\0');
 
         if ( part == lastpart ) {
-            sprintf( tmpstr," crc32=%08lX", full_crc_val ^ (unsigned long)(-1) );
+            _stprintf( tmpstr, __T(" crc32=%08lX"), full_crc_val ^ (unsigned long)(-1L) );
         }
-        strcat( tmpstr, "\r\n" );
+        _tcscat( tmpstr, __T("\r\n") );
     }
     out.Add( tmpstr );
 }

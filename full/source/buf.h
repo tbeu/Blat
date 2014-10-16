@@ -23,23 +23,68 @@
 
 class Buf {
 private:
-    char *buffer;
-    unsigned buflen;
-    unsigned bufsize;
+    LPTSTR   buffer;
+    size_t   buflen;
+    size_t   bufsize;
 
-    void SetStringLen(const char *p, int len) {
+    void SetStringLen(LPCTSTR p, size_t len) {
+        Free();
         buflen = len;
         bufsize = buflen + 1;
-        buffer = new char[bufsize];
-        memcpy(buffer, p, len);
-        buffer[buflen] = 0;
+        buffer = new _TCHAR[bufsize];
+        if (p) {
+            memcpy(buffer, p, len*sizeof(_TCHAR));
+            buffer[buflen] = __T('\0');
+            }
+        else
+            memset(buffer, 0, bufsize*sizeof(_TCHAR));
         }
-    void SetString(const char *p) {
-        buflen = lstrlen(p);
+    void SetString(LPCTSTR p) {
+        Free();
+        if (p)
+            buflen = _tcslen(p);
+        else
+            buflen = 0;
         bufsize = buflen + 1;
-        buffer = new char[bufsize];
-        strcpy(buffer, p);
+        buffer = new _TCHAR[bufsize];
+        if (p)
+            _tcscpy(buffer, p);
+        else
+            buffer[0] = __T('\0');
         }
+#if defined(_UNICODE) || defined(UNICODE)
+    void SetStringLen(const char * p, size_t len) {
+        Free();
+        buflen = len;
+        bufsize = buflen + 1;
+        buffer = new _TCHAR[bufsize];
+        if (p) {
+            while( len ) {
+                --len;
+                buffer[len]= p[len];
+                }
+            buffer[buflen] = __T('\0');
+            }
+        else
+            memset(buffer, 0, bufsize*sizeof(_TCHAR));
+        }
+    void SetString(const char * p) {
+        size_t len;
+        Free();
+        if (p) {
+            buflen = strlen(p);
+            bufsize = buflen + 1;
+            buffer = new _TCHAR[bufsize];
+            len = buflen;
+            while( len ) {
+                --len;
+                buffer[len]= p[len];
+                }
+            buffer[buflen] = __T('\0');;
+            }
+        }
+#endif
+
 public:
     ~Buf() {
         if (buffer)
@@ -50,21 +95,32 @@ public:
         buflen = 0;
         bufsize = 0;
         }
-    Buf(const char *p) {
+    Buf(LPCTSTR p) {
         SetString(p);
         }
-    Buf(const char *p, int len) {
+    Buf(LPCTSTR p, size_t len) {
         SetStringLen(p, len);
         }
-    Buf(unsigned alloclen) {
-        buflen = 0;
+#if defined(_UNICODE) || defined(UNICODE)
+    Buf(const char * p) {
+        SetString(p);
+        }
+    Buf(const char * p, size_t len) {
+        SetStringLen(p, len);
+        }
+#endif
+    Buf(size_t alloclen) {
+        Free();
         bufsize = alloclen;
-        buffer = new char[bufsize];
+        buffer = new _TCHAR[bufsize];
         }
     void Clear() {
         buflen = 0;
-        if (bufsize)
-            buffer[0] = 0;
+        if (!bufsize) {
+            buffer = new _TCHAR[1];
+            bufsize = 1;
+        }
+        buffer[0] = __T('\0');
         }
     void Free() {
         buflen = 0;
@@ -77,9 +133,9 @@ public:
     void Clone(const Buf &buf) {
         if (buf.bufsize) {
             Alloc(buf.buflen + 1);
-            memcpy(buffer, buf.buffer, buf.buflen);
+            memcpy(buffer, buf.buffer, buf.buflen*sizeof(_TCHAR));
             buflen = buf.buflen;
-            buffer[buflen] = 0;
+            buffer[buflen] = __T('\0');
             }
         else
             Free();
@@ -101,63 +157,92 @@ public:
         buf.bufsize = 0;
         buf.buflen = 0;
         }
-    void Alloc(unsigned size) {
+    void Alloc(size_t size) {
         if (size > bufsize) {
             bufsize = (size + (Buf_Increment - 1)) & (-1 ^ (Buf_Increment - 1));// 0x7FFFE000;
-            char *newbuffer = new char[bufsize];
+            LPTSTR newbuffer = new _TCHAR[bufsize];
             if (buffer) {
-                memcpy(newbuffer, buffer, buflen + 1);
+                memcpy(newbuffer, buffer, (buflen + 1)*sizeof(_TCHAR));
                 delete [] buffer;
                 }
             buffer = newbuffer;
             }
         }
-    void AllocExact(unsigned size) {
+    void AllocExact(size_t size) {
         if (size > bufsize) {
             bufsize = size;
-            char *newbuffer = new char[bufsize];
+            LPTSTR newbuffer = new _TCHAR[bufsize];
             if (buffer) {
-                memcpy(newbuffer, buffer, buflen + 1);
+                memcpy(newbuffer, buffer, (buflen + 1)*sizeof(_TCHAR));
                 delete [] buffer;
                 }
             buffer = newbuffer;
             }
         }
-    void Add(const char *text, int textlen) {
-        int newlen = buflen + textlen;
-        Alloc(newlen + 1);
-        memcpy(buffer + buflen, text, textlen);
-        buffer[newlen] = 0;
-        buflen = newlen;
+    void Add(LPCTSTR text, size_t textlen) {
+        if (text) {
+            size_t newlen = buflen + textlen;
+            Alloc(newlen + 1);
+            if (textlen)
+                memcpy(buffer + buflen, text, textlen*sizeof(_TCHAR));
+            buffer[newlen] = __T('\0');
+            buflen = newlen;
+            }
         }
-    void Add(const char *text) {
-        Add(text, lstrlen(text));
+    void Add(LPCTSTR text) {
+        if (text)
+            Add(text, _tcslen(text));
+        else
+            Add(__T(""), 0);
         }
-    void Add(char ch) {
-        Add(&ch, sizeof(char));
+    void Add(_TCHAR ch) {
+        Add(&ch, 1);
         }
     void Add(const Buf &buf) {
         Add(buf.buffer, buf.buflen);
         }
-    char *Get() {
+#if defined(_UNICODE) || defined(UNICODE)
+    void Add(const char * text, size_t textlen) {
+        if (text && textlen) {
+            size_t newlen = buflen + textlen;
+            Alloc(newlen + 1);
+            while( textlen ) {
+                textlen--;
+                buffer[buflen+textlen] = text[textlen];
+                }
+            buffer[newlen] = __T('\0');
+            buflen = newlen;
+            }
+        }
+    void Add(const char * text) {
+        if (text)
+            Add(text, strlen(text));
+        }
+    void Add(char ch) {
+        Add(&ch, 1);
+        }
+#endif
+    LPTSTR Get() {
         return buffer;
         }
-    unsigned Length() const {
+    size_t Length() const {
         return buflen;
         }
-    char *GetTail() {
+    LPTSTR GetTail() {
         return buffer + buflen;
         }
-    void Expand(int size) {
+    void Expand(size_t size) {
         Alloc(buflen + size);
         }
     void Adjust() {
-        buflen += lstrlen(buffer + buflen);
+        if ( buffer )
+            buflen += _tcslen(buffer + buflen);
         }
     void SetLength() {
-        buflen = lstrlen(buffer);
+        if (buffer)
+            buflen = _tcslen(buffer);
         }
-    void SetLength(unsigned newlen) {
+    void SetLength(size_t newlen) {
         if (newlen < bufsize)
             buflen = newlen;
         }
@@ -165,10 +250,10 @@ public:
         if (buflen)
             buflen--;
         }
-    operator const char *() const{
+    operator LPCTSTR () const{
         return buffer;
         }
-    void operator=(const char *p) {
+    void operator=(LPCTSTR p) {
         if (buffer) {
             Clear();
             Add(p);
@@ -176,6 +261,16 @@ public:
         else
             SetString(p);
         }
+#if defined(_UNICODE) || defined(UNICODE)
+    void operator=(const char * p) {
+        if (buffer) {
+            Clear();
+            Add(p);
+            }
+        else
+            SetString(p);
+        }
+#endif
     };
 
 #endif

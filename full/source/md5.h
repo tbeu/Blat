@@ -5,25 +5,25 @@
 extern "C" {
 #endif
 
-#ifndef uint8
-#define uint8  unsigned char
+#ifndef uint8_t
+#define uint8_t unsigned char
 #endif
 
-#ifndef uint32
-#define uint32 unsigned long int
+#ifndef uint32_t
+#define uint32_t unsigned long int
 #endif
 
 typedef struct
 {
-    uint32 total[2];
-    uint32 state[4];
-    uint8 buffer[64];
+    uint32_t total[2];
+    uint32_t state[4];
+    _TUCHAR  buffer[64];
 }
 md5_context;
 
 void _cdecl md5_starts( md5_context *ctx );
-void _cdecl md5_update( md5_context *ctx, uint8 *input, uint32 length );
-void _cdecl md5_finish( md5_context *ctx, uint8 digest[16] );
+void _cdecl md5_update( md5_context *ctx, _TUCHAR *input, uint32_t length );
+void _cdecl md5_finish( md5_context *ctx, _TUCHAR  digest[16] );
 
 #ifdef __cplusplus
 }

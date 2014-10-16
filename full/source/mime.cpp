@@ -13,41 +13,46 @@
 
 #if BLAT_LITE
 #else
-extern char eightBitMimeSupported;
-extern char eightBitMimeRequested;
-extern char binaryMimeSupported;
-//extern char binaryMimeRequested;
+extern _TCHAR eightBitMimeSupported;
+extern _TCHAR eightBitMimeRequested;
+extern _TCHAR binaryMimeSupported;
+//extern _TCHAR binaryMimeRequested;
 #endif
 
 // MIME Quoted-Printable Content-Transfer-Encoding
 
-int CheckIfNeedQuotedPrintable(unsigned char *pszStr, int inHeader)
+int CheckIfNeedQuotedPrintable(LPTSTR pszStr, int inHeader)
 {
     /* get the length of a line created that way */
     int i;
 
     if ( inHeader ) {  // 8bit MIME does not apply to header information.
         for ( i = 0; pszStr[i]; i++ ) {
-            if ( (pszStr[i] == '\t') ||
-                 (pszStr[i] == '\r') ||
-                 (pszStr[i] == '\n') )
+            if ( (pszStr[i] == __T('\t')) ||
+                 (pszStr[i] == __T('\r')) ||
+                 (pszStr[i] == __T('\n')) )
                 continue;
 
-            if ( (pszStr[i] <  32  ) ||
-                 (pszStr[i] >= 127 ) ) {
+            if ( ((_TUCHAR)pszStr[i] <  32  ) ||
+                 ((_TUCHAR)pszStr[i] >= 127 ) ) {
                 return (TRUE);
             }
         }
     } else {
         for ( i = 0; pszStr[i]; i++ ) {
-            if ( pszStr[i] == 13 /* '\r' */ ) {
+
+#if defined(_UNICODE) || defined(UNICODE)
+            if ( (_TUCHAR)pszStr[i] > 0x00FF )
+                return (TRUE);
+#endif
+            if ( pszStr[i] == __T('\r') ) {
             } else
-            if ( pszStr[i] == 10 /* '\n' */ ) {
+            if ( pszStr[i] == __T('\n') ) {
             } else
             if ( pszStr[i] == 32 ) {
                 if ( !pszStr[i+1]          ||
-                     (pszStr[i+1] == '\r') ||
-                     (pszStr[i+1] == '\n') ) {
+                     (pszStr[i+1] == __T('\r')) ||
+                     (pszStr[i+1] == __T('\n')) ) {
 #if BLAT_LITE
 #else
                     if ( binaryMimeSupported < 2 )
@@ -58,33 +63,33 @@ int CheckIfNeedQuotedPrintable(unsigned char *pszStr, int inHeader)
 #if BLAT_LITE
 #else
             if ( binaryMimeSupported /* && binaryMimeRequested */ ) {
-                if ( !pszStr[i] || ((binaryMimeSupported < 2) && (pszStr[i] == '=')) ) {
+                if ( !pszStr[i] || ((binaryMimeSupported < 2) && (pszStr[i] == __T('='))) ) {
                     return (TRUE);
                 }
             } else
 #endif
-            if ( (pszStr[i] == '=' ) ||  /* 61 */
-                 (pszStr[i] == '?' ) ||  /* 63 */
-                 (pszStr[i] == '!' ) ||  // Recommended by RFC1341 and 2045
-                 (pszStr[i] == '"' ) ||
-                 (pszStr[i] == '#' ) ||
-                 (pszStr[i] == '$' ) ||
-                 (pszStr[i] == '@' ) ||
-                 (pszStr[i] == '[' ) ||
-                 (pszStr[i] == '\\') ||
-                 (pszStr[i] == ']' ) ||
-                 (pszStr[i] == '^' ) ||
-                 (pszStr[i] == '`' ) ||
-                 (pszStr[i] == '{' ) ||
-                 (pszStr[i] == '|' ) ||
-                 (pszStr[i] == '}' ) ||
-                 (pszStr[i] == '~' ) ||
-                 (pszStr[i] == 127 ) ||
-                 (pszStr[i] <  32  ) ) {
+            if ( (pszStr[i] == __T('=') ) ||  /* 61 */
+                 (pszStr[i] == __T('?') ) ||  /* 63 */
+                 (pszStr[i] == __T('!') ) ||  // Recommended by RFC1341 and 2045
+                 (pszStr[i] == __T('"') ) ||
+                 (pszStr[i] == __T('#') ) ||
+                 (pszStr[i] == __T('$') ) ||
+                 (pszStr[i] == __T('@') ) ||
+                 (pszStr[i] == __T('[') ) ||
+                 (pszStr[i] == __T('\\')) ||
+                 (pszStr[i] == __T(']') ) ||
+                 (pszStr[i] == __T('^') ) ||
+                 (pszStr[i] == __T('`') ) ||
+                 (pszStr[i] == __T('{') ) ||
+                 (pszStr[i] == __T('|') ) ||
+                 (pszStr[i] == __T('}') ) ||
+                 (pszStr[i] == __T('~') ) ||
+                 (pszStr[i] == __T('\x7F') ) ||
+                 ((_TUCHAR)pszStr[i] <  __T(' ') ) ) {
                 return (TRUE);
             }
 
-            if ( (pszStr[i] > 127)
+            if ( ((_TUCHAR)pszStr[i] > __T('\x7F'))
 #if BLAT_LITE
 #else
                   && (!eightBitMimeSupported || !eightBitMimeRequested)
@@ -98,7 +103,7 @@ int CheckIfNeedQuotedPrintable(unsigned char *pszStr, int inHeader)
     return(FALSE);
 }
 
-int GetLengthQuotedPrintable(unsigned char *pszStr, int inHeader)
+int GetLengthQuotedPrintable(LPTSTR pszStr, int inHeader)
 {
     /* get the length of a line created that way */
     int i;
@@ -115,18 +120,18 @@ int GetLengthQuotedPrintable(unsigned char *pszStr, int inHeader)
  *  letters, decimal digits, "!", "*", "+", "-", "/", "=", and "_"
  *  (underscore, ASCII 95.)>.
  */
-            if ( pszStr[i] == '_' ) {
+            if ( pszStr[i] == __T('_') ) {
                 iLen += 3;
             } else
-            if ( ((pszStr[i] >= 'a') && (pszStr[i] <= 'z')) ||
-                 ((pszStr[i] >= 'A') && (pszStr[i] <= 'Z')) ||
-                 ((pszStr[i] >= '0') && (pszStr[i] <= '9')) ||
-                 (pszStr[i] == 32  ) ||
-                 (pszStr[i] == '!' ) ||
-                 (pszStr[i] == '*' ) ||
-                 (pszStr[i] == '+' ) ||
-                 (pszStr[i] == '-' ) ||
-                 (pszStr[i] == '/' ) ) {
+            if ( ((pszStr[i] >= __T('a')) && (pszStr[i] <= __T('z'))) ||
+                 ((pszStr[i] >= __T('A')) && (pszStr[i] <= __T('Z'))) ||
+                 ((pszStr[i] >= __T('0')) && (pszStr[i] <= __T('9'))) ||
+                 (pszStr[i] == __T(' ') ) ||
+                 (pszStr[i] == __T('!') ) ||
+                 (pszStr[i] == __T('*') ) ||
+                 (pszStr[i] == __T('+') ) ||
+                 (pszStr[i] == __T('-') ) ||
+                 (pszStr[i] == __T('/') ) ) {
                 iLen++;
             } else {
                 iLen += 3;
@@ -134,16 +139,16 @@ int GetLengthQuotedPrintable(unsigned char *pszStr, int inHeader)
         }
     } else {
         for ( i = 0; pszStr[i]; i++ ) {
-            if ( pszStr[i] == 13 /* '\r' */ ) {
+            if ( pszStr[i] == __T('\r') ) {
                 // iLen += 0;
             } else
-            if ( pszStr[i] == 10 /* '\n' */ ) {
+            if ( pszStr[i] == __T('\n') ) {
                 iLen += 2;
             } else
-            if ( pszStr[i] == 32 ) {
+            if ( pszStr[i] == __T(' ') ) {
                 if ( !pszStr[i+1]          ||
-                     (pszStr[i+1] == '\r') ||
-                     (pszStr[i+1] == '\n') ) {
+                     (pszStr[i+1] == __T('\r')) ||
+                     (pszStr[i+1] == __T('\n')) ) {
 #if BLAT_LITE
 #else
                     if ( binaryMimeSupported == 2 )
@@ -157,33 +162,33 @@ int GetLengthQuotedPrintable(unsigned char *pszStr, int inHeader)
 #if BLAT_LITE
 #else
             if ( binaryMimeSupported /* && binaryMimeRequested */ ) {
-                if ( !pszStr[i] || ((binaryMimeSupported < 2) && (pszStr[i] == '=')) ) {
+                if ( !pszStr[i] || ((binaryMimeSupported < 2) && (pszStr[i] == __T('='))) ) {
                     iLen += 3;
                 } else
                     iLen++;
             } else
 #endif
-            if ( (pszStr[i] == '=' ) ||  /* 61 */
-                 (pszStr[i] == '?' ) ||  /* 63 */
-                 (pszStr[i] == '!' ) ||  // Recommended by RFC1341 and 2045
-                 (pszStr[i] == '"' ) ||
-                 (pszStr[i] == '#' ) ||
-                 (pszStr[i] == '$' ) ||
-                 (pszStr[i] == '@' ) ||
-                 (pszStr[i] == '[' ) ||
-                 (pszStr[i] == '\\') ||
-                 (pszStr[i] == ']' ) ||
-                 (pszStr[i] == '^' ) ||
-                 (pszStr[i] == '`' ) ||
-                 (pszStr[i] == '{' ) ||
-                 (pszStr[i] == '|' ) ||
-                 (pszStr[i] == '}' ) ||
-                 (pszStr[i] == '~' ) ||
-                 (pszStr[i] == 127 ) ||
-                 (pszStr[i] <  32  ) ) {
+            if ( (pszStr[i] == __T('=') ) ||  /* 61 */
+                 (pszStr[i] == __T('?') ) ||  /* 63 */
+                 (pszStr[i] == __T('!') ) ||  // Recommended by RFC1341 and 2045
+                 (pszStr[i] == __T('"') ) ||
+                 (pszStr[i] == __T('#') ) ||
+                 (pszStr[i] == __T('$') ) ||
+                 (pszStr[i] == __T('@') ) ||
+                 (pszStr[i] == __T('[') ) ||
+                 (pszStr[i] == __T('\\')) ||
+                 (pszStr[i] == __T(']') ) ||
+                 (pszStr[i] == __T('^') ) ||
+                 (pszStr[i] == __T('`') ) ||
+                 (pszStr[i] == __T('{') ) ||
+                 (pszStr[i] == __T('|') ) ||
+                 (pszStr[i] == __T('}') ) ||
+                 (pszStr[i] == __T('~') ) ||
+                 (pszStr[i] == __T('\x7F') ) ||
+                 (pszStr[i] <  __T(' ') ) ) {
                 iLen += 3;
             } else
-            if ( (pszStr[i] > 127)
+            if ( (pszStr[i] > __T('\x7F') )
 #if BLAT_LITE
 #else
                   && (!eightBitMimeSupported || !eightBitMimeRequested)
@@ -201,10 +206,10 @@ int GetLengthQuotedPrintable(unsigned char *pszStr, int inHeader)
 
 void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
 {
-    DWORD  length;
+    size_t length;
     int    CurrPos;
-    char * pszStr;
-    char   tmpstr[4];
+    LPTSTR pszStr;
+    _TCHAR tmpstr[4];
 
     pszStr = source.Get();
     length = source.Length();
@@ -213,7 +218,7 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
 
     if ( inHeader ) {  // 8bit MIME does apply to header information.
         for ( ; length; length-- ) {
-            unsigned char ThisChar = *pszStr++;
+            _TCHAR ThisChar = *pszStr++;
 
 /*
  * From RFC 2047
@@ -223,47 +228,47 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
  *  letters, decimal digits, "!", "*", "+", "-", "/", "=", and "_"
  *  (underscore, ASCII 95.)>.
  */
-            if ( ThisChar == 32 ) {     // Convert spaces to underscores?
-                out.Add( '_' );
+            if ( ThisChar == __T(' ') ) {     // Convert spaces to underscores?
+                out.Add( __T('_') );
                 CurrPos++;
             } else
-            if ( ThisChar == '_' ) {    // Have an underscore?
-                sprintf( tmpstr, "=%02X", ThisChar );
+            if ( ThisChar == __T('_') ) {     // Have an underscore?
+                _stprintf( tmpstr, __T("=%02X"), ThisChar );
                 out.Add( tmpstr );
                 CurrPos += 3;
             } else
-            if ( ((ThisChar >= 'a') && (ThisChar <= 'z')) ||
-                 ((ThisChar >= 'A') && (ThisChar <= 'Z')) ||
-                 ((ThisChar >= '0') && (ThisChar <= '9')) ||
-                 (ThisChar == '!' ) ||
-                 (ThisChar == '*' ) ||
-                 (ThisChar == '+' ) ||
-                 (ThisChar == '-' ) ||
-                 (ThisChar == '/' ) ) {
+            if ( ((ThisChar >= __T('a')) && (ThisChar <= __T('z'))) ||
+                 ((ThisChar >= __T('A')) && (ThisChar <= __T('Z'))) ||
+                 ((ThisChar >= __T('0')) && (ThisChar <= __T('9'))) ||
+                 (ThisChar == __T('!') ) ||
+                 (ThisChar == __T('*') ) ||
+                 (ThisChar == __T('+') ) ||
+                 (ThisChar == __T('-') ) ||
+                 (ThisChar == __T('/') ) ) {
                 out.Add( ThisChar );
                 CurrPos++;
             } else {
-                sprintf( tmpstr, "=%02X", ThisChar );
+                _stprintf( tmpstr, __T("=%02X"), ThisChar );
                 out.Add( tmpstr );
                 CurrPos += 3;
             }
         }
     } else {
         for ( ; length; length-- ) {
-            unsigned char ThisChar = *pszStr++;
+            _TCHAR ThisChar = *pszStr++;
 
-            if ( ThisChar == 13 /* '\r' */ )
+            if ( ThisChar == __T('\r') )
                 continue;
 
-            if ( ThisChar == 10 /* '\n' */ ) {
-                out.Add( "\r\n" );
+            if ( ThisChar == __T('\n') ) {
+                out.Add( __T("\r\n") );
                 CurrPos = 0;
                 continue;
             }
-            if ( ThisChar == 32 ) {
+            if ( ThisChar == __T(' ') ) {
                 if ( (length <= 1)     ||
-                     (*pszStr == '\r') ||
-                     (*pszStr == '\n') ) {
+                     (*pszStr == __T('\r')) ||
+                     (*pszStr == __T('\n')) ) {
 #if BLAT_LITE
 #else
                     if ( binaryMimeSupported == 2 ) {
@@ -272,7 +277,7 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
                     } else
 #endif
                     {
-                        sprintf( tmpstr, "=%02X", ThisChar );
+                        _stprintf( tmpstr, __T("=%02X"), ThisChar );
                         out.Add( tmpstr );
                         CurrPos += 3;
                     }
@@ -284,8 +289,8 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
 #if BLAT_LITE
 #else
             if ( binaryMimeSupported /* && binaryMimeRequested */ ) {
-                if ( !ThisChar || ((binaryMimeSupported < 2) && (ThisChar == '=')) ) {
-                    sprintf( tmpstr, "=%02X", ThisChar );
+                if ( !ThisChar || ((binaryMimeSupported < 2) && (ThisChar == __T('='))) ) {
+                    _stprintf( tmpstr, __T("=%02X"), ThisChar );
                     out.Add( tmpstr );
                     CurrPos += 3;
                 } else
@@ -293,35 +298,35 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
                     CurrPos++;
             } else
 #endif
-            if ( (ThisChar == '=' ) ||  /* 61 */
-                 (ThisChar == '?' ) ||  /* 63 */
-                 (ThisChar == '!' ) ||  // Recommended by RFC1341 and 2045
-                 (ThisChar == '"' ) ||
-                 (ThisChar == '#' ) ||
-                 (ThisChar == '$' ) ||
-                 (ThisChar == '@' ) ||
-                 (ThisChar == '[' ) ||
-                 (ThisChar == '\\') ||
-                 (ThisChar == ']' ) ||
-                 (ThisChar == '^' ) ||
-                 (ThisChar == '`' ) ||
-                 (ThisChar == '{' ) ||
-                 (ThisChar == '|' ) ||
-                 (ThisChar == '}' ) ||
-                 (ThisChar == '~' ) ||
-                 (ThisChar == 127 ) ||
-                 (ThisChar <  32  ) ) {
-                sprintf( tmpstr, "=%02X", ThisChar );
+            if ( (ThisChar == __T('=') ) ||  /* 61 */
+                 (ThisChar == __T('?') ) ||  /* 63 */
+                 (ThisChar == __T('!') ) ||  // Recommended by RFC1341 and 2045
+                 (ThisChar == __T('"') ) ||
+                 (ThisChar == __T('#') ) ||
+                 (ThisChar == __T('$') ) ||
+                 (ThisChar == __T('@') ) ||
+                 (ThisChar == __T('[') ) ||
+                 (ThisChar == __T('\\')) ||
+                 (ThisChar == __T(']') ) ||
+                 (ThisChar == __T('^') ) ||
+                 (ThisChar == __T('`') ) ||
+                 (ThisChar == __T('{') ) ||
+                 (ThisChar == __T('|') ) ||
+                 (ThisChar == __T('}') ) ||
+                 (ThisChar == __T('~') ) ||
+                 (ThisChar == __T('\x7F') ) ||
+                 (ThisChar <  __T(' ') ) ) {
+                _stprintf( tmpstr, __T("=%02X"), ThisChar );
                 out.Add( tmpstr );
                 CurrPos += 3;
             } else
-            if ( (ThisChar > 127)
+            if ( ((ThisChar < 0) || (ThisChar > 127))
 #if BLAT_LITE
 #else
                  && (!eightBitMimeSupported || !eightBitMimeRequested)
 #endif
                ) {
-                sprintf( tmpstr, "=%02X", ThisChar );
+                _stprintf( tmpstr, __T("=%02X"), ThisChar );
                 out.Add( tmpstr );
                 CurrPos += 3;
             } else {
@@ -330,13 +335,13 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
             }
 
             if ( CurrPos > 71 ) {
-                out.Add( "=\r\n" ); /* Add soft line break */
+                out.Add( __T("=\r\n") ); /* Add soft line break */
                 CurrPos = 0;
             }
         }
 
         if ( CurrPos > 71 ) {
-            out.Add( "=\r\n" ); /* Add soft line break */
+            out.Add( __T("=\r\n") ); /* Add soft line break */
             CurrPos = 0;
         }
     }

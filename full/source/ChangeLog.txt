@@ -5,6 +5,85 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.0.0
+[+] Allow Unicode domain names, which will be made compliant with RFC 5890.
+[+] Converted the source code to use Unicode throughout.  As a result, I added
+    both MBCS and Unicode interfaces for the .DLL.  Developers will need to
+    adapt or include blatdll.h into their projects so they can call the .DLL
+    properly.  Blatdll.h is included in the release package.
+[+] Blat will write to its log file in UTF-8 format when possible.  This will
+    allow the log file to show Unicode filenames instead of showing a series
+    of question marks (?).  The log file can still be opened with Notepad
+    without any issues.  Thanks to Thomas Beutlich for this suggestion.
+[+] Unicode filenames will be converted to UTF-8 before being included into
+    the message body and/or message headers.
+[+] When storing login and password registry keys, Unicode values will be
+    converted to UTF-8 before encoding to base64.  This makes Unicode login
+    and password values compliant with RFC 4616.  Existing keys from Blat 2.xx
+    should continue to work just fine.
+[+] Blat can be compiled as either 32-bit or 64-bit.  The 64-bit version will
+    look for its registry keys first under SOFTWARE\Wow6432Node\Public Domain
+    before looking under SOFTWARE\Public Domain.  This allows users to keep
+    their existing profiles should they change from using 32-bit Blat version
+    to the 64-bit version.
+[+] The version of DLLs that are required for Blat will be included with the
+    release package.  For example, building Blat with Visual Studio 2010 means
+    that MSVCR100.DLL will be called, and thus I will be including the required
+    version with the release package.
+[+] Allow HTML in salutations.  For example:
+    -to "1st <some@> \"<img src=\\\"cid:banner.gif\\\"><BR>Hey 1st,\""
+
+    Here's why -- the three backslashes and quotation mark are actually taken
+    as two different character sequences, the double backslash is first, then
+    the backslash and quotation mark is next.  What you see above on the
+    command line will be initially seen in Blat as this:
+
+    1st <some@> \"<img src=\\\"cid:banner.gif\\\"><BR>Hey 1st,\"
+
+    Then when I go to parse this to look for a name, an email address, and a
+    salutation, the result will be these three parts:
+
+        Name:       1st
+        Email:      <some@>
+        Salutation: "<img src=\"cid:banner.gif\"><BR>Hey 1st,"
+
+    The escaped quotation mark in front of the '<' is the tell Blat this is not
+    the next email address.  Instead, '<' is to be taken as part of a
+    salutation.  Otherwise, '<' is normally seen as the start of the next email
+    address.
+
+    Note now that the salutation has internally to it an escaped quotation
+    mark.  The next step is for me to remove the leading and trailing quotation
+    marks, to make it presentable in an email message.  Lastly, I remove the
+    escape characters leaving this final text to be put into the outgoing
+    email:
+        <img src="cid:banner.gif"><BR>Hey 1st,
+
+    During testing, I run Blat from .bat files with a variety of options.  I
+    had to make a small change, or enhancement, to permit HTML in salutations
+    when using .bat and .cmd files to run Blat.  The issue is that Windows 7
+    command processor does not like < or > in command lnes, except as used for
+    keyboard input and screen output redirectors.  This is not a problem if the
+    < and > are used around email addresses, but it is a problem when used as
+    part of HTML.  The workaround that I came up with is to allow square
+    brackets '[' and ']' to be used in place of '<' and '>', respectively, when
+    in salutations.  In salutations, Blat will convert square brackets '[' and
+    ']' to '<' and '>', expecting them to be used as HTML.
+
+    Applications that call Blat to send emails might be able to use '<' and '>'
+    properly.  However, if you find a situation where these do not work, try
+    using square brackets instead.
+[*] Keep the server connection open until the email has been sent to all
+    recipients.  Previously, the server connection was closed after each
+    message, even when sending to multiple recipients.
+[*] Changed how the command line is processed in processOptions(), so that only
+    options will have forward slashes (/) changed to hyphens (-) automatically.
+    This feature was introduced in version 2.5.
+-------------------------------------------------------------------------------
+2.7.7
+[-] Abort the program if an attachment is not found.  The return code is 12.
+[-] Aligned the help text for -level option.
+-------------------------------------------------------------------------------
 2.7.6
 [*] Make sure all uses of strncpy() properly terminate the target string, to
     eliminate a potential memory overrun.

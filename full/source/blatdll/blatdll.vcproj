@@ -2,9 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="blat"
-	ProjectGUID="{B735E83F-3863-40F7-9AF7-9A7CA5453679}"
-	RootNamespace="blat"
+	Name="blatdll"
+	ProjectGUID="{5AFA0BF5-E0D2-479D-9770-1482D4F75F02}"
 	>
 	<Platforms>
 		<Platform
@@ -21,7 +20,7 @@
 			Name="Release|Win32"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -41,7 +40,11 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName="$(IntDir)\blat.tlb"
+				PreprocessorDefinitions="NDEBUG"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
+				TargetEnvironment="1"
+				TypeLibraryName="$(IntDir)\blatdll.tlb"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
@@ -49,16 +52,14 @@
 				InlineFunctionExpansion="0"
 				FavorSizeOrSpeed="2"
 				OmitFramePointers="true"
-				PreprocessorDefinitions="WIN32,_WIN32,NDEBUG,_CONSOLE,GENSOCK_STATIC_LINK,WINVER=0x0400"
+				PreprocessorDefinitions="WIN32,_WIN32,NDEBUG,_WINDOWS,_USRDLL,BLATDLL_EXPORTS,GENSOCK_STATIC_LINK,WINVER=0x0400"
 				StringPooling="true"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
-				StructMemberAlignment="0"
 				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderFile="$(IntDir)\blat.pch"
-				AssemblerOutput="0"
+				PrecompiledHeaderFile="$(IntDir)\blatdll.pch"
 				AssemblerListingLocation="$(IntDir)\"
 				ObjectFile="$(IntDir)\"
 				ProgramDataBaseFileName="$(IntDir)\"
@@ -79,16 +80,16 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="msvcrt.lib wsock32.lib"
-				OutputFile="$(IntDir)\blat.exe"
+				OutputFile="$(IntDir)\blat.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				IgnoreAllDefaultLibraries="true"
-				ProgramDatabaseFile="$(IntDir)\blat.pdb"
+				ModuleDefinitionFile=".\blat.def"
+				ProgramDatabaseFile="$(IntDir)\blatdll.pdb"
 				GenerateMapFile="true"
-				MapFileName="$(IntDir)\blat.map"
-				SubSystem="1"
+				MapFileName="$(IntDir)\blatdll.map"
 				StackReserveSize="102400"
-				OptimizeForWindows98="1"
+				ImportLibrary="$(IntDir)\blat.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -113,14 +114,13 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine=""
 			/>
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -140,25 +140,26 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
+				PreprocessorDefinitions="NDEBUG"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
 				TargetEnvironment="3"
-				TypeLibraryName="$(IntDir)\blat.tlb"
+				TypeLibraryName="$(IntDir)\blatdll.tlb"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="1"
 				InlineFunctionExpansion="0"
 				FavorSizeOrSpeed="2"
-				OmitFramePointers="false"
-				PreprocessorDefinitions="WIN64,_WIN64,NDEBUG,_CONSOLE,GENSOCK_STATIC_LINK"
+				OmitFramePointers="true"
+				PreprocessorDefinitions="WIN64,_WIN64,NDEBUG,_WINDOWS,_USRDLL,BLATDLL_EXPORTS,GENSOCK_STATIC_LINK,WINVER=0x0400"
 				StringPooling="true"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
-				StructMemberAlignment="0"
 				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderFile="$(IntDir)\blat.pch"
-				AssemblerOutput="0"
+				PrecompiledHeaderFile="$(IntDir)\blatdll.pch"
 				AssemblerListingLocation="$(IntDir)\"
 				ObjectFile="$(IntDir)\"
 				ProgramDataBaseFileName="$(IntDir)\"
@@ -179,16 +180,16 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="msvcrt.lib wsock32.lib"
-				OutputFile="$(IntDir)\blat.exe"
+				OutputFile="$(IntDir)\blat.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				IgnoreAllDefaultLibraries="true"
-				ProgramDatabaseFile="$(IntDir)\blat.pdb"
+				ModuleDefinitionFile=".\blat.def"
+				ProgramDatabaseFile="$(IntDir)\blatdll.pdb"
 				GenerateMapFile="true"
-				MapFileName="$(IntDir)\blat.map"
-				SubSystem="1"
+				MapFileName="$(IntDir)\blatdll.map"
 				StackReserveSize="102400"
-				OptimizeForWindows98="1"
+				ImportLibrary="$(IntDir)\blat.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -219,7 +220,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -239,18 +240,20 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName="$(IntDir)\blat.tlb"
+				PreprocessorDefinitions="_DEBUG"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
+				TargetEnvironment="1"
+				TypeLibraryName="$(IntDir)\blatdll.tlb"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32,_WIN32,_DEBUG,_CONSOLE,WINVER=0x0400"
+				PreprocessorDefinitions="WIN32,_WIN32,_DEBUG,_WINDOWS,_USRDLL,BLATDLL_EXPORTS,GENSOCK_STATIC_LINK,WINVER=0x0400"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
-				StructMemberAlignment="0"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderFile="$(IntDir)\blat.pch"
-				AssemblerOutput="0"
+				PrecompiledHeaderFile="$(IntDir)\blatdll.pch"
 				AssemblerListingLocation="$(IntDir)\"
 				ObjectFile="$(IntDir)\"
 				ProgramDataBaseFileName="$(IntDir)\"
@@ -272,16 +275,17 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="msvcrt.lib wsock32.lib"
-				OutputFile="$(IntDir)\blat.exe"
+				OutputFile="$(IntDir)\blat.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				IgnoreAllDefaultLibraries="true"
+				ModuleDefinitionFile=".\blat.def"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(IntDir)\blat.pdb"
+				ProgramDatabaseFile="$(IntDir)\blatdll.pdb"
 				GenerateMapFile="true"
-				MapFileName="$(IntDir)\blat.map"
-				SubSystem="1"
+				MapFileName="$(IntDir)\blatdll.map"
 				StackReserveSize="102400"
+				ImportLibrary="$(IntDir)\blat.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -306,18 +310,17 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine=""
 			/>
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
-			CharacterSet="1"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -333,19 +336,21 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
+				PreprocessorDefinitions="_DEBUG"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
 				TargetEnvironment="3"
-				TypeLibraryName="$(IntDir)\blat.tlb"
+				TypeLibraryName="$(IntDir)\blatdll.tlb"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN64,_WIN64,_DEBUG,_CONSOLE,WINVER=0x0400"
+				PreprocessorDefinitions="WIN64,_WIN64,_DEBUG,_WINDOWS,_USRDLL,BLATDLL_EXPORTS,GENSOCK_STATIC_LINK,WINVER=0x0400"
+				ExceptionHandling="1"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
-				StructMemberAlignment="0"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderFile="$(IntDir)\blat.pch"
-				AssemblerOutput="0"
+				PrecompiledHeaderFile="$(IntDir)\blatdll.pch"
 				AssemblerListingLocation="$(IntDir)\"
 				ObjectFile="$(IntDir)\"
 				ProgramDataBaseFileName="$(IntDir)\"
@@ -367,16 +372,17 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="msvcrt.lib wsock32.lib"
-				OutputFile="$(IntDir)\blat.exe"
-				LinkIncremental="1"
+				OutputFile="$(IntDir)\blat.dll"
+				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				IgnoreAllDefaultLibraries="true"
+				ModuleDefinitionFile=".\blat.def"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(IntDir)\blat.pdb"
+				ProgramDatabaseFile="$(IntDir)\blatdll.pdb"
 				GenerateMapFile="true"
-				MapFileName="$(IntDir)\blat.map"
-				SubSystem="1"
+				MapFileName="$(IntDir)\blatdll.map"
 				StackReserveSize="102400"
+				ImportLibrary="$(IntDir)\blat.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -412,87 +418,91 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath=".\attach.cpp"
+				RelativePath="..\attach.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\base64.cpp"
+				RelativePath="..\base64.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\blat.cpp"
+				RelativePath="..\blat.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\blatcgi.cpp"
+				RelativePath=".\blat.def"
 				>
 			</File>
 			<File
-				RelativePath=".\bldhdrs.cpp"
+				RelativePath="..\blatcgi.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\filetype.cpp"
+				RelativePath="..\bldhdrs.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\gensock.cpp"
+				RelativePath="..\filetype.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\gssfuncs.cpp"
+				RelativePath="..\gensock.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\makeargv.cpp"
+				RelativePath="..\gssfuncs.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\Md5.c"
+				RelativePath="..\makeargv.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\mime.cpp"
+				RelativePath="..\Md5.c"
 				>
 			</File>
 			<File
-				RelativePath=".\msgbody.cpp"
+				RelativePath="..\mime.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\options.cpp"
+				RelativePath="..\msgbody.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\parsing.cpp"
+				RelativePath="..\options.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\reg.cpp"
+				RelativePath="..\parsing.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\sendnntp.cpp"
+				RelativePath="..\reg.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\sendsmtp.cpp"
+				RelativePath="..\sendnntp.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\server.cpp"
+				RelativePath="..\sendsmtp.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\unicode.cpp"
+				RelativePath="..\server.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\uuencode.cpp"
+				RelativePath="..\unicode.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\yenc.cpp"
+				RelativePath="..\uuencode.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\yenc.cpp"
 				>
 			</File>
 		</Filter>
@@ -501,35 +511,39 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
-				RelativePath=".\blat.h"
+				RelativePath="..\blat.h"
 				>
 			</File>
 			<File
-				RelativePath=".\blatdll.h"
+				RelativePath="..\blatdll.h"
 				>
 			</File>
 			<File
-				RelativePath=".\buf.h"
+				RelativePath="..\buf.h"
 				>
 			</File>
 			<File
-				RelativePath=".\gensock.h"
+				RelativePath="..\gensock.h"
 				>
 			</File>
 			<File
-				RelativePath=".\Gssapi\gssapi.h"
+				RelativePath="..\Gssapi\gssapi.h"
 				>
 			</File>
 			<File
-				RelativePath=".\gssapi_generic.h"
+				RelativePath="..\gssapi_generic.h"
 				>
 			</File>
 			<File
-				RelativePath=".\win-mac.h"
+				RelativePath="..\resource.h"
 				>
 			</File>
 			<File
-				RelativePath=".\WinFile.h"
+				RelativePath="..\win-mac.h"
+				>
+			</File>
+			<File
+				RelativePath="..\WinFile.h"
 				>
 			</File>
 		</Filter>

@@ -12,68 +12,81 @@
 
 #include "blat.h"
 
-extern void fixup(char * string, Buf * tempstring2, int headerLen, int linewrap);
+#if BLAT_LITE
+#else
+extern _TCHAR       uuencode;
+extern _TCHAR       base64;
+extern _TCHAR       yEnc;
+#endif
+extern _TCHAR       mime;
+
+
+extern void fixup(LPTSTR string, Buf * tempstring2, int headerLen, int linewrap);
+extern void fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewrap );
 
 static struct {
-    char * extension;
-    char * contentType;
-} defaultContentTypes[] = { { ".pdf", "application/pdf"          },
-                            { ".xls", "application/vnd.ms-excel" },
-                            { ".gif", "image/gif"                },
-                            { ".jpg", "image/jpeg"               },
-                            { ".bmp", "image/bmp"                },
-                            { ".png", "image/png"                },
-                            { NULL,   NULL                       }  // Last entry
+    LPTSTR extension;
+    LPTSTR contentType;
+} defaultContentTypes[] = { { __T(".pdf"), __T("application/pdf")          },
+                            { __T(".xls"), __T("application/vnd.ms-excel") },
+                            { __T(".gif"), __T("image/gif")                },
+                            { __T(".jpg"), __T("image/jpeg")               },
+                            { __T(".bmp"), __T("image/bmp")                },
+                            { __T(".png"), __T("image/png")                },
+                            {    NULL    ,    NULL                         }  // Last entry
                           };
 
 
-char * getShortFileName (char * fileName)
+LPTSTR getShortFileName (LPTSTR fileName)
 {
-    char * sFileName;
-    char * shortname;
+    LPTSTR sFileName;
+    LPTSTR shortname;
 
     sFileName = fileName;
-    shortname = strrchr(sFileName,'\\');
+    shortname = _tcsrchr(sFileName,__T('\\'));
     if ( shortname ) sFileName = shortname + 1;
 
-    shortname = strrchr(sFileName,'/');
+    shortname = _tcsrchr(sFileName,__T('/'));
     if ( shortname ) sFileName = shortname + 1;
 
-    shortname = strrchr(sFileName,':');
+    shortname = _tcsrchr(sFileName,__T(':'));
     if ( shortname ) sFileName = shortname + 1;
 
     return sFileName;
 }
 
-void getContentType (char *sDestBuffer, char *foundType, char *defaultType, char *sFileName)
+void getContentType (Buf & sDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName)
 {
     // Toby Korn (tkorn@snl.com)
     // SetFileType examines the file name sFileName for known file extensions and sets
     // the content type line appropriately.  This is returned in sDestBuffer.
     // sDestBuffer must have it's own memory (I don't alloc any here).
 
-    char          sType [80];
-    char          sExt [_MAX_PATH];
+#define CONTENT_TYPE_LENGTH 80
+    _TCHAR        sType [CONTENT_TYPE_LENGTH];
+    _TCHAR        sExt [_MAX_PATH];
     LONG          lResult;
     HKEY          key = NULL;
     unsigned long lTypeSize;
     unsigned long lStringType = REG_SZ;
-    char        * tmpStr;
+    LPTSTR        tmpStr;
     Buf           tempstring;
-    int           ix;
+    unsigned      ix;
+    Buf           shortNameBuf;
 
     lResult = ~ERROR_SUCCESS;
 
     // Find the last '.' in the filename
-    tmpStr = strrchr( sFileName, '.');
+    tmpStr = _tcsrchr( sFileName, __T('.'));
     if ( tmpStr ) {
         // Found the extension type.
-        strcpy(sExt, tmpStr);
+        _tcscpy(sExt, tmpStr);
         lResult = RegOpenKeyEx(HKEY_CLASSES_ROOT, (LPCTSTR) sExt, 0, KEY_READ, &key);
         if ( lResult == ERROR_SUCCESS ) {
-            lTypeSize = (long) sizeof(sType);
-            lResult = RegQueryValueEx(key, "Content Type", NULL, &lStringType, (unsigned char *) sType,
-                                      &lTypeSize); RegCloseKey (key);
+            lTypeSize = CONTENT_TYPE_LENGTH;
+            lResult = RegQueryValueEx(key, __T("Content Type"), NULL, &lStringType, (BYTE *)sType,
+                                      &lTypeSize);
+            RegCloseKey (key);
             tmpStr = sType;
         }
     }
@@ -84,19 +97,24 @@ void getContentType (char *sDestBuffer, char *foundType, char *defaultType, char
                 if ( defaultType && *defaultType )
                     tmpStr = defaultType;
                 else
-                    tmpStr = "application/octet-stream";
+                    tmpStr = __T("application/octet-stream");
 
                 break;
             }
-            if ( _stricmp(sExt, defaultContentTypes[ix].extension) == 0 ) {
+            if ( _tcsicmp(sExt, defaultContentTypes[ix].extension) == 0 ) {
                 tmpStr = defaultContentTypes[ix].contentType;
                 break;
             }
         }
     }
 
-    fixup(getShortFileName(sFileName), &tempstring, 7, TRUE);
-    sprintf( sDestBuffer, "Content-Type: %s;\r\n name=\"%s\"\r\n", tmpStr, tempstring.Get() );
+    fixupFileName( sFileName, shortNameBuf, 7, TRUE );
+    sDestBuffer    = __T("Content-Type: ");
+    sDestBuffer.Add( tmpStr );
+    sDestBuffer.Add( __T(";\r\n name=\"") );
+    sDestBuffer.Add( shortNameBuf );
+    sDestBuffer.Add( __T("\"\r\n") );
+
     if ( foundType )
-        strcpy( foundType, tmpStr );
+        _tcscpy( foundType, tmpStr );
 }

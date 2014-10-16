@@ -17,27 +17,26 @@
 #include "blat.h"
 
 
-extern void printMsg(const char *p, ... );              // Added 23 Aug 2000 Craig Morrison
-extern char commentChar;
+extern void printMsg( LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
+extern _TCHAR commentChar;
 
 
-void parseCommaDelimitString ( char * source, Buf & parsed_strings, int pathNames )
+void parseCommaDelimitString ( LPTSTR source, Buf & parsed_strings, int pathNames )
 {
-    char * tmpstr;
-    char * srcptr;
-    char * endptr;
+    LPTSTR tmpstr;
+    LPTSTR srcptr;
+    LPTSTR endptr;
     size_t len, startLen;
 
     parsed_strings.Clear();
-    parsed_strings.Add( "" );
 
-    len = strlen( source );
-    tmpstr = (char *)malloc( len + 2 );
+    len = _tcslen( source );
+    tmpstr = (LPTSTR)malloc( (len + 2)*sizeof(_TCHAR) );
     if ( !tmpstr )
         return;
 
-    strcpy( tmpstr, source );
-    tmpstr[len + 1] = 0;
+    _tcscpy( tmpstr, source );
+    tmpstr[len + 1] = __T('\0');
     srcptr = tmpstr;
     endptr = tmpstr + len;
 
@@ -46,14 +45,14 @@ void parseCommaDelimitString ( char * source, Buf & parsed_strings, int pathName
         // and we'll iterate once only
         int foundQuote;
 
-        while ( *srcptr && (strchr (" ,\n\t\r", *srcptr)) ) // eat leading white space
+        while ( *srcptr && (_tcschr (__T(" ,\n\t\r"), *srcptr)) ) // eat leading white space
             srcptr++;
 
         if ( *srcptr == commentChar ) {
-            startLen = strlen (srcptr);
+            startLen = _tcslen (srcptr);
             len = 0;
             for ( ; srcptr[len] && (len < startLen); len++ ) {
-                if ( srcptr[len] == '\n' )
+                if ( srcptr[len] == __T('\n') )
                     break;
             }
             continue;
@@ -62,50 +61,50 @@ void parseCommaDelimitString ( char * source, Buf & parsed_strings, int pathName
         if ( !*srcptr )
             break;
 
-        startLen = strlen (srcptr);
+        startLen = _tcslen (srcptr);
         foundQuote = FALSE;
         len = 0;
         for ( ; srcptr[len] && (len < startLen); len++ ) {
-            if ( srcptr[len] == '\n' )
+            if ( srcptr[len] == __T('\n') )
                 break;
 
-            if ( srcptr[len] == '\r' )
+            if ( srcptr[len] == __T('\r') )
                 break;
 
-            if ( srcptr[len] == '\t' )
+            if ( srcptr[len] == __T('\t') )
                 break;
 
-            if ( !pathNames && (srcptr[len] == '\\') ) {
+            if ( !pathNames && (srcptr[len] == __T('\\')) ) {
                 len++;  // Skip the following byte.
                 continue;
             }
 
-            if ( srcptr[len] == '"' ) {
+            if ( srcptr[len] == __T('"') ) {
                 foundQuote = (foundQuote == FALSE);
                 continue;
             }
 
-            if ( srcptr[len] == ',' )
+            if ( srcptr[len] == __T(',') )
                 if ( !foundQuote )
                     break;
         }
 
         if ( len ) {
-            while ( srcptr[len-1] == ' ' )  // eat trailing white space
+            while ( srcptr[len-1] == __T(' ') )  // eat trailing white space
                 len--;
         }
 
-        srcptr[len] = '\0';             // replace delim with NULL char
+        srcptr[len] = __T('\0');             // replace delim with NULL char
         if ( pathNames &&
-             (srcptr[0]     == '"') &&
-             (srcptr[len-1] == '"') ) {
-            srcptr[len-1] = 0;
+             (srcptr[0]     == __T('"')) &&
+             (srcptr[len-1] == __T('"')) ) {
+            srcptr[len-1] = __T('\0');
             len -= 2;
             srcptr++;
         }
         parsed_strings.Add( srcptr, (int)len + 1 );
     }
 
-    parsed_strings.Add( '\0' ); // The end of strings is identified by a null.
+    parsed_strings.Add( __T('\0') ); // The end of strings is identified by a null.
     free (tmpstr);
 }

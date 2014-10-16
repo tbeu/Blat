@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-char commentChar = ';';
+TCHAR commentChar = __T(';');
 
 /*
  * Parse the arguments read in from an options file.  Allow the semicolon (';') to
@@ -18,15 +18,15 @@ char commentChar = ';';
  *
  */
 
-size_t make_argv( char * arglist,                /* argument list                     */
-                  char **static_argv,            /* pointer to argv to use            */
+size_t make_argv( LPTSTR arglist,                /* argument list                     */
+                  LPTSTR*static_argv,            /* pointer to argv to use            */
                   size_t max_static_entries,     /* maximum number of entries allowed */
                   size_t starting_entry,         /* entry in argv to begin placing    */
                   int    from_dll )              /* blat called as .dll               */
 {
-    char *  startArgs;
-    char ** argv;
-    char *  nextarg;
+    LPTSTR  startArgs;
+    LPTSTR* argv;
+    LPTSTR  nextarg;
     size_t  argc;
     size_t  x, y, z;
 
@@ -36,10 +36,10 @@ size_t make_argv( char * arglist,                /* argument list               
         int foundQuote;
 
         for ( ; ; startArgs++ )
-            if ( *startArgs != ' ' )
+            if ( *startArgs != __T(' ') )
                 break;
 
-        if ( !*startArgs || (*startArgs == '\r') || (*startArgs == '\n'))
+        if ( !*startArgs || (*startArgs == __T('\r')) || (*startArgs == __T('\n')))
             break;
 
         if ( *startArgs == commentChar )
@@ -49,8 +49,8 @@ size_t make_argv( char * arglist,                /* argument list               
 
         /* Parse this entry to determine string length */
         for ( x = 0; startArgs[ x ]; x++ ) {
-            if ( startArgs[ x ] == '\\' ) {
-                if ( startArgs[ x+1 ] == '"' ) {
+            if ( startArgs[ x ] == __T('\\') ) {
+                if ( startArgs[ x+1 ] == __T('"') ) {
                     x++;
                     continue;
                 }
@@ -72,12 +72,12 @@ size_t make_argv( char * arglist,                /* argument list               
                 }
             }
 
-            if ( startArgs[ x ] == '"' ) {
+            if ( startArgs[ x ] == __T('"') ) {
                 foundQuote = (foundQuote != TRUE );
                 continue;
             }
 
-            if ( startArgs[ x ] == ' ' ) {
+            if ( startArgs[ x ] == __T(' ') ) {
                 if ( foundQuote )
                     continue;
 
@@ -95,14 +95,14 @@ size_t make_argv( char * arglist,                /* argument list               
                 break;
             }
 
-            if ( startArgs[ x ] == '\r' ) {
+            if ( startArgs[ x ] == __T('\r') ) {
                 if ( foundQuote )
                     continue;
 
                 break;
             }
 
-            if ( startArgs[ x ] == '\n' ) {
+            if ( startArgs[ x ] == __T('\n') ) {
                 if ( foundQuote )
                     continue;
 
@@ -111,7 +111,7 @@ size_t make_argv( char * arglist,                /* argument list               
         }
 
         /* Found end of this argument. */
-        nextarg = (char *)malloc( x + 1 );
+        nextarg = (LPTSTR)malloc( (x + 1)*sizeof(_TCHAR) );
         if ( !nextarg )
             break;
 
@@ -120,8 +120,8 @@ size_t make_argv( char * arglist,                /* argument list               
         for ( z = y = 0; z < x; z++ ) {
             nextarg[ y ] = startArgs[ z ];
 
-            if ( startArgs[ z ] == '\\' ) {
-                if ( startArgs[ z+1 ] == '"' ) {
+            if ( startArgs[ z ] == __T('\\') ) {
+                if ( startArgs[ z+1 ] == __T('"') ) {
                     nextarg[ y++ ] = startArgs[ ++z ];
                     continue;
                 }
@@ -138,35 +138,35 @@ size_t make_argv( char * arglist,                /* argument list               
                             nextarg[ y ] = startArgs[ z ];
                             break;
 
-                        case 'a':
-                            nextarg[ y ] = '\a';
+                        case __T('a'):
+                            nextarg[ y ] = __T('\a');
                             break;
 
-                        case 'b':
-                            nextarg[ y ] = '\b';
+                        case __T('b'):
+                            nextarg[ y ] = __T('\b');
                             break;
 
-                        case 'f':
-                            nextarg[ y ] = '\f';
+                        case __T('f'):
+                            nextarg[ y ] = __T('\f');
                             break;
 
-                        case 'n':
-                            nextarg[ y ] = '\n';
+                        case __T('n'):
+                            nextarg[ y ] = __T('\n');
                             break;
 
-                        case 'r':
-                            nextarg[ y ] = '\r';
+                        case __T('r'):
+                            nextarg[ y ] = __T('\r');
                             break;
 
-                        case 't':
-                            nextarg[ y ] = '\t';
+                        case __T('t'):
+                            nextarg[ y ] = __T('\t');
                             break;
 
-                        case 'v':
-                            nextarg[ y ] = '\v';
+                        case __T('v'):
+                            nextarg[ y ] = __T('\v');
                             break;
 
-                        case 'x':       /* hex conversion */
+                        case __T('x'):       /* hex conversion */
                             {
                                 int hexValue = 0;
                                 int c;
@@ -175,17 +175,17 @@ size_t make_argv( char * arglist,                /* argument list               
                                     if ( hexValue > (255/16) )
                                         break;
 
-                                    c = tolower(startArgs[ z ]);
-                                    if ( (c < '0') || (c > 'f') )
+                                    c = _totlower(startArgs[ z ]);
+                                    if ( (c < __T('0')) || (c > __T('f')) )
                                         break;
 
-                                    if ( (c > '9') && (c < 'a') )
+                                    if ( (c > __T('9')) && (c < __T('a')) )
                                         break;
 
-                                    if ( c <= '9' )
-                                        c -= '9';
+                                    if ( c <= __T('9') )
+                                        c -= __T('0');
                                     else
-                                        c -= ('a' - 10);
+                                        c -= __T('a') - 10;
 
                                     hexValue = hexValue * 16 + c;
                                     z++;
@@ -197,29 +197,29 @@ size_t make_argv( char * arglist,                /* argument list               
                             }
 
                         /* octal conversion */
-                        case '0':
-                        case '1':
-                        case '2':
-                        case '3':
-                        case '4':
-                        case '5':
-                        case '6':
-                        case '7':
+                        case __T('0'):
+                        case __T('1'):
+                        case __T('2'):
+                        case __T('3'):
+                        case __T('4'):
+                        case __T('5'):
+                        case __T('6'):
+                        case __T('7'):
                             {
                                 int octalValue = 0;
 
                                 for ( ; ; ) {
-                                    if ( octalValue > (255/8) )
+                                    if ( octalValue > (((256*sizeof(_TCHAR))-1)/8) )
                                         break;
 
-                                    if ( (startArgs[ z ] < '0') || (startArgs[ z ] > '7') )
+                                    if ( (startArgs[ z ] < __T('0')) || (startArgs[ z ] > __T('7')) )
                                         break;
 
-                                    octalValue = octalValue * 8 + (startArgs[ z++ ] - '0');
+                                    octalValue = octalValue * 8 + (startArgs[ z++ ] - __T('0'));
                                 }
 
                                 z--;
-                                nextarg[ y ] = (char)octalValue;
+                                nextarg[ y ] = (_TCHAR)octalValue;
                                 break;
                             }
                         }
@@ -230,12 +230,12 @@ size_t make_argv( char * arglist,                /* argument list               
                 }
             }
 
-            if ( startArgs[ z ] == '"' ) {
+            if ( startArgs[ z ] == __T('"') ) {
                 foundQuote = (foundQuote != TRUE );
                 continue;
             }
 
-            if ( startArgs[ z ] == ' ' ) {
+            if ( startArgs[ z ] == __T(' ') ) {
                 if ( foundQuote ) {
                     y++;
                     continue;
@@ -253,7 +253,7 @@ size_t make_argv( char * arglist,                /* argument list               
                 break;
             }
 
-            if ( startArgs[ z ] == '\r' ) {
+            if ( startArgs[ z ] == __T('\r') ) {
                 if ( foundQuote ) {
                     y++;
                     continue;
@@ -262,7 +262,7 @@ size_t make_argv( char * arglist,                /* argument list               
                 break;
             }
 
-            if ( startArgs[ z ] == '\n' ) {
+            if ( startArgs[ z ] == __T('\n') ) {
                 if ( foundQuote ) {
                     y++;
                     continue;
@@ -274,7 +274,7 @@ size_t make_argv( char * arglist,                /* argument list               
             y++;
         }
 
-        nextarg[ y ] = '\0';
+        nextarg[ y ] = __T('\0');
         argv[ argc ] = nextarg;
         startArgs += x;
     }

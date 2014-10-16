@@ -24,20 +24,24 @@ extern "C" {
     #include <winsock.h>
 #endif
 }
+//#include <tchar.h>
+
 #include "gensock.h"
 #include "blat.h"
+#include "punycode.h"
 #if SUPPORT_GSSAPI
 #include "gssfuncs.h" // Please read the comments here for information about how to use GssSession
 #endif
 
 #define MAX_PRINTF_LENGTH   1000
+#define MAX_HOSTNAME_LENGTH  512
 
 #ifdef SOCKET_BUFFER_SIZE
     #undef SOCKET_BUFFER_SIZE
 #endif
 
 /* This is for NT */
-#ifdef WIN32
+#if defined(WIN32) || defined(WIN64)
 
     #define SOCKET_BUFFER_SIZE  64240   // 1460 * 44
 
@@ -61,24 +65,24 @@ void deinit_winsock (void);
 int  globaltimeout = 30;
 
 #if INCLUDE_SUPERDEBUG
-extern char superDebug;
-extern char quiet;
+extern _TCHAR superDebug;
+extern _TCHAR quiet;
 #endif
 
 extern int  noftry();
-extern void printMsg(const char *p, ... );
+extern void printMsg(LPTSTR p, ... );
 
 //
 //
 //
 
-void complain (char * message)
+void complain (LPTSTR message)
 {
 #ifdef _DEBUG
     OutputDebugString (message);
 #else
-//  MessageBox (NULL, message, "GENSOCK.DLL Error", MB_OK|MB_ICONHAND);
-    printMsg("%s\n", message);
+//  MessageBox (NULL, message, __T("GENSOCK.DLL Error"), MB_OK|MB_ICONHAND);
+    printMsg( __T("%s\n"), message );
 #endif
 }
 
@@ -89,8 +93,8 @@ void complain (char * message)
 class connection {
 private:
     SOCKET              the_socket;
-    char *              in_buffer;
-    char *              out_buffer;
+    char *              pInBuffer;
+    char *              pOutBuffer;
     unsigned int        in_index;
     unsigned int        out_index;
     unsigned int        in_buffer_total;
@@ -106,14 +110,17 @@ public:
     connection (void);
     ~connection (void);
 
-    int                 get_connected (char * hostname, char * service);
+    int                 get_connected (LPTSTR hostname, LPTSTR service);
     SOCKET              get_socket(void) { return(the_socket);}
     TASK_HANDLE_TYPE    get_owner_task(void) { return(owner_task);}
     int                 get_buffer(int wait);
     int                 close (void);
-    int                 getachar (int wait, char * ch);
-    int                 put_data (char * data, unsigned long length);
-    int                 put_data_buffered (char * data, unsigned long length);
+    int                 getachar (int wait, LPTSTR ch);
+    int                 put_data (LPTSTR pData, unsigned long length);
+#if defined(_UNICODE) || defined(UNICODE)
+    int                 put_data (char * pData, unsigned long length);
+#endif
+    int                 put_data_buffered (LPTSTR pData, unsigned long length);
     int                 put_data_flush (void);
 };
 
@@ -124,10 +131,10 @@ connection::connection (void)
     out_index        = 0;
     in_buffer_total  = 0;
     out_buffer_total = 0;
-    in_buffer        = 0;
+    pInBuffer        = 0;
 
-    in_buffer   = new char[SOCKET_BUFFER_SIZE];
-    out_buffer  = new char[SOCKET_BUFFER_SIZE];
+    pInBuffer   = new char[SOCKET_BUFFER_SIZE];
+    pOutBuffer  = new char[SOCKET_BUFFER_SIZE];
     buffer_size = SOCKET_BUFFER_SIZE;
 
     last_winsock_error = 0;
@@ -135,8 +142,8 @@ connection::connection (void)
 
 connection::~connection (void)
 {
-    delete [] in_buffer;
-    delete [] out_buffer;
+    delete [] pInBuffer;
+    delete [] pOutBuffer;
 }
 
 int
@@ -151,12 +158,97 @@ int
     return(1);
 }
 
+#if defined(_UNICODE) || defined(UNICODE)
+
+#define unicode_max_length  256
+#define ace_max_length      256
+
+
+static void convertHostnameUsingPunycode( LPTSTR _Thostname, char * punycodeName )
+{
+    Buf             tmpBuf;
+    punycode_uint   input[unicode_max_length];
+    punycode_uint   input_length;
+    BYTE            case_flags[ace_max_length+1];
+    _TCHAR          output[ace_max_length+1];
+    punycode_uint   output_length;
+    size_t          c;
+    LPTSTR          there;
+    LPTSTR          start;
+    BYTE            needPunycode;
+    Buf             finishedURL;
+    _TCHAR          oldC;
+    punycode_status status;
+
+
+    /* Read the input code points: */
+
+    tmpBuf = _Thostname;
+    there  = tmpBuf.Get();
+    start  = there;
+    CharLower(there);
+    finishedURL.Clear();
+    needPunycode = 0;
+    for (;;) {
+        if ((*there == __T('\0')) || (*there == __T('.'))) {
+            oldC = *there;
+            *there = __T('\0');
+            if ( needPunycode ) {
+                input_length = 0;
+                while ( start < there ) {
+                    case_flags[input_length] = 0;
+                    input[input_length] = (punycode_uint)*start;
+                    if ((input[input_length] >= 0xD800) && (input[input_length] <= 0xDBFF) &&
+                        (start[1]            >= 0xDC00) && (start[1]            <= 0xDFFF)) {
+                        input[input_length] = 0x10000l + ((input[input_length] & 0x3FFl) << 10) + (start[1] & 0x3FFl);
+                        start++;
+                    }
+                    input_length++;
+                    start++;
+                }
+                /* Encode: */
+                output_length = ace_max_length;
+                status = punycode_encode(input_length, input, case_flags,
+                                         &output_length, output);
+                finishedURL.Add( __T("xn--") );
+                finishedURL.Add( output, output_length );
+                needPunycode = 0;
+            } else
+                finishedURL.Add( start );
+
+            *there = oldC;
+            if (*there == __T('\0'))
+                break;
+
+            finishedURL.Add( oldC );
+            start = there + 1;
+        } else
+        if ( *there > 0x7F )
+            needPunycode = 1;
+
+        there++;
+    }
+    there = finishedURL.Get();
+    c = 0;
+    do {
+        punycodeName[c] = (char)(there[c] & 0x0FF);
+        if ( punycodeName[c] == '\0' )
+            break;
+
+    } while ( ++c < 511 );
+    punycodeName[511] = '\0';
+
+    finishedURL.Free();
+    tmpBuf.Free();
+}
+
+#endif
 //
 // ---------------------------------------------------------------------------
 //
 
 int
-     connection::get_connected (char FAR * hostname, char FAR * service)
+     connection::get_connected (LPTSTR _Thostname, LPTSTR _Tservice)
 {
     struct hostent FAR * hostentry;
     struct servent FAR * serventry;
@@ -169,17 +261,32 @@ int
     int                  retval, err_code;
     unsigned int         maxMsgSize;
     unsigned long        ioctl_blocking = 1;
-    char                 message[80];
+    _TCHAR               message[80];
     int                  tryCount;
+    char                 service[MAX_HOSTNAME_LENGTH];
+    char                 hostname[MAX_HOSTNAME_LENGTH];
 
     // if the ctor couldn't get a buffer
-    if ( !in_buffer || !out_buffer )
+    if ( !pInBuffer || !pOutBuffer )
         return(ERR_CANT_MALLOC);
 
     // --------------------------------------------------
     // resolve the service name
     //
 
+#if defined(_UNICODE) || defined(UNICODE)
+    convertHostnameUsingPunycode( _Thostname, hostname );
+#else
+    strncpy( hostname, _Thostname, sizeof(hostname)-1 );
+    hostname[sizeof(hostname)] = '\0';
+#endif
+
+    for ( dummyVal = 0; _Tservice[dummyVal] && (dummyVal < (sizeof(service)-1)); dummyVal++ ) {
+        service[dummyVal] = (char)(_Tservice[dummyVal] & 0xFF);
+    }
+    service[dummyVal] = '\0';
+
+    dummyVal = 0;
     // If they've specified a number, just use it.
     if ( gensock_is_a_number (service) ) {
         char * tail;
@@ -190,7 +297,7 @@ int
         our_port = htons (our_port);
     } else {
         // we have a name, we must resolve it.
-        serventry = getservbyname (service, (LPSTR)"tcp");
+        serventry = getservbyname (service, "tcp");
 
         if ( serventry )
             our_port = serventry->s_port;
@@ -217,9 +324,9 @@ int
         if ( (hostentry = gethostbyname(hostname)) == NULL ) {
 #if INCLUDE_SUPERDEBUG
             if ( superDebug ) {
-                char savedQuiet = quiet;
+                _TCHAR savedQuiet = quiet;
                 quiet = FALSE;
-                printMsg("superDebug: Cannot resolve hostname <%s> to ip address.\n", hostname );
+                printMsg( __T("superDebug: Cannot resolve hostname <%s> to ip address.\n"), _Thostname );
                 quiet = savedQuiet;
             }
 #endif
@@ -229,14 +336,22 @@ int
         sa_in.sin_addr.s_addr = *(long far *)hostentry->h_addr;
 #if INCLUDE_SUPERDEBUG
         if ( superDebug ) {
-            char savedQuiet = quiet;
+            Buf      _tprtline;
+            unsigned tx;
+            _TCHAR   savedQuiet = quiet;
+
             quiet = FALSE;
-            printMsg("superDebug: Hostname <%s> resolved to ip address %u.%u.%u.%u\n",
-                     hostname, sa_in.sin_addr.S_un.S_un_b.s_b1,
-                               sa_in.sin_addr.S_un.S_un_b.s_b2,
-                               sa_in.sin_addr.S_un.S_un_b.s_b3,
-                               sa_in.sin_addr.S_un.S_un_b.s_b4 );
-            printMsg("superDebug: Official hostname is %s\n", hostentry->h_name );
+            printMsg( __T("superDebug: Hostname <%s> resolved to ip address %u.%u.%u.%u\n"),
+                      _Thostname, sa_in.sin_addr.S_un.S_un_b.s_b1,
+                                  sa_in.sin_addr.S_un.S_un_b.s_b2,
+                                  sa_in.sin_addr.S_un.S_un_b.s_b3,
+                                  sa_in.sin_addr.S_un.S_un_b.s_b4 );
+            _tprtline.Clear();
+            for ( tx = 0; hostentry->h_name[tx]; tx++ )
+                _tprtline.Add( hostentry->h_name[tx] );
+            _tprtline.Add( __T('\0') );
+            printMsg( __T("superDebug: Official hostname is %s\n"), _tprtline.Get() );
+            _tprtline.Free();
             quiet = savedQuiet;
         }
 #endif
@@ -251,13 +366,13 @@ int
 
 #if INCLUDE_SUPERDEBUG
         if ( superDebug ) {
-            char savedQuiet = quiet;
+            _TCHAR savedQuiet = quiet;
             quiet = FALSE;
-            printMsg("superDebug: Attempting to connect to ip address %u.%u.%u.%u\n",
-                     sa_in.sin_addr.S_un.S_un_b.s_b1,
-                     sa_in.sin_addr.S_un.S_un_b.s_b2,
-                     sa_in.sin_addr.S_un.S_un_b.s_b3,
-                     sa_in.sin_addr.S_un.S_un_b.s_b4 );
+            printMsg( __T("superDebug: Attempting to connect to ip address %u.%u.%u.%u\n"),
+                      sa_in.sin_addr.S_un.S_un_b.s_b1,
+                      sa_in.sin_addr.S_un.S_un_b.s_b2,
+                      sa_in.sin_addr.S_un.S_un_b.s_b3,
+                      sa_in.sin_addr.S_un.S_un_b.s_b4 );
             quiet = savedQuiet;
         }
 #endif
@@ -289,10 +404,10 @@ int
                 break;
 #if INCLUDE_SUPERDEBUG
             if ( superDebug ) {
-                char savedQuiet = quiet;
+                _TCHAR savedQuiet = quiet;
                 quiet = FALSE;
-                printMsg("superDebug: ::connect() returned error %d, retry count remaining is %u\n",
-                         WSAGetLastError(), tryCount - 1 );
+                printMsg( __T("superDebug: ::connect() returned error %d, retry count remaining is %u\n"),
+                          WSAGetLastError(), tryCount - 1 );
                 quiet = savedQuiet;
             }
 #endif
@@ -305,10 +420,10 @@ int
 
 #if INCLUDE_SUPERDEBUG
         if ( superDebug ) {
-            char savedQuiet = quiet;
+            _TCHAR savedQuiet = quiet;
             quiet = FALSE;
-            printMsg("superDebug: Connection returned error %d\n",
-                     WSAGetLastError() );
+            printMsg( __T("superDebug: Connection returned error %d\n"),
+                      WSAGetLastError() );
             quiet = savedQuiet;
         }
 #endif
@@ -324,7 +439,7 @@ int
             return(ERR_CONNECTION_REFUSED);
 
         default:
-            wsprintf(message, "unexpected error %d from winsock", err_code);
+            _stprintf(message, __T("unexpected error %d from winsock"), err_code);
             complain(message);
 
         case WSAETIMEDOUT:
@@ -358,6 +473,105 @@ int
     return(0);
 }
 
+#if INCLUDE_SUPERDEBUG
+
+void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
+{
+    _TCHAR        _tprtline[MAX_PRINTF_LENGTH + 2];
+    unsigned      tx;
+    BYTE          buf[68];
+    int           x;
+    unsigned long y;
+    unsigned long offset;
+    BYTE        * pStr;
+    _TCHAR        savedQuiet;
+    BYTE        * pp;
+    BYTE        * p;
+    char          tmpstr[4];
+    BYTE          c;
+
+
+    if ( superDebug ) {
+        savedQuiet = quiet;
+
+        quiet = FALSE;
+        printMsg( msg, length );
+
+        if ( superDebug == 2 ) {
+            x    = length;
+            pStr = (BYTE *)pData;
+
+            for ( ; x > MAX_PRINTF_LENGTH; ) {
+                p = new BYTE[MAX_PRINTF_LENGTH + 2];
+
+                strncpy( (char *)p, (char *)pStr, MAX_PRINTF_LENGTH );
+                p[MAX_PRINTF_LENGTH] = '\0';
+                pp = (BYTE *)strrchr((char *)p, '\n');
+                if ( pp ) {
+                    pp++;
+                    *pp = '\0';
+                    x    -= (int)(pp - p);
+                    pStr += (int)(pp - p);
+                } else {
+                    x    -= MAX_PRINTF_LENGTH;
+                    pStr += MAX_PRINTF_LENGTH;
+                }
+                for ( tx = 0; p[tx]; tx++ )
+                    _tprtline[tx] = p[tx];
+                _tprtline[tx] = __T('\0');
+                printMsg( __T("%s"), _tprtline );
+                if ( p[strlen((char *)p) - 1] != '\n' )
+                    printMsg( __T("\n") );
+
+                delete [] p;
+            }
+            if ( x ) {
+                p = new BYTE[x + 2];
+                memcpy( p, pStr, x );
+                p[x] = '\0';
+                for ( tx = 0; p[tx]; tx++ )
+                    _tprtline[tx] = p[tx];
+                _tprtline[tx] = __T('\0');
+                printMsg( __T("%s"), _tprtline );
+                if ( p[x - 1] != '\n' )
+                    printMsg( __T("\n") );
+                delete [] p;
+            }
+        } else {
+            memset( buf, ' ', 66 );
+            offset = 0;
+            y = 0;
+            for ( x = 0; y < length; x++, y++ ) {
+                c = pData[y];
+
+                if ( x == 16 ) {
+                    buf[66] = '\0';
+                    for ( tx = 0; buf[tx]; tx++ )
+                        _tprtline[tx] = buf[tx];
+                    _tprtline[tx] = __T('\0');
+                    printMsg( __T("superDebug: %05lX %s\r\n"), offset, _tprtline );
+                    memset( buf, ' ', 66 );
+                    x = 0;
+                    offset += 16;
+                }
+
+                sprintf( tmpstr, " %02X", c );
+                memcpy( &buf[x * 3], tmpstr, 3);
+                if ( (c < 0x20) || (c > 0x7e) )
+                    c = '.';
+
+                buf[x + 50] = c;
+            }
+            buf[66] = '\0';
+            for ( tx = 0; buf[tx]; tx++ )
+                _tprtline[tx] = buf[tx];
+            _tprtline[tx] = __T('\0');
+            printMsg( __T("superDebug: %05lX %s\r\n"), offset, _tprtline );
+        }
+        quiet = savedQuiet;
+    }
+}
+#endif
 
 //
 //---------------------------------------------------------------------------
@@ -386,16 +600,16 @@ int
 
     if ( (retval = select (0, &fds, NULL, NULL, &timeout))
          == SOCKET_ERROR ) {
-        char what_error[256];
+        _TCHAR what_error[256];
         int error_code = WSAGetLastError();
 
         if ( error_code == WSAEINPROGRESS && wait ) {
             return(WAIT_A_BIT);
         }
 
-        wsprintf (what_error,
-                  "connection::get_buffer() unexpected error from select: %d",
-                  error_code);
+        _stprintf( what_error,
+                   __T("connection::get_buffer() unexpected error from select: %d"),
+                   error_code);
         complain (what_error);
         // return( wait ? WAIT_A_BIT : ERR_READING_SOCKET );
     }
@@ -407,7 +621,7 @@ int
 
     // we have data waiting...
     bytes_read = recv (the_socket,
-                       in_buffer,
+                       pInBuffer,
                        buffer_size,
                        0);
 
@@ -419,7 +633,7 @@ int
     }
 
     if ( bytes_read == SOCKET_ERROR ) {
-        char what_error[256];
+        _TCHAR what_error[256];
         int ws_error = WSAGetLastError();
         switch ( ws_error ) {
         // all these indicate loss of connection (are there more?)
@@ -435,87 +649,16 @@ int
             return(WAIT_A_BIT);
 
         default:
-            wsprintf (what_error,
-                      "connection::get_buffer() unexpected error: %d",
-                      ws_error);
-            complain (what_error);
+            _stprintf( what_error,
+                       __T("connection::get_buffer() unexpected error: %d"),
+                       ws_error);
+            complain ( what_error );
             // return( wait ? WAIT_A_BIT : ERR_READING_SOCKET );
         }
     }
 #if INCLUDE_SUPERDEBUG
     else {
-        if ( superDebug ) {
-            char savedQuiet = quiet;
-
-            quiet = FALSE;
-            printMsg("superDebug: Received %u bytes:\n", bytes_read );
-
-            if ( superDebug == 2 ) {
-                int    x    = bytes_read;
-                char * pStr = in_buffer;
-
-                for ( ; x > MAX_PRINTF_LENGTH; ) {
-                    char * pp;
-                    char * p = new char[MAX_PRINTF_LENGTH + 2];
-
-                    strncpy( p, pStr, MAX_PRINTF_LENGTH );
-                    p[MAX_PRINTF_LENGTH] = '\0';
-                    pp = strrchr(p, '\n');
-                    if ( pp ) {
-                        pp++;
-                        *pp = '\0';
-                        x    -= (int)(pp - p);
-                        pStr += (int)(pp - p);
-                    } else {
-                        x    -= MAX_PRINTF_LENGTH;
-                        pStr += MAX_PRINTF_LENGTH;
-                    }
-                    printMsg( "%s", p );
-                    if ( p[strlen(p) - 1] != '\n' )
-                        printMsg( "\n" );
-
-                    delete [] p;
-                }
-                if ( x ) {
-                    char * p = new char[x + 2];
-                    memcpy( p, pStr, x );
-                    p[x] = 0;
-                    printMsg( "%s", p );
-                    if ( p[x - 1] != '\n' )
-                        printMsg( "\n" );
-                    delete [] p;
-                }
-            } else {
-                char buf[68];
-                int  x, y;
-
-                memset( buf, ' ', 66 );
-                for ( x = y = 0; y < bytes_read; x++, y++ ) {
-                    char tmpstr[4];
-                    unsigned char c = in_buffer[y];
-
-                    if ( x == 16 ) {
-                        buf[66] = 0;
-                        printMsg( "superDebug: %05X %s\r\n", (y - 16), buf );
-                        memset( buf, ' ', 66 );
-                        x = 0;
-                    }
-
-                    sprintf( tmpstr, " %02X", c );
-                    memcpy( &buf[x * 3], tmpstr, 3);
-                    if ( (c < 0x20) || (c > 0x7e) )
-                        c = '.';
-
-                    buf[x + 50] = c;
-                }
-                buf[66] = 0;
-                if ( x == 16 )
-                    y--;
-
-                printMsg( "superDebug: %05X %s\r\n", y - (y % 16), buf );
-            }
-            quiet = savedQuiet;
-        }
+        debugOutputThisData( pInBuffer, bytes_read, __T("superDebug: Received %u bytes:\n") );
     }
 #endif
 
@@ -527,33 +670,53 @@ int
     in_index = 0;
 
 #if SUPPORT_GSSAPI
-    // Okay, we've read data sent by the server into in_buffer.  However, if pGss->IsReadyToEncrypt() is TRUE,
+    // Okay, we've read data sent by the server into pInBuffer.  However, if pGss->IsReadyToEncrypt() is TRUE,
     // that means the message is encrypted and needs to be decrypted before we pass it back to the rest of the
     // program... so do it.
 
     Buf msg;
+    Buf msg1;
 
     if (pGss) {
         try {
             if (pGss->IsReadyToEncrypt()) {
-                msg = pGss->Decrypt(Buf(in_buffer,in_buffer_total));//Copy in_buffer and decrypt it
-                memcpy(in_buffer,(const char*)msg,msg.Length()*sizeof(char)); //save the result back to in_buffer
-                in_buffer_total = msg.Length();
+                msg1.Clear();
+                msg1.Add(pInBuffer,in_buffer_total);
+                msg = pGss->Decrypt(msg1);//Copy pInBuffer and decrypt it
+  #if defined(_UNICODE) || defined(UNICODE)
+                {
+                    size_t len = msg.Length();
+                    LPTSTR pStr = msg.Get();
+
+                    pInBuffer[len] = '\0';
+                    while ( len ) {
+                        --len;
+                        pInBuffer[len] = (char)(pStr[len] & 0xFF);
+                    }
+                }
+  #else
+                memcpy(pInBuffer,(const char*)msg,msg.Length()); //save the result back to pInBuffer
+  #endif
+                in_buffer_total = (int)msg.Length();
   #if INCLUDE_SUPERDEBUG
                 if ( superDebug ) {
-                    printMsg("superDebug: Decrypted\n");
+                    printMsg( __T("superDebug: Decrypted\n") );
                 }
   #endif
             }
         }
         catch (GssSession::GssException& e) {
-            char szMsg[4096];
-            sprintf(szMsg, "Cannot decrypt message: %s",e.message());
+            _TCHAR szMsg[4096];
+            _stprintf(szMsg, __T("Cannot decrypt message: %s"),e.message());
             complain(szMsg);
             pGss = NULL;
+            msg1.Free();
+            msg.Free();
             return (ERR_READING_SOCKET);
         }
     }
+    msg1.Free();
+    msg.Free();
 #endif
 
     return(0);
@@ -566,7 +729,7 @@ int
 //
 
 int
-     connection::getachar(int wait, char FAR * ch)
+     connection::getachar(int wait, LPTSTR ch)
 {
     int retval;
 
@@ -575,7 +738,7 @@ int
         if ( retval )
             return(retval);
     }
-    *ch = in_buffer[in_index++];
+    *ch = (_TCHAR)pInBuffer[in_index++];
     return(0);
 }
 
@@ -586,39 +749,57 @@ int
 // an int, not an unsigned long.
 
 int
-     connection::put_data (char * data, unsigned long length)
+     connection::put_data (char * pData, unsigned long length)
 {
     int num_sent;
     int retval;
 
 #if SUPPORT_GSSAPI
-
-    // Okay, we've got data to send to the server in char *data.  However, if pGss->IsReadyToEncrypt() is TRUE,
+    // Okay, we've got data to send to the server in char *pData.  However, if pGss->IsReadyToEncrypt() is TRUE,
     // that means the message needs to be encrypted before it is sent to the server... so do it.
 
     Buf msg;
+    Buf msg1;
+
     if (pGss) {
         try {
             if (pGss->IsReadyToEncrypt()) {
-                msg = pGss->Encrypt(Buf(data,length)); //copy data and encrypt it
-                data = msg.Get(); // point char *data at the encrypted buffer
-                length = msg.Length();
+                msg1.Clear();
+                msg1.Add(pData,length);
+                msg = pGss->Encrypt(msg1); //copy pData and encrypt it
+  #if defined(_UNICODE) || defined(UNICODE)
+                LPTSTR pEncryptedData = msg.Get(); // point at the encrypted buffer
+
+                pData = (char *)pEncryptedData;
+                size_t ix = 0;
+                while ( ix < msg.Length() ) {
+                    pData[ix] = (char)(pEncryptedData[ix] & 0xFF);
+                    ix++;
+                }
+  #else
+                pData = (char *)msg.Get(); // point char *pData at the encrypted buffer
+  #endif
+                length = (int)msg.Length();
   #if INCLUDE_SUPERDEBUG
                 if ( superDebug ) {
-                    printMsg("superDebug: Encrypted via GSSAUTH_P_%s\n",
-                        pGss->GetProtectionLevel()==GSSAUTH_P_PRIVACY?"PRIVACY":"INTEGRITY");
+                    printMsg( __T("superDebug: Encrypted via GSSAUTH_P_%s\n"),
+                              (pGss->GetProtectionLevel() == GSSAUTH_P_PRIVACY) ? __T("PRIVACY") : __T("INTEGRITY") );
                 }
   #endif
             }
         }
         catch (GssSession::GssException& e) {
-            char szMsg[4096];
-            sprintf(szMsg,"Cannot encrypt message: %s",e.message());
+            _TCHAR szMsg[4096];
+            _stprintf(szMsg, __T("Cannot encrypt message: %s"), e.message() );
             complain(szMsg);
             pGss = NULL;
+            msg1.Free();
+            msg.Free();
             return (ERR_SENDING_DATA);
         }
     }
+    msg1.Free();
+    msg.Free();
 #endif
 
     FD_ZERO (&fds);
@@ -627,100 +808,28 @@ int
     timeout.tv_sec = globaltimeout;
 
 #if INCLUDE_SUPERDEBUG
-    if ( superDebug ) {
-        char savedQuiet = quiet;
-
-        quiet = FALSE;
-        printMsg("superDebug: Attempting to send %u bytes:\n", length );
-
-        if ( superDebug == 2 ) {
-            int    x    = length;
-            char * pStr = data;
-
-            for ( ; x > MAX_PRINTF_LENGTH; ) {
-                char * pp;
-                char * p = new char[MAX_PRINTF_LENGTH + 2];
-
-                strncpy( p, pStr, MAX_PRINTF_LENGTH );
-                p[MAX_PRINTF_LENGTH] = '\0';
-                pp = strrchr(p, '\n');
-                if ( pp ) {
-                    pp++;
-                    *pp = '\0';
-                    x    -= (int)(pp - p);
-                    pStr += (int)(pp - p);
-                } else {
-                    x    -= MAX_PRINTF_LENGTH;
-                    pStr += MAX_PRINTF_LENGTH;
-                }
-                printMsg( "%s", p );
-                if ( p[strlen(p) - 1] != '\n' )
-                    printMsg( "\n" );
-
-                delete [] p;
-            }
-            if ( x ) {
-                char * p = new char[x + 2];
-                memcpy( p, pStr, x );
-                p[x] = 0;
-                printMsg( "%s", p );
-                if ( p[x - 1] != '\n' )
-                    printMsg( "\n" );
-                delete [] p;
-            }
-        } else {
-            char          buf[68];
-            int           x;
-            unsigned long y;
-
-            memset( buf, ' ', 66 );
-            for ( x = 0, y = 0; y < length; x++, y++ ) {
-                char          tmpstr[4];
-                unsigned char c = data[y];
-
-                if ( x == 16 ) {
-                    buf[66] = 0;
-                    printMsg( "superDebug: %05X %s\r\n", (y - 16), buf );
-                    memset( buf, ' ', 66 );
-                    x = 0;
-                }
-
-                sprintf( tmpstr, " %02X", c );
-                memcpy( &buf[x * 3], tmpstr, 3);
-                if ( (c < 0x20) || (c > 0x7e) )
-                    c = '.';
-
-                buf[x + 50] = c;
-            }
-            buf[66] = 0;
-            if ( x == 16 )
-                y--;
-
-            printMsg( "superDebug: %05X %s\r\n", y - (y % 16), buf );
-        }
-        quiet = savedQuiet;
-    }
+    debugOutputThisData( pData, length, __T("superDebug: Attempting to send %u bytes:\n") );
 #endif
 
     while ( length > 0 ) {
         retval = select (0, NULL, &fds, NULL, &timeout);
         if ( retval == SOCKET_ERROR ) {
-            char what_error[256];
+            _TCHAR what_error[256];
             int error_code = WSAGetLastError();
 
-            wsprintf (what_error,
-                      "connection::put_data() unexpected error from select: %d",
-                      error_code);
-            complain (what_error);
+            _stprintf( what_error,
+                       __T("connection::put_pData() unexpected error from select: %d"),
+                       error_code );
+            complain ( what_error );
         }
 
-        num_sent = send (the_socket,
-                         data,
+        num_sent = send( the_socket,
+                         pData,
                          ((int)length > buffer_size) ? buffer_size : (int)length,
-                         0);
+                         0 );
 
         if ( num_sent == SOCKET_ERROR ) {
-            char what_error[256];
+            _TCHAR what_error[256];
             int ws_error = WSAGetLastError();
             switch ( ws_error ) {
             // this is the only error we really expect to see.
@@ -734,15 +843,15 @@ int
                 break;
 
             default:
-                wsprintf (what_error,
-                          "connection::put_data() unexpected error from send(): %d",
-                          ws_error);
+                _stprintf( what_error,
+                           __T("connection::put_pData() unexpected error from send(): %d"),
+                           ws_error );
                 complain (what_error);
                 return(ERR_SENDING_DATA);
             }
         } else {
             length -= num_sent;
-            data   += num_sent;
+            pData   += num_sent;
             if ( length > 0 )
                 Sleep(1);
         }
@@ -751,13 +860,35 @@ int
     return(0);
 }
 
+#if defined(_UNICODE) || defined(UNICODE)
+
+int
+     connection::put_data (LPTSTR pData, unsigned long length)
+{
+    char * pCharData;
+    int    retval;
+    size_t ix;
+
+    retval = ERR_SENDING_DATA;
+    pCharData = new char[length];
+    if ( pCharData ) {
+        for ( ix = 0; ix < length; ix++ ) {
+            pCharData[ix] = (char)(pData[ix] & 0xFF);
+        }
+        retval = put_data( pCharData, length );
+        delete [] pCharData;
+    }
+    return( retval );
+}
+#endif
+
 //
 //
 // buffered output
 //
 
 int
-     connection::put_data_buffered (char * data, unsigned long length)
+     connection::put_data_buffered (LPTSTR pData, unsigned long length)
 {
 //    unsigned int sorta_sent = 0;
     int retval;
@@ -765,21 +896,34 @@ int
     while ( length ) {
         if ( (int)(out_index + length) < buffer_size ) {
             // we won't overflow, simply copy into the buffer
-            memcpy (out_buffer + out_index, data, (size_t) length);
-            out_index += (unsigned int) length;
-            length = 0;
+            do {
+                pOutBuffer[out_index] = (char)(*pData & 0xFF);
+                pData++;
+                out_index++;
+                length--;
+            } while ( length );
         } else {
+            unsigned int ix;
             unsigned int orphaned_chunk = buffer_size - out_index;
+            LPTSTR       tempPData = pData;
+
             // we will overflow, handle it
-            memcpy (out_buffer + out_index, data, orphaned_chunk);
+            ix = orphaned_chunk;
+            while ( ix ) {
+                pOutBuffer[out_index] = (char)(*tempPData & 0xFF);
+                tempPData++;
+                out_index++;
+                ix--;
+            }
+
             // send this buffer...
-            retval = put_data (out_buffer, buffer_size);
+            retval = put_data (pOutBuffer, buffer_size);
             if ( retval )
                 return(retval);
 
             length -= orphaned_chunk;
             out_index = 0;
-            data += orphaned_chunk;
+            pData += orphaned_chunk;
         }
     }
 
@@ -791,7 +935,7 @@ int
 {
     int retval;
 
-    retval = put_data (out_buffer, out_index);
+    retval = put_data (pOutBuffer, out_index);
     if ( retval )
         return(retval);
 
@@ -926,9 +1070,9 @@ int network_initialized;
 // C/DLL interface
 //
 
-int FAR
-     gensock_connect (char FAR * hostname,
-                      char FAR * service,
+int
+     gensock_connect (LPTSTR hostname,
+                      LPTSTR service,
                       socktag FAR * pst)
 {
     int retval;
@@ -965,8 +1109,8 @@ int FAR
 //
 //
 
-int FAR
-     gensock_getchar (socktag st, int wait, char FAR * ch)
+int
+     gensock_getchar (socktag st, int wait, LPTSTR ch)
 {
     connection * conn = (connection *) st;
 
@@ -981,23 +1125,23 @@ int FAR
 //
 //
 
-int FAR
-     gensock_put_data (socktag st, char FAR * data, unsigned long length)
+int
+     gensock_put_data (socktag st, LPTSTR pData, unsigned long length)
 {
     connection * conn = (connection *) st;
 
     if ( !conn )
         return(ERR_NOT_A_SOCKET);
 
-    return(conn->put_data(data, length));
+    return(conn->put_data(pData, length));
 }
 
 //---------------------------------------------------------------------------
 //
 //
 
-int FAR
-     gensock_put_data_buffered (socktag st, char FAR * data, unsigned long length)
+int
+     gensock_put_data_buffered (socktag st, LPTSTR data, unsigned long length)
 {
     connection * conn = (connection *) st;
 
@@ -1011,7 +1155,7 @@ int FAR
 //
 //
 
-int FAR
+int
      gensock_put_data_flush (socktag st)
 {
     connection * conn = (connection *) st;
@@ -1025,54 +1169,92 @@ int FAR
 //
 // ---------------------------------------------------------------------------
 //
-
-char FAR *
-     gensock_getdomainfromhostname (char FAR * name)
+char *
+     gensock_getdomainfromhostnameA (char * pName)
 {
-    char FAR * domainPtr;
+    char * domainPtr;
 
     // --------------------------------------------------
     // resolve the hostname/ipaddress
     //
 
-    if ( inet_addr (name) != INADDR_NONE )
-        return NULL;
+    domainPtr = NULL;
+    for ( ; ; ) {
+        if ( inet_addr (pName) != INADDR_NONE )
+            break;
 
-    if ( gethostbyname(name) == NULL ) {
-        int retval = WSAGetLastError();
+        if ( gethostbyname(pName) == NULL ) {
+            int retval = WSAGetLastError();
 
-        domainPtr = NULL;
-        if (retval == WSANOTINITIALISED) {
-            retval = init_winsock();
-            if ( !retval ) {
-                domainPtr = gensock_getdomainfromhostname(name);
-                deinit_winsock();
+            if (retval == WSANOTINITIALISED) {
+                retval = init_winsock();
+                if ( !retval ) {
+                    domainPtr = gensock_getdomainfromhostnameA(pName);
+                    deinit_winsock();
+                }
             }
+            break;
         }
-        return domainPtr;
+
+        domainPtr = strchr(pName, '.');
+        if (!domainPtr)
+            break;
+
+        domainPtr = gensock_getdomainfromhostnameA( ++domainPtr );
+        if (!domainPtr)
+            domainPtr = pName;
+
+        break;
     }
-
-    domainPtr = strchr(name, '.');
-    if (!domainPtr)
-        return NULL;
-
-    domainPtr = gensock_getdomainfromhostname( ++domainPtr );
-    if (!domainPtr)
-        return(name);
-
     return domainPtr;
 }
+
+#if defined(_UNICODE) || defined(UNICODE)
+LPTSTR
+     gensock_getdomainfromhostnameW (LPTSTR pName)
+{
+    unsigned x;
+    char   * pDomainName;
+    LPTSTR   pTDomainName;
+    char     hostname[MAX_HOSTNAME_LENGTH];
+    static _TCHAR _Thostname[MAX_HOSTNAME_LENGTH];
+
+    convertHostnameUsingPunycode( pName, hostname );
+    pTDomainName = NULL;
+    pDomainName = gensock_getdomainfromhostnameA( hostname );
+    if ( pDomainName ) {
+        pTDomainName = _Thostname;
+        for ( x = 0; x < (MAX_HOSTNAME_LENGTH-1); x++ ) {
+            _Thostname[x] = pDomainName[x];
+            if ( pDomainName[x] == '\0' )
+                break;
+        }
+    }
+    return pTDomainName;
+}
+#endif
 
 //---------------------------------------------------------------------------
 //
 //
-int FAR
-     gensock_gethostname (char FAR * name, int namelen)
+int
+     gensock_gethostname (LPTSTR pName, int namelen)
 {
-    int retval = gethostname(name, namelen);
+    char name[MAX_HOSTNAME_LENGTH];
+    int  retval;
+
+    ZeroMemory(name, sizeof(name));
+    retval = gethostname(name, namelen);
     if ( retval )
         return(retval - 5000);
 
+    for ( retval = 0; (retval < namelen) && (retval < sizeof(name)); retval++ ) {
+        if ( !name[retval] )
+            break;
+
+        pName[retval] = name[retval];
+    }
+    pName[retval] = __T('\0');
     return(0);
 }
 
@@ -1080,7 +1262,7 @@ int FAR
 //
 //
 
-int FAR
+int
      gensock_close (socktag st)
 {
     connection * conn;
@@ -1106,60 +1288,60 @@ int FAR
 
 #if INCLUDE_SUPERDEBUG
 
-static char * errorName(int WinSockErrorCode )
+static LPTSTR errorName(int WinSockErrorCode )
 {
     switch( WinSockErrorCode )
     {
-        case WSABASEERR        :  return "WSABASEERR";
-        case WSAEINTR          :  return "WSAEINTR";
-        case WSAEBADF          :  return "WSAEBADF";
-        case WSAEACCES         :  return "WSAEACCES";
-        case WSAEFAULT         :  return "WSAEFAULT";
-        case WSAEINVAL         :  return "WSAEINVAL";
-        case WSAEMFILE         :  return "WSAEMFILE";
-        case WSAEWOULDBLOCK    :  return "WSAEWOULDBLOCK";
-        case WSAEINPROGRESS    :  return "WSAEINPROGRESS";
-        case WSAEALREADY       :  return "WSAEALREADY";
-        case WSAENOTSOCK       :  return "WSAENOTSOCK";
-        case WSAEDESTADDRREQ   :  return "WSAEDESTADDRREQ";
-        case WSAEMSGSIZE       :  return "WSAEMSGSIZE";
-        case WSAEPROTOTYPE     :  return "WSAEPROTOTYPE";
-        case WSAENOPROTOOPT    :  return "WSAENOPROTOOPT";
-        case WSAEPROTONOSUPPORT:  return "WSAEPROTONOSUPPORT";
-        case WSAESOCKTNOSUPPORT:  return "WSAESOCKTNOSUPPORT";
-        case WSAEOPNOTSUPP     :  return "WSAEOPNOTSUPP";
-        case WSAEPFNOSUPPORT   :  return "WSAEPFNOSUPPORT";
-        case WSAEAFNOSUPPORT   :  return "WSAEAFNOSUPPORT";
-        case WSAEADDRINUSE     :  return "WSAEADDRINUSE";
-        case WSAEADDRNOTAVAIL  :  return "WSAEADDRNOTAVAIL";
-        case WSAENETDOWN       :  return "WSAENETDOWN";
-        case WSAENETUNREACH    :  return "WSAENETUNREACH";
-        case WSAENETRESET      :  return "WSAENETRESET";
-        case WSAECONNABORTED   :  return "WSAECONNABORTED";
-        case WSAECONNRESET     :  return "WSAECONNRESET";
-        case WSAENOBUFS        :  return "WSAENOBUFS";
-        case WSAEISCONN        :  return "WSAEISCONN";
-        case WSAENOTCONN       :  return "WSAENOTCONN";
-        case WSAESHUTDOWN      :  return "WSAESHUTDOWN";
-        case WSAETOOMANYREFS   :  return "WSAETOOMANYREFS";
-        case WSAETIMEDOUT      :  return "WSAETIMEDOUT";
-        case WSAECONNREFUSED   :  return "WSAECONNREFUSED";
-        case WSAELOOP          :  return "WSAELOOP";
-        case WSAENAMETOOLONG   :  return "WSAENAMETOOLONG";
-        case WSAEHOSTDOWN      :  return "WSAEHOSTDOWN";
-        case WSAEHOSTUNREACH   :  return "WSAEHOSTUNREACH";
-        case WSAENOTEMPTY      :  return "WSAENOTEMPTY";
-        case WSAEPROCLIM       :  return "WSAEPROCLIM";
-        case WSAEUSERS         :  return "WSAEUSERS";
-        case WSAEDQUOT         :  return "WSAEDQUOT";
-        case WSAESTALE         :  return "WSAESTALE";
-        case WSAEREMOTE        :  return "WSAEREMOTE";
-        case WSAEDISCON        :  return "WSAEDISCON";
-        case WSASYSNOTREADY    :  return "WSASYSNOTREADY";
-        case WSAVERNOTSUPPORTED:  return "WSAVERNOTSUPPORTED";
-        case WSANOTINITIALISED :  return "WSANOTINITIALISED";
+        case WSABASEERR        :  return __T("WSABASEERR");
+        case WSAEINTR          :  return __T("WSAEINTR");
+        case WSAEBADF          :  return __T("WSAEBADF");
+        case WSAEACCES         :  return __T("WSAEACCES");
+        case WSAEFAULT         :  return __T("WSAEFAULT");
+        case WSAEINVAL         :  return __T("WSAEINVAL");
+        case WSAEMFILE         :  return __T("WSAEMFILE");
+        case WSAEWOULDBLOCK    :  return __T("WSAEWOULDBLOCK");
+        case WSAEINPROGRESS    :  return __T("WSAEINPROGRESS");
+        case WSAEALREADY       :  return __T("WSAEALREADY");
+        case WSAENOTSOCK       :  return __T("WSAENOTSOCK");
+        case WSAEDESTADDRREQ   :  return __T("WSAEDESTADDRREQ");
+        case WSAEMSGSIZE       :  return __T("WSAEMSGSIZE");
+        case WSAEPROTOTYPE     :  return __T("WSAEPROTOTYPE");
+        case WSAENOPROTOOPT    :  return __T("WSAENOPROTOOPT");
+        case WSAEPROTONOSUPPORT:  return __T("WSAEPROTONOSUPPORT");
+        case WSAESOCKTNOSUPPORT:  return __T("WSAESOCKTNOSUPPORT");
+        case WSAEOPNOTSUPP     :  return __T("WSAEOPNOTSUPP");
+        case WSAEPFNOSUPPORT   :  return __T("WSAEPFNOSUPPORT");
+        case WSAEAFNOSUPPORT   :  return __T("WSAEAFNOSUPPORT");
+        case WSAEADDRINUSE     :  return __T("WSAEADDRINUSE");
+        case WSAEADDRNOTAVAIL  :  return __T("WSAEADDRNOTAVAIL");
+        case WSAENETDOWN       :  return __T("WSAENETDOWN");
+        case WSAENETUNREACH    :  return __T("WSAENETUNREACH");
+        case WSAENETRESET      :  return __T("WSAENETRESET");
+        case WSAECONNABORTED   :  return __T("WSAECONNABORTED");
+        case WSAECONNRESET     :  return __T("WSAECONNRESET");
+        case WSAENOBUFS        :  return __T("WSAENOBUFS");
+        case WSAEISCONN        :  return __T("WSAEISCONN");
+        case WSAENOTCONN       :  return __T("WSAENOTCONN");
+        case WSAESHUTDOWN      :  return __T("WSAESHUTDOWN");
+        case WSAETOOMANYREFS   :  return __T("WSAETOOMANYREFS");
+        case WSAETIMEDOUT      :  return __T("WSAETIMEDOUT");
+        case WSAECONNREFUSED   :  return __T("WSAECONNREFUSED");
+        case WSAELOOP          :  return __T("WSAELOOP");
+        case WSAENAMETOOLONG   :  return __T("WSAENAMETOOLONG");
+        case WSAEHOSTDOWN      :  return __T("WSAEHOSTDOWN");
+        case WSAEHOSTUNREACH   :  return __T("WSAEHOSTUNREACH");
+        case WSAENOTEMPTY      :  return __T("WSAENOTEMPTY");
+        case WSAEPROCLIM       :  return __T("WSAEPROCLIM");
+        case WSAEUSERS         :  return __T("WSAEUSERS");
+        case WSAEDQUOT         :  return __T("WSAEDQUOT");
+        case WSAESTALE         :  return __T("WSAESTALE");
+        case WSAEREMOTE        :  return __T("WSAEREMOTE");
+        case WSAEDISCON        :  return __T("WSAEDISCON");
+        case WSASYSNOTREADY    :  return __T("WSASYSNOTREADY");
+        case WSAVERNOTSUPPORTED:  return __T("WSAVERNOTSUPPORTED");
+        case WSANOTINITIALISED :  return __T("WSANOTINITIALISED");
     }
-    return "?";
+    return __T("?");
 }
 #endif
 //---------------------------------------------------------------------------
@@ -1177,9 +1359,9 @@ int
     retval = WSAStartup (version_required, &winsock_data);
 #if INCLUDE_SUPERDEBUG
     if ( superDebug ) {
-        char savedQuiet = quiet;
+        _TCHAR savedQuiet = quiet;
         quiet = FALSE;
-        printMsg("superDebug: init_winsock(), WSAStartup() returned %i (%s)\n", retval, errorName(retval) );
+        printMsg( __T("superDebug: init_winsock(), WSAStartup() returned %i (%s)\n"), retval, errorName(retval) );
         quiet = savedQuiet;
     }
 #endif

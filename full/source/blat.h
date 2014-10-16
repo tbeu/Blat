@@ -1,6 +1,13 @@
 #ifndef BLAT_H
 #define BLAT_H
 
+#if !defined(__WATCOMC__) && is64Bit && !defined(_WIN64)
+    #define _WIN64
+#endif
+#if !defined(__WATCOMC__) && is64Bit && !defined(WIN64)
+    #define WIN64
+#endif
+
 #include "buf.h"
 
 #ifndef true
@@ -47,7 +54,7 @@
 #if SUPPORT_GSSAPI  //Added 2003-11-07 Joseph Calzaretta
     #define SUBMISSION_PORT     FALSE   //  Change to TRUE if you want the default port for GSSAPI to be Submission (587)
                                         //  Keep it FALSE if you want the default port for GSSAPI to be SMTP (25)
-    #define MECHTYPE            "%MECHTYPE%"
+    #define MECHTYPE            __T("%MECHTYPE%")
     #define MECHTYPE_SIZE       1024
     #define SERVICENAME_SIZE    1024
 #endif
@@ -90,12 +97,12 @@
 #endif
 
 #ifdef _WIN64
-    #define WIN_32_STR "Win64"
+    #define WIN_32_STR __T("Win64 (AMD64)")
 #else
-    #define WIN_32_STR "Win32"
+    #define WIN_32_STR __T("Win32")
 #endif
 
-#define BOUNDARY_MARKER     "=_BlatBoundary-"
+#define BOUNDARY_MARKER     __T("=_BlatBoundary-")
 
 typedef struct _BLDHDRS {
     Buf  * messageBuffer;
@@ -105,27 +112,27 @@ typedef struct _BLDHDRS {
     int    buildSMTP;
     Buf  * lpszFirstReceivedData;
     Buf  * lpszOtherHeader;
-    char * attachment_boundary;
-    char * multipartID;
-    char * wanted_hostname;
-    char * server_name;
+    LPTSTR attachment_boundary;
+    LPTSTR multipartID;
+    LPTSTR wanted_hostname;
+    LPTSTR server_name;
     int    part;
     int    totalparts;  // if multipart, this is part x of y, else is 0.
     int    attachNbr;
     int    nbrOfAttachments;
-    char * attachName;
+    LPTSTR attachName;
     DWORD  attachSize;
     int    addBccHeader;
 } BLDHDRS;
 
 
 typedef struct BLATOPTIONS {
-    char * optionString;    // What string defines this option
-    char * szCgiEntry;      // This is the CGI option name
+    LPTSTR optionString;    // What string defines this option
+    LPTSTR szCgiEntry;      // This is the CGI option name
     int    preprocess;      // Does this option need to be preprocessed?
     int    additionArgC;    // Minimum number of arguments for this option
-    int (* initFunction)( int argc, char ** argv, int this_arg, int startargv );
-    char * usageText;
+    int (* initFunction)( int argc, LPTSTR* argv, int this_arg, int startargv );
+    LPTSTR usageText;
 } _BLATOPTIONS;
 
 #endif

@@ -10,30 +10,35 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+//#include <vld.h>
 
 #include "blat.h"
 #include "winfile.h"
+
+#ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
+#include "blatdll.h"
+#endif
 
 /* generic socket DLL support */
 #include "gensock.h"
 #if SUPPORT_GSSAPI
 #include "gssfuncs.h" // Please read the comments here for information about how to use GssSession
-#define VERSION_SUFFIX  " w/GSS encryption"
+#define VERSION_SUFFIX  __T(" w/GSS encryption")
 #else
-#define VERSION_SUFFIX  ""
+#define VERSION_SUFFIX  __T("")
 #endif
 
 
-#define BLAT_VERSION    "2.7.6"
-// Major revision level  *      Update this when a major change occurs, such as a complete rewrite.
-// Minor revision level    *    Update this when the user experience changes, such as when new options/features are added.
-// Bug   revision level      *  Update this when bugs are fixed, but no other user experience changes.
+#define BLAT_VERSION    __T("3.0.0")
+// Major revision level        *      Update this when a major change occurs, such as a complete rewrite.
+// Minor revision level          *    Update this when the user experience changes, such as when new options/features are added.
+// Bug   revision level            *  Update this when bugs are fixed, but no other user experience changes.
 
 #ifdef __cplusplus
-extern "C" int main( int argc, char **argv, char **envp );
+extern "C" int _tmain( int argc, LPTSTR *argv, LPTSTR *envp );
 #endif
 
-extern BOOL DoCgiWork(int &argc, char** &argv,    Buf &lpszMessage,
+extern BOOL DoCgiWork(int &argc, LPTSTR* &argv,   Buf &lpszMessage,
                       Buf &lpszCgiSuccessUrl,     Buf &lpszCgiFailureUrl,
                       Buf &lpszFirstReceivedData, Buf &lpszOtherHeader);
 extern int  collectAttachmentInfo ( DWORD & totalsize, int msgBodySize );
@@ -41,129 +46,131 @@ extern void releaseAttachmentInfo ( void );
 
 extern void searchReplaceEmailKeyword (Buf & email_addresses);
 extern int  send_email( int msgBodySize, Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
-                        char * attachment_boundary, char * multipartID,
+                        LPTSTR attachment_boundary, LPTSTR multipartID,
                         int nbrOfAttachments, DWORD totalsize );
 
 #if INCLUDE_NNTP
 extern int  send_news( int msgBodySize, Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
-                       char * attachment_boundary, char * multipartID,
+                       LPTSTR attachment_boundary, LPTSTR multipartID,
                        int nbrOfAttachments, DWORD totalsize );
 #endif
-extern int  GetRegEntry( char *pstrProfile );
+extern int  GetRegEntry( LPTSTR pstrProfile );
 
 extern void printTitleLine( int quiet );
 extern int  printUsage( int optionPtr );
-extern int  processOptions( int argc, char ** argv, int startargv, int preprocessing );
+extern int  processOptions( int argc, LPTSTR * argv, int startargv, int preprocessing );
 
-extern size_t make_argv( char * arglist,                /* argument list                     */
-                         char **static_argv,            /* pointer to argv to use            */
+extern size_t make_argv( LPTSTR arglist,                /* argument list                     */
+                         LPTSTR*static_argv,            /* pointer to argv to use            */
                          size_t max_static_entries,     /* maximum number of entries allowed */
                          size_t starting_entry,         /* entry in argv to begin placing    */
                          int    from_dll );             /* blat called as .dll               */
 
-void printMsg(const char *p, ... );              // Added 23 Aug 2000 Craig Morrison
+void printMsg(LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
 
-#if BLAT_LITE
-#else
-extern void convertUnicode( Buf &sourceText, int * utf, char * charset, int utfRequested );
-#endif
+extern void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequested );
 
 #if INCLUDE_SUPERDEBUG
-extern char          superDebug;
+extern _TCHAR        superDebug;
 #endif
-extern char          my_hostname[];
-extern char          Profile[TRY_SIZE+1];
-extern const char  * defaultSMTPPort;
+extern _TCHAR        my_hostname[];
+extern _TCHAR        Profile[TRY_SIZE+1];
+extern LPTSTR        defaultSMTPPort;
 #if INCLUDE_NNTP
-extern const char  * defaultNNTPPort;
+extern LPTSTR        defaultNNTPPort;
 #endif
-extern char          priority[2];
+extern _TCHAR        priority[2];
 
-extern char          impersonating;
-extern char          ssubject;
+extern _TCHAR        impersonating;
+extern _TCHAR        ssubject;
 extern int           maxNames;
 
-extern char          boundaryPosted;
-extern char          commentChar;
-extern char          disposition;
+extern _TCHAR        boundaryPosted;
+extern _TCHAR        commentChar;
+extern _TCHAR        disposition;
 extern HANDLE        dll_module_handle;
-extern char          includeUserAgent;
-extern char          sendUndisclosed;
+extern _TCHAR        includeUserAgent;
+extern _TCHAR        sendUndisclosed;
 #if SUPPORT_MULTIPART
 extern unsigned long multipartSize;
 #endif
-extern char          needBoundary;
-extern char          returnreceipt;
+extern _TCHAR        needBoundary;
+extern _TCHAR        returnreceipt;
 #ifdef BLAT_LITE
 #else
-extern char          forcedHeaderEncoding;
-extern char          noheader;
+extern _TCHAR        forcedHeaderEncoding;
+extern _TCHAR        noheader;
 extern unsigned int  uuencodeBytesLine;
 extern unsigned long maxMessageSize;
-extern char          loginAuthSupported;
-extern char          plainAuthSupported;
-extern char          cramMd5AuthSupported;
-extern char          ByPassCRAM_MD5;
+extern _TCHAR        loginAuthSupported;
+extern _TCHAR        plainAuthSupported;
+extern _TCHAR        cramMd5AuthSupported;
+extern _TCHAR        ByPassCRAM_MD5;
 #endif
 #if SUPPORT_GSSAPI
-extern char          gssapiAuthSupported;
+extern _TCHAR        gssapiAuthSupported;
 #endif
 
 int     delayBetweenMsgs;
 
-char    blatVersion[]    = BLAT_VERSION;
-char    blatVersionSuf[] = VERSION_SUFFIX;
-char    blatBuildDate[]  = __DATE__;
-char    blatBuildTime[]  = __TIME__;
+_TCHAR  blatVersion[]    = BLAT_VERSION;
+_TCHAR  blatVersionSuf[] = VERSION_SUFFIX;
+_TCHAR  blatBuildDate[64];
+_TCHAR  blatBuildTime[64];
+
+char    blatBuildDateA[] = __DATE__;
+char    blatBuildTimeA[] = __TIME__;
 
 #if INCLUDE_POP3
-char    POP3Host[SERVER_SIZE+1];
-char    POP3Port[SERVER_SIZE+1];
-char    POP3Login[SERVER_SIZE+1];
-char    POP3Password[SERVER_SIZE+1];
-char    xtnd_xmit_wanted;
-char    xtnd_xmit_supported;
+_TCHAR  POP3Host[SERVER_SIZE+1];
+_TCHAR  POP3Port[SERVER_SIZE+1];
+Buf     POP3Login;
+Buf     POP3Password;
+_TCHAR  xtnd_xmit_wanted;
+_TCHAR  xtnd_xmit_supported;
 #endif
 #if INCLUDE_IMAP
-char    IMAPHost[SERVER_SIZE+1];
-char    IMAPPort[SERVER_SIZE+1];
-char    IMAPLogin[SERVER_SIZE+1];
-char    IMAPPassword[SERVER_SIZE+1];
+_TCHAR  IMAPHost[SERVER_SIZE+1];
+_TCHAR  IMAPPort[SERVER_SIZE+1];
+Buf     IMAPLogin;
+Buf     IMAPPassword;
 #endif
 
-char    SMTPHost[SERVER_SIZE+1];
-char    SMTPPort[SERVER_SIZE+1];
+_TCHAR  SMTPHost[SERVER_SIZE+1];
+_TCHAR  SMTPPort[SERVER_SIZE+1];
 
 #if INCLUDE_NNTP
-char    NNTPHost[SERVER_SIZE+1];
-char    NNTPPort[SERVER_SIZE+1];
+_TCHAR  NNTPHost[SERVER_SIZE+1];
+_TCHAR  NNTPPort[SERVER_SIZE+1];
 Buf     groups;
 #endif
 
-char    AUTHLogin[SERVER_SIZE+1];
-char    AUTHPassword[SERVER_SIZE+1];
-char    Try[TRY_SIZE+1];
-char    Sender[SENDER_SIZE+1];
+Buf     AUTHLogin;
+Buf     AUTHPassword;
+_TCHAR  Try[TRY_SIZE+1];
+Buf     Sender;
 Buf     TempConsole;
 Buf     Recipients;
 Buf     destination;
 Buf     cc_list;
 Buf     bcc_list;
-char    loginname[SENDER_SIZE+1];       // RFC 821 MAIL From. <loginname>. There are some inconsistencies in usage
-char    senderid[SENDER_SIZE+1];        // Inconsistent use in Blat for some RFC 822 Field definitions
-char    sendername[SENDER_SIZE+1];      // RFC 822 Sender: <sendername>
-char    fromid[SENDER_SIZE+1];          // RFC 822 From: <fromid>
-char    replytoid[SENDER_SIZE+1];       // RFC 822 Reply-To: <replytoid>
-char    returnpathid[SENDER_SIZE+1];    // RFC 822 Return-Path: <returnpath>
-char    subject[SUBJECT_SIZE+1];
+_TCHAR  loginname[SENDER_SIZE+1];       // RFC 821 MAIL From. <loginname>. There are some inconsistencies in usage
+_TCHAR  senderid[SENDER_SIZE+1];        // Inconsistent use in Blat for some RFC 822 Field definitions
+_TCHAR  sendername[SENDER_SIZE+1];      // RFC 822 Sender: <sendername>
+_TCHAR  fromid[SENDER_SIZE+1];          // RFC 822 From: <fromid>
+_TCHAR  replytoid[SENDER_SIZE+1];       // RFC 822 Reply-To: <replytoid>
+_TCHAR  returnpathid[SENDER_SIZE+1];    // RFC 822 Return-Path: <returnpath>
+_TCHAR  subject[SUBJECT_SIZE+1];
 Buf     alternateText;
-char    clearLogFirst;
+_TCHAR  clearLogFirst;
+_TCHAR  logFile[_MAX_PATH];
+int     attachFoundFault;
 
 #if SUPPORT_GSSAPI  //Added 2003-11-07 Joseph Calzaretta
 BOOL    authgssapi;
 BOOL    mutualauth;
 BOOL    bSuppressGssOptionsAtRuntime;
-char    servicename[SERVICENAME_SIZE];
+_TCHAR  servicename[SERVICENAME_SIZE];
 protLev gss_protection_level;
 GssSession* pGss;
 #endif
@@ -182,75 +189,70 @@ Buf     signature;
 #endif
 #if BLAT_LITE
 #else
-char    organization[ORG_SIZE+1];
-char    xheaders[DEST_SIZE+1];
-char    aheaders1[DEST_SIZE+1];
-char    aheaders2[DEST_SIZE+1];
-char    uuencode;                       // by default Blat does not use UUEncode // Added by Gilles Vollant
+_TCHAR  organization[ORG_SIZE+1];
+_TCHAR  xheaders[DEST_SIZE+1];
+_TCHAR  aheaders1[DEST_SIZE+1];
+_TCHAR  aheaders2[DEST_SIZE+1];
+_TCHAR  uuencode;                       // by default Blat does not use UUEncode // Added by Gilles Vollant
 
     // by default Blat does not use base64 Quoted-Printable Content-Transfer-Encoding!
     //  If you're looking for something to do, then it would be nice if this thing
     //  detected any non-printable characters in the input, and use base64 whenever
     //  quoted-printable wasn't chosen by the user.
-char    base64;
-int     utf;
+_TCHAR  base64;
 
-char    yEnc;
-char    deliveryStatusRequested;
-char    deliveryStatusSupported;
+_TCHAR  yEnc;
+_TCHAR  deliveryStatusRequested;
+_TCHAR  deliveryStatusSupported;
 
-char    eightBitMimeSupported;
-char    eightBitMimeRequested;
-char    binaryMimeSupported;
-//char    binaryMimeRequested;
+_TCHAR  eightBitMimeSupported;
+_TCHAR  eightBitMimeRequested;
+_TCHAR  binaryMimeSupported;
+//_TCHAR  binaryMimeRequested;
 
-char    optionsFile[_MAX_PATH];
+_TCHAR  optionsFile[_MAX_PATH];
 FILE *  optsFile;
 Buf     userContentType;
 #endif
 
-char    textmode[TEXTMODE_SIZE+1];      // added 15 June 1999 by James Greene "greene@gucc.org"
-char    bodyFilename[_MAX_PATH];
+_TCHAR  chunkingSupported;
+int     utf;
+
+_TCHAR  textmode[TEXTMODE_SIZE+1];      // added 15 June 1999 by James Greene "greene@gucc.org"
+_TCHAR  bodyFilename[_MAX_PATH+1];
 Buf     bodyparameter;
-char    ConsoleDone;
-char    formattedContent;
-char    mime;                           // by default Blat does not use mime Quoted-Printable Content-Transfer-Encoding!
-char    quiet;
-char    debug;
-char    haveEmbedded;
-char    haveAttachments;
+_TCHAR  ConsoleDone;
+_TCHAR  formattedContent;
+_TCHAR  mime;                           // by default Blat does not use mime Quoted-Printable Content-Transfer-Encoding!
+_TCHAR  quiet;
+_TCHAR  debug;
+_TCHAR  haveEmbedded;
+_TCHAR  haveAttachments;
 int     attach;
 int     regerr;
-char    bodyconvert;
+_TCHAR  bodyconvert;
 
 int     exitRequired;
 
-char    attachfile[64][MAX_PATH+1];
-char    my_hostname_wanted[1024];
+_TCHAR  attachfile[64][MAX_PATH+1];
+_TCHAR  my_hostname_wanted[1024];
 FILE *  logOut;
 int     fCgiWork;
-char    charset[40];                    // Added 25 Apr 2001 Tim Charron (default ISO-8859-1)
+_TCHAR  charset[40];                    // Added 25 Apr 2001 Tim Charron (default ISO-8859-1)
 
-char    attachtype[64];
-char    timestamp;
+_TCHAR  attachtype[64];
+_TCHAR  timestamp;
 
-const char * stdinFileName     = "stdin.txt";
-const char * defaultCharset    = "iso-8859-1";
-const char * days[]            = { "Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+LPTSTR stdinFileName     = __T("stdin.txt");
+LPTSTR defaultCharset    = __T("iso-8859-1");
+LPTSTR days[]            = { __T("Sun"),
+                             __T("Mon"),
+                             __T("Tue"),
+                             __T("Wed"),
+                             __T("Thu"),
+                             __T("Fri"),
+                             __T("Sat") };
 
-
-LPCSTR GetNameWithoutPath(LPCSTR lpFn)
-{
-    LPCSTR lpRet = lpFn ;
-
-    while ( *lpFn ) {
-        if ( ((*lpFn) == ':') || ((*lpFn) == '\\') )
-            lpRet = lpFn + 1;
-
-        lpFn = CharNext(lpFn);
-    }
-    return(lpRet);
-}
 
 static void cleanUpBuffers( void )
 {
@@ -261,6 +263,17 @@ static void cleanUpBuffers( void )
     cc_list.Free();
     destination.Free();
     Recipients.Free();
+    Sender.Free();
+    AUTHLogin.Free();
+    AUTHPassword.Free();
+#if INCLUDE_IMAP
+    IMAPLogin.Free();
+    IMAPPassword.Free();
+#endif
+#if INCLUDE_POP3
+    POP3Login.Free();
+    POP3Password.Free();
+#endif
 #if INCLUDE_NNTP
     groups.Free();
 #endif
@@ -281,38 +294,38 @@ static void cleanUpBuffers( void )
 
 static void shrinkWhiteSpace( Buf & buffer )
 {
-    char * pp;
-    char   prevChar;
+    LPTSTR pp;
+    _TCHAR prevChar;
     Buf    newBuffer;
 
     pp = buffer.Get();
     if ( pp ) {
         prevChar = 0;
         for ( ; *pp; pp++ ) {
-            if ( *pp == ' ' )
-                if ( !prevChar || (prevChar == ' ') )
+            if ( *pp == __T(' ') )
+                if ( !prevChar || (prevChar == __T(' ')) )
                     continue;
 
             newBuffer.Add( prevChar = *pp );
         }
 
-        if ( prevChar == ' ' )
+        if ( prevChar == __T(' ') )
             newBuffer.Remove();
 
-        buffer.Clear();
-        buffer.Add( newBuffer );
+        buffer = newBuffer;
     }
+    newBuffer.Free();
 }
 
 
-int main( int argc,             /* Number of strings in array argv          */
-          char **argv,          /* Array of command-line argument strings   */
-          char **envp )         /* Array of environment variables           */
+int _tmain( int argc,             /* Number of strings in array argv          */
+            LPTSTR *argv,         /* Array of command-line argument strings   */
+            LPTSTR *envp )        /* Array of environment variables           */
 {
     int      i, j;
     int      retcode;
     WinFile  fileh;
-    char     boundary1[24];
+    _TCHAR   boundary1[24];
     Buf      lpszMessageCgi;
     Buf      lpszCgiFailureUrl;
     Buf      lpszCgiSuccessUrl;
@@ -320,22 +333,39 @@ int main( int argc,             /* Number of strings in array argv          */
     Buf      lpszOtherHeader;
 #if BLAT_LITE
 #else
-    char **  secondArgV;
+    LPTSTR * secondArgV;
     int      secondArgC;
 #endif
     Buf      temp;
     DWORD    filesize;
     DWORD    totalsize; // total size of all attachments and the message body.
     int      nbrOfAttachments;
-    char     multipartID[1200];
+    _TCHAR   multipartID[1200];
+
+
+#if defined(_UNICODE) || defined(UNICODE)
+    for ( unsigned ix = 0; ; ) {
+        blatBuildDate[ix] = (_TCHAR)blatBuildDateA[ix];
+        if ( !blatBuildDateA[ix++] )
+            break;
+    }
+    for ( unsigned ix = 0; ; ) {
+        blatBuildTime[ix] = (_TCHAR)blatBuildTimeA[ix];
+        if ( !blatBuildTimeA[ix++] )
+            break;
+    }
+#else
+    _tcscpy( blatBuildDate, blatBuildDateA );
+    _tcscpy( blatBuildTime, blatBuildTimeA );
+#endif
 
     envp = envp;    // To remove compiler warnings.
 
     // Initialize global variables.
     cleanUpBuffers();
 
-    commentChar = ';';
-    Profile[0] = 0;
+    commentChar = __T(';');
+    Profile[0] = __T('\0');
     boundaryPosted = 0;
     delayBetweenMsgs = 0;
     disposition = 0;
@@ -351,9 +381,9 @@ int main( int argc,             /* Number of strings in array argv          */
 #if SUPPORT_MULTIPART
     multipartSize = 0;
 #endif
-    my_hostname_wanted[0] = 0;
+    my_hostname_wanted[0] = __T('\0');
     needBoundary = 0;
-    priority[0] = 0;
+    priority[0] = __T('\0');
     returnreceipt = 0;
 #ifdef BLAT_LITE
 #else
@@ -373,10 +403,10 @@ int main( int argc,             /* Number of strings in array argv          */
     memset( attachfile, 0, sizeof(attachfile) );
 
 #if INCLUDE_NNTP
-    strcpy(NNTPPort, defaultNNTPPort);
+    _tcscpy(NNTPPort, defaultNNTPPort);
 #endif
-    strcpy(SMTPPort, defaultSMTPPort);
-    strcpy(Try,      "1");                      // Was ONCE
+    _tcscpy(SMTPPort, defaultSMTPPort);
+    _tcscpy(Try,      __T("1"));                      // Was ONCE
 
     exitRequired            = FALSE;
 
@@ -392,7 +422,6 @@ int main( int argc,             /* Number of strings in array argv          */
     userContentType.Free();
 
     binaryMimeSupported     = 0;
-    utf                     = 0;
     deliveryStatusRequested = 0;
     deliveryStatusSupported =
     uuencode                =         // by default Blat does not use UUEncode // Added by Gilles Vollant
@@ -402,6 +431,7 @@ int main( int argc,             /* Number of strings in array argv          */
     eightBitMimeRequested   =
 //    binaryMimeRequested     =
 #endif
+    chunkingSupported       =
     ConsoleDone             =
     mime                    =           // by default Blat does not use mime Quoted-Printable Content-Transfer-Encoding!
     quiet                   =           // by default Blat is very noisy!
@@ -417,6 +447,7 @@ int main( int argc,             /* Number of strings in array argv          */
     haveEmbedded            = FALSE;
     haveAttachments         = FALSE;
     attach                  = 0;
+    utf                     = 0;
     bodyconvert             = TRUE;
     formattedContent        = TRUE;
     logOut                  = (FILE *)NULL;
@@ -427,15 +458,15 @@ int main( int argc,             /* Number of strings in array argv          */
 #endif
 #if INCLUDE_POP3
     POP3Host[0]             =
-    POP3Port[0]             =
-    POP3Login[0]            =
-    POP3Password[0]         =
+    POP3Port[0]             = __T('\0');
+    POP3Login.Clear();
+    POP3Password.Clear();
 #endif
 #if INCLUDE_IMAP
     IMAPHost[0]             =
-    IMAPPort[0]             =
-    IMAPLogin[0]            =
-    IMAPPassword[0]         =
+    IMAPPort[0]             = __T('\0');
+    IMAPLogin.Clear();
+    IMAPPassword.Clear();
 #endif
 #if INCLUDE_NNTP
     NNTPHost[0]             =
@@ -447,8 +478,8 @@ int main( int argc,             /* Number of strings in array argv          */
     aheaders1[0]            =
     aheaders2[0]            =
 #endif
-    SMTPHost[0]             =
-    Sender[0]               =
+    SMTPHost[0]             = __T('\0');
+    Sender.Clear();
     my_hostname_wanted[0]   =
     my_hostname[0]          =
     loginname[0]            =           // RFC 821 MAIL From: <loginname>
@@ -458,9 +489,10 @@ int main( int argc,             /* Number of strings in array argv          */
     replytoid[0]            =           // RFC 822 Reply-To: <replytoid>
     returnpathid[0]         =           // RFC 822 Return-Path: <returnpath>subject[0] = '\0';
     subject[0]              =
-    AUTHLogin[0]            =
-    AUTHPassword[0]         =
-    bodyFilename[0]         = '\0';
+    bodyFilename[0]         =
+    logFile[0]              = __T('\0');
+    AUTHLogin.Clear();
+    AUTHPassword.Clear();
 
 #if SUPPORT_GSSAPI
     // Check to see if the GSSAPI library is present by trying to initialize the global GssSession object.
@@ -483,9 +515,9 @@ int main( int argc,             /* Number of strings in array argv          */
 
     if ( argc <= 2 ) {
 #ifndef DEBUGCGI
-        char c;
-        if ( (GetEnvironmentVariable("REQUEST_METHOD",   &c,1)>0) &&
-             (GetEnvironmentVariable("GATEWAY_INTERFACE",&c,1)>0) )
+        _TCHAR c;
+        if ( (GetEnvironmentVariable(__T("REQUEST_METHOD"),   &c,1)>0) &&
+             (GetEnvironmentVariable(__T("GATEWAY_INTERFACE"),&c,1)>0) )
 #endif
         {
             if ( DoCgiWork(argc,argv,lpszMessageCgi,lpszCgiSuccessUrl,
@@ -500,21 +532,21 @@ int main( int argc,             /* Number of strings in array argv          */
     else {
         int x;
 
-        printf( "\nBlat saw the following command line:\n" );
+        tprintf( __T("\nBlat saw the following command line:\n") );
         for ( x = 0; x < argc; x++ ) {
             if ( x )
-                printf( " " );
+                tprintf( __T(" ") );
 
-            if ( strchr(argv[x], ' ') || strchr(argv[x], '"') )
-                printf( "\"%s\"", argv[x] );
+            if ( _tcschr(argv[x], __T(' ')) || _tcschr(argv[x], __T('"')) )
+                tprintf( __T("\"%s\""), argv[x] );
             else
-                printf( "%s", argv[x] );
+                tprintf( __T("%s"), argv[x] );
         }
-        printf( "\n\n" );
+        tprintf( __T("\n\n") );
     }
  */
 
-    charset[0] = '\0';
+    charset[0] = __T('\0');
 
     // attach -- Added in by Tim Charron (tcharron@interlog.com)
     // If "-attach filename" is on the command line at least once,
@@ -534,7 +566,7 @@ int main( int argc,             /* Number of strings in array argv          */
     // if "-html" is on the command line, assume the text is well-formed HTML
     // otherwise, assume plain text
 
-    strcpy(textmode, "plain");
+    _tcscpy(textmode, __T("plain"));
 
     if ( argc < 2 ) {
 //        Must have at least a file name to send.
@@ -549,7 +581,7 @@ int main( int argc,             /* Number of strings in array argv          */
     secondArgC = 0;
     memset( optionsFile, 0, sizeof(optionsFile) );
 #endif
-    if ( ((argv[1][0] == '-') || (argv[1][0] == '/')) && argv[1][1] )
+    if ( ((argv[1][0] == __T('-')) || (argv[1][0] == __T('/'))) && argv[1][1] )
         retcode = processOptions( argc, argv, 1, TRUE );        // Preprocess the options
     else
         retcode = processOptions( argc, argv, 2, TRUE );        // Preprocess the options
@@ -571,19 +603,21 @@ int main( int argc,             /* Number of strings in array argv          */
 #if BLAT_LITE
 #else
     if ( optionsFile[0] ) {
-        char   buffer[2048];
-        char * bufPtr;
+
+        #define BUFFER_SIZE 2048
+        _TCHAR buffer[BUFFER_SIZE];
+        LPTSTR bufPtr;
         size_t maxEntries = 256;
 
-        secondArgV = (char **)malloc( (maxEntries + 1) * sizeof(char *) );
+        secondArgV = (LPTSTR*)malloc( (maxEntries + 1) * sizeof(LPTSTR) );
         if ( secondArgV ) {
             size_t nextEntry = 0;
 
-            memset( secondArgV, 0, (maxEntries + 1) * sizeof(char *) );
-            optsFile = fopen( optionsFile, "r" );
+            memset( secondArgV, 0, (maxEntries + 1) * sizeof(LPTSTR) );
+            optsFile = _tfopen( optionsFile, __T("r") );
             if ( !optsFile ) {
                 free( secondArgV );
-                printMsg( "Options file \"%s\" not found or could not be opened.\n", optionsFile );
+                printMsg( __T("Options file \"%s\" not found or could not be opened.\n"), optionsFile );
 
                 printMsg( NULL );
                 if ( logOut )
@@ -597,17 +631,17 @@ int main( int argc,             /* Number of strings in array argv          */
                 if ( feof( optsFile ) )
                     break;
 
-                bufPtr = fgets( buffer, sizeof( buffer ), optsFile );
+                bufPtr = _fgetts( buffer, BUFFER_SIZE, optsFile );
                 if ( bufPtr ) {
                     for ( ;; ) {
-                        i = (int)strlen(buffer) - 1;
-                        if ( buffer[ i ] == '\n' ) {
-                            buffer[ i ] = '\0';
+                        i = (int)_tcslen(buffer) - 1;
+                        if ( buffer[ i ] == __T('\n') ) {
+                            buffer[ i ] = __T('\0');
                             continue;
                         }
 
-                        if ( buffer[ i ] == '\r' ) {
-                            buffer[ i ] = '\0';
+                        if ( buffer[ i ] == __T('\r') ) {
+                            buffer[ i ] = __T('\0');
                             continue;
                         }
 
@@ -647,18 +681,32 @@ int main( int argc,             /* Number of strings in array argv          */
 #endif
 
     // get file name from argv[1]
-    if ( (argv[1][0] != '-') && (argv[1][0] != '/') ) {
-        strncpy( bodyFilename, argv[1], _MAX_PATH-1 );
-        bodyFilename[_MAX_PATH-1] = '\0';
+    if ( (argv[1][0] != __T('-')) && (argv[1][0] != __T('/')) ) {
+        _tcsncpy( bodyFilename, argv[1], _MAX_PATH );
+        bodyFilename[_MAX_PATH] = __T('\0');
     }
 
-    bodyFilename[_MAX_PATH-1] = 0;
     regerr = GetRegEntry( Profile );
 
-    strcpy(senderid,  Sender);
-    strcpy(loginname, Sender);
+    _tcscpy(senderid,  Sender.Get());
+    _tcscpy(loginname, Sender.Get());
 
+#if 01
+    LARGE_INTEGER ticksPerSecond;
+    LARGE_INTEGER tick;   // A point in time
+    //LARGE_INTEGER time;   // For converting tick into real time
+
+    // get the high resolution counter's accuracy
+    QueryPerformanceFrequency(&ticksPerSecond);
+    if ( ticksPerSecond.QuadPart )
+        QueryPerformanceCounter(&tick);
+    else
+        tick.u.LowPart = GetTickCount();
+
+    srand( (unsigned int)tick.QuadPart );
+#else
     srand( (unsigned int) time( NULL ) + (unsigned int) clock() );
+#endif
 
 #if BLAT_LITE
 #else
@@ -681,7 +729,7 @@ int main( int argc,             /* Number of strings in array argv          */
     }
 #endif
 
-    if ( ((argv[1][0] == '-') || (argv[1][0] == '/')) && argv[1][1] )
+    if ( ((argv[1][0] == __T('-')) || (argv[1][0] == __T('/'))) && argv[1][1] )
         retcode = processOptions( argc, argv, 1, FALSE );
     else
         retcode = processOptions( argc, argv, 2, FALSE );
@@ -700,27 +748,27 @@ int main( int argc,             /* Number of strings in array argv          */
 #if INCLUDE_NNTP
     if ( regerr == 12 )
         if ( !loginname[0] || (!SMTPHost[0] && !NNTPHost[0]) )
-            printMsg( "Failed to open registry key for Blat\n" );
+            printMsg( __T("Failed to open registry key for Blat\n") );
 #else
     if ( regerr == 12 )
         if ( !loginname[0] || !SMTPHost[0] )
-            printMsg( "Failed to open registry key for Blat\n" );
+            printMsg( __T("Failed to open registry key for Blat\n") );
 #endif
 
     // if we are not impersonating loginname is the same as the sender
     if ( ! impersonating )
-        strcpy(senderid, loginname);
+        _tcscpy(senderid, loginname);
 
     // fixing the argument parsing
     // Ends here
 
 #if INCLUDE_NNTP
     if ( !loginname[0] || (!SMTPHost[0] && !NNTPHost[0]) ) {
-        printMsg( "To set the SMTP server's name/address and your username/email address for that\n" \
-                  "server machine do:\n" \
-                  "blat -install  server_name  your_email_address\n" \
-                  "or use '-server <server_name>' and '-f <your_email_address>'\n");
-        printMsg( "aborting, nothing sent\n" );
+        printMsg( __T("To set the SMTP server's name/address and your username/email address for that\n") \
+                  __T("server machine do:\n") \
+                  __T("blat -install  server_name  your_email_address\n") \
+                  __T("or use '-server <server_name>' and '-f <your_email_address>'\n") );
+        printMsg( __T("aborting, nothing sent\n") );
 
         printMsg( NULL );
         if ( logOut )
@@ -731,11 +779,11 @@ int main( int argc,             /* Number of strings in array argv          */
     }
 #else
     if ( !loginname[0] || !SMTPHost[0] ) {
-        printMsg( "To set the SMTP server's name/address and your username/email address for that\n" \
-                  "server machine do:\n" \
-                  "blat -install  server_name  your_email_address\n" \
-                  "or use '-server <server_name>' and '-f <your_email_address>'\n");
-        printMsg( "aborting, nothing sent\n" );
+        printMsg( __T("To set the SMTP server's name/address and your username/email address for that\n") \
+                  __T("server machine do:\n") \
+                  __T("blat -install  server_name  your_email_address\n") \
+                  __T("or use '-server <server_name>' and '-f <your_email_address>'\n") );
+        printMsg( __T("aborting, nothing sent\n") );
 
         printMsg( NULL );
         if ( logOut )
@@ -747,7 +795,7 @@ int main( int argc,             /* Number of strings in array argv          */
 #endif
 
     // make sure filename exists, get full pathname
-    if ( bodyFilename[0] && (strcmp(bodyFilename, "-") != 0) ) {
+    if ( bodyFilename[0] && (_tcscmp(bodyFilename, __T("-")) != 0) ) {
         int useCreateFile;
         OSVERSIONINFOEX osvi;
 
@@ -776,9 +824,9 @@ int main( int argc,             /* Number of strings in array argv          */
             if ( fh == INVALID_HANDLE_VALUE ) {
                 int lastError = GetLastError();
                 if ( lastError == 0 )
-                    printMsg("%s does not exist\n",bodyFilename);
+                    printMsg(__T("%s does not exist\n"),bodyFilename);
                 else
-                    printMsg("unknown error code %d when trying to open %s\n", lastError, bodyFilename);
+                    printMsg(__T("unknown error code %d when trying to open %s\n"), lastError, bodyFilename);
 
                 printMsg( NULL );
                 if ( logOut )
@@ -789,12 +837,11 @@ int main( int argc,             /* Number of strings in array argv          */
             }
             CloseHandle(fh);
         } else {                        // Windows 95 through NT 4.0
-            OFSTRUCT of;
-            HFILE fh;
+            FILE * fh;
 
-            fh = OpenFile(bodyFilename,&of,OF_EXIST);
-            if ( fh == HFILE_ERROR ) {
-                printMsg("%s does not exist\n",bodyFilename);
+            fh = _tfopen(bodyFilename, __T("r"));
+            if ( fh == NULL ) {
+                printMsg(__T("%s does not exist\n"),bodyFilename);
 
                 printMsg( NULL );
                 if ( logOut )
@@ -803,7 +850,7 @@ int main( int argc,             /* Number of strings in array argv          */
                 cleanUpBuffers();
                 return(2);
             }
-            _lclose(fh);
+            fclose(fh);
         }
     }
 
@@ -823,32 +870,32 @@ int main( int argc,             /* Number of strings in array argv          */
     // Parse the "To:" line
     for ( i = j = 0; (unsigned)i < destination.Length(); i++ ) {
         // strip white space
-        // NOT! while ( destination[i]==' ' )   i++;
+        // NOT! while ( destination[i] == __T(' ') )   i++;
         // look for comments in brackets, and omit
-        if ( destination.Get()[i]=='(' ) {
-            while ( destination.Get()[i]!=')' )   i++;
+        if ( destination.Get()[i] == __T('(') ) {
+            while ( destination.Get()[i] != __T(')') )   i++;
             i++;
         }
         temp.Get()[j++] = destination.Get()[i];
     }
-    temp.Get()[j] = '\0';                              // End of list added!
+    temp.Get()[j] = __T('\0');                              // End of list added!
     Recipients.Add(temp.Get());
 
     // Parse the "Cc:" line
     for ( i = j = 0; (unsigned)i < cc_list.Length(); i++ ) {
         // strip white space
-        // NOT! while ( cc_list[i]==' ' ) i++;
+        // NOT! while ( cc_list[i] == __T(' ') ) i++;
         // look for comments in brackets, and omit
-        if ( cc_list.Get()[i]=='(' ) {
-            while ( cc_list.Get()[i]!=')' ) i++;
+        if ( cc_list.Get()[i] == __T('(') ) {
+            while ( cc_list.Get()[i] != __T(')') ) i++;
             i++;
         }
         temp.Get()[j++] = cc_list.Get()[i];
     }
-    temp.Get()[j] = '\0';                              // End of list added!
+    temp.Get()[j] = __T('\0');                              // End of list added!
     if ( cc_list.Length() ) {
         if ( Recipients.Length() )
-            Recipients.Add(',');
+            Recipients.Add( __T(',') );
 
         Recipients.Add(temp.Get());
     }
@@ -856,28 +903,28 @@ int main( int argc,             /* Number of strings in array argv          */
     // Parse the "Bcc:" line
     for (i = j = 0; (unsigned)i < bcc_list.Length(); i++) {
         // strip white space
-        // NOT! while ( bcc_list[i]==' ' )  i++;
+        // NOT! while ( bcc_list[i] == __T(' ') )  i++;
         // look for comments in brackets, and omit
-        if (bcc_list.Get()[i] == '(') {
-            while (bcc_list.Get()[i] != ')') i++;
+        if (bcc_list.Get()[i] == __T('(')) {
+            while (bcc_list.Get()[i] != __T(')')) i++;
             i++;
         }
         temp.Get()[j++] = bcc_list.Get()[i];
     }
-    temp.Get()[j] = '\0';                              // End of list added!
+    temp.Get()[j] = __T('\0');                              // End of list added!
     if ( bcc_list.Length() > 0 ) {
         if ( Recipients.Length() )
-            Recipients.Add(',');
+            Recipients.Add( __T(',') );
 
         Recipients.Add(temp.Get());
     }
 
 #if INCLUDE_NNTP
     if ( !Recipients.Length() && !groups.Length() ) {
-        printMsg( "No target email address or newsgroup was specified.  You must give an email\n" \
-                  "address or usenet newsgroup to send messages to.  Use -to, -cc, or -bcc option\n" \
-                  "for email, or -groups for usenet.\n" \
-                  "Aborting, nobody to send messages to.\n" );
+        printMsg( __T("No target email address or newsgroup was specified.  You must give an email\n") \
+                  __T("address or usenet newsgroup to send messages to.  Use -to, -cc, or -bcc option\n") \
+                  __T("for email, or -groups for usenet.\n") \
+                  __T("Aborting, nobody to send messages to.\n") );
 
         printMsg( NULL );
         if ( logOut )
@@ -888,9 +935,9 @@ int main( int argc,             /* Number of strings in array argv          */
     }
 #else
     if ( !Recipients.Length() ) {
-        printMsg( "No target email address was specified.  You must give an email address\n" \
-                  "to send messages to.  Use -to, -cc, or -bcc option.\n" \
-                  "Aborting, nobody to send messages to.\n" );
+        printMsg( __T("No target email address was specified.  You must give an email address\n") \
+                  __T("to send messages to.  Use -to, -cc, or -bcc option.\n") \
+                  __T("Aborting, nobody to send messages to.\n") );
 
         printMsg( NULL );
         if ( logOut )
@@ -903,25 +950,24 @@ int main( int argc,             /* Number of strings in array argv          */
 
     // if reading from the console, read everything into a temporary file first
     ConsoleDone = FALSE;
-    if ( !bodyFilename[0] || (strcmp(bodyFilename, "-") == 0) ) {
+    if ( (bodyFilename[0] == __T('\0')) || (_tcscmp(bodyFilename, __T("-")) == 0) ) {
 
         if ( lpszMessageCgi.Length() ) {
             ConsoleDone = TRUE;
             TempConsole.Add(lpszMessageCgi);
         } else if ( bodyparameter.Length() ) {
-            char * p = bodyparameter.Get();
+            LPTSTR p = bodyparameter.Get();
             ConsoleDone = TRUE;
             if (bodyconvert) {
                 i = 0;
                 while ( p[i] ) {
-                    if ( p[i] == '|' )      // CRLF signified by the pipe character
-                        TempConsole.Add( "\r\n" );
+                    if ( p[i] == __T('|') )      // CRLF signified by the pipe character
+                        TempConsole.Add( __T("\r\n") );
                     else
                         TempConsole.Add( p[i] );
                     i++;
                 }
-            }
-            else
+            } else
                 TempConsole.Add( p );
         } else {
             ConsoleDone = TRUE;
@@ -930,13 +976,13 @@ int main( int argc,             /* Number of strings in array argv          */
                 i=0;
 
                 if ( !ReadFile(GetStdHandle(STD_INPUT_HANDLE),&i,1,&dwNbRead,NULL) ||
-                     !dwNbRead || (i == '\x1A') )
+                     !dwNbRead || (i == __T('\x1A')) )
                     break;
 
                 TempConsole.Add((char)i);
             }
         }
-        strcpy(bodyFilename, stdinFileName);
+        _tcscpy(bodyFilename, stdinFileName);
     }
 
     if (!ConsoleDone) {
@@ -944,7 +990,7 @@ int main( int argc,             /* Number of strings in array argv          */
 
         //get the text of the file into a string buffer
         if ( !fileh.OpenThisFile(bodyFilename) ) {
-            printMsg("error reading %s, aborting\n",bodyFilename);
+            printMsg(__T("error reading %s, aborting\n"),bodyFilename);
 
             printMsg( NULL );
             if ( logOut )
@@ -955,7 +1001,7 @@ int main( int argc,             /* Number of strings in array argv          */
         }
         if ( !fileh.IsDiskFile() ) {
             fileh.Close();
-            printMsg("Sorry, I can only mail messages from disk files...\n");
+            printMsg(__T("Sorry, I can only mail messages from disk files...\n"));
 
             printMsg( NULL );
             if ( logOut )
@@ -970,16 +1016,16 @@ int main( int argc,             /* Number of strings in array argv          */
             TempConsole.Alloc( filesize + 1 );
             retcode = fileh.ReadThisFile(TempConsole.Get(), filesize, &dummy, NULL);
             TempConsole.SetLength( filesize );
-            *TempConsole.GetTail() = 0;
+            *TempConsole.GetTail() = __T('\0');
         } else {
             filesize = 1;
-            TempConsole = "\n";
+            TempConsole = __T("\n");
             retcode = true;
         }
         fileh.Close();
 
         if ( !retcode ) {
-            printMsg("error reading %s, aborting\n", bodyFilename);
+            printMsg(__T("error reading %s, aborting\n"), bodyFilename);
             cleanUpBuffers();
             return(5);
         }
@@ -990,16 +1036,29 @@ int main( int argc,             /* Number of strings in array argv          */
     if ( eightBitMimeRequested )
         convertUnicode( TempConsole, &utf, charset, 8 );
     else
-        convertUnicode( TempConsole, &utf, charset, 7 );
 #endif
-    filesize = TempConsole.Length();
+        convertUnicode( TempConsole, &utf, charset, 7 );
 
+    filesize = (DWORD)TempConsole.Length();
+
+    attachFoundFault = FALSE;
     nbrOfAttachments = collectAttachmentInfo( totalsize, filesize );
+    if ( attachFoundFault ) {
+        printMsg( __T("One or more attachments had not been found.\n") \
+                  __T("Aborting, so you find / fix the missing attachment.\n") );
+
+        printMsg( NULL );
+        if ( logOut )
+            fclose(logOut);
+
+        cleanUpBuffers();
+        return(12);
+    }
 
     if ( nbrOfAttachments && !totalsize ) {
-        printMsg( "Sum total size of all attachments exceeds 4G bytes.  This is too much to be\n" \
-                  "sending with SMTP or NNTP.  Please try sending through FTP instead.\n" \
-                  "Aborting, too much data to send.\n" );
+        printMsg( __T("Sum total size of all attachments exceeds 4G bytes.  This is too much to be\n") \
+                  __T("sending with SMTP or NNTP.  Please try sending through FTP instead.\n") \
+                  __T("Aborting, too much data to send.\n") );
 
         printMsg( NULL );
         if ( logOut )
@@ -1032,11 +1091,11 @@ int main( int argc,             /* Number of strings in array argv          */
     cleanUpBuffers();
 
     if ( fCgiWork ) {
-        Buf   lpszCgiText;
-        LPSTR lpszUrl;
-        DWORD dwLenUrl;
-        DWORD dwSize;
-        int   i;                                 //lint !e578 hiding i
+        Buf    lpszCgiText;
+        LPTSTR lpszUrl;
+        DWORD  dwLenUrl;
+        DWORD  dwSize;
+        int    i;                                 //lint !e578 hiding i
 
         for ( i=0;i<argc;i++ ) free(argv[i]);
         free(argv);
@@ -1044,35 +1103,35 @@ int main( int argc,             /* Number of strings in array argv          */
         lpszUrl  = (retcode == 0) ? lpszCgiSuccessUrl.Get() : lpszCgiFailureUrl.Get();
         dwLenUrl = 0;
         if ( lpszUrl )
-            dwLenUrl = lstrlen(lpszUrl);
+            dwLenUrl = (DWORD)_tcslen(lpszUrl);
 
         lpszCgiText.Alloc( 1024+(dwLenUrl*4) );
 
         if ( dwLenUrl ) {
-            wsprintf(lpszCgiText.Get(),
-                     "Expires: Thu, 01 Dec 1994 16:00:00 GMT\r\n" \
-                     "Pragma: no-cache\r\n" \
-                     "Location: %s\r\n" \
-                     "\r\n" \
-                     "<html><body>\r\n" \
-                     "<a href=\"%s\">Click here to go to %s</a>\r\n"\
-                     "<META HTTP-EQUIV=\"REFRESH\" CONTENT=\"0; URL=%s\">\r\n"\
-                     "</body></html>\r\n" ,
-                     lpszUrl,lpszUrl,lpszUrl,lpszUrl);
+            _stprintf(lpszCgiText.Get(),
+                      __T("Expires: Thu, 01 Dec 1994 16:00:00 GMT\r\n") \
+                      __T("Pragma: no-cache\r\n") \
+                      __T("Location: %s\r\n") \
+                      __T("\r\n") \
+                      __T("<html><body>\r\n") \
+                      __T("<a href=\"%s\">Click here to go to %s</a>\r\n") \
+                      __T("<META HTTP-EQUIV=\"REFRESH\" CONTENT=\"0; URL=%s\">\r\n") \
+                      __T("</body></html>\r\n"),
+                      lpszUrl,lpszUrl,lpszUrl,lpszUrl);
         } else {
-            wsprintf(lpszCgiText.Get(),
-                     "Expires: Thu, 01 Dec 1994 16:00:00 GMT\r\n" \
-                     "Pragma: no-cache\r\n" \
-                     "Content-type: text/html\r\n" \
-                     "\r\n" \
-                     "<html><body>\r\n" \
-                     "Blat sending message result = %d : %s\r\n"\
-                     "</body></html>\r\n" ,
-                     retcode,(retcode==0)?"Success":"Failure");
+            _stprintf(lpszCgiText.Get(),
+                      __T("Expires: Thu, 01 Dec 1994 16:00:00 GMT\r\n") \
+                      __T("Pragma: no-cache\r\n") \
+                      __T("Content-type: text/html\r\n") \
+                      __T("\r\n") \
+                      __T("<html><body>\r\n") \
+                      __T("Blat sending message result = %d : %s\r\n") \
+                      __T("</body></html>\r\n"),
+                      retcode,(retcode==0) ? __T("Success") : __T("Failure") );
         }
 
         lpszCgiText.SetLength();
-        dwSize = lpszCgiText.Length();
+        dwSize = (DWORD)lpszCgiText.Length();
         WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),lpszCgiText.Get(),dwSize,&dwSize,NULL);
     }
 
@@ -1089,55 +1148,52 @@ int main( int argc,             /* Number of strings in array argv          */
 
 #define BLATDLL_API __declspec(dllexport)
 
-extern "C"
-int APIENTRY Send (LPCSTR sCmd)
+static int localSend (LPCTSTR sCmd)
 {
-    char ** argv;
-    char *  sIn;
+    LPTSTR* argv;
+    LPTSTR  sIn;
     size_t  iCount;
     int     iResult;
     size_t  maxEntries = 256;
 
 
     iResult = 0;
-    sIn = (char *) malloc (strlen ((char *)sCmd) + 2);
+    sIn = (LPTSTR) malloc ( (_tcslen ((LPTSTR)sCmd) + 2) * sizeof(_TCHAR) );
     if (sIn) {
-        strcpy (sIn, (char *) sCmd);
+        _tcscpy (sIn, (LPTSTR) sCmd);
 
-        argv = (char **)malloc( (maxEntries + 1) * sizeof(char *) );
+        argv = (LPTSTR*)malloc( (maxEntries + 1) * sizeof(LPTSTR) );
         if ( argv ) {
-            memset( argv, 0, (maxEntries + 1) * sizeof(char *) );
-            for ( iCount = strlen(sIn); iCount; ) {
+            memset( argv, 0, (maxEntries + 1) * sizeof(LPTSTR) );
+            for ( iCount = _tcslen(sIn); iCount; ) {
                 iCount--;
-                if ( (sIn[ iCount ] == '\n') ||
-                     (sIn[ iCount ] == '\r') ||
-                     (sIn[ iCount ] == '\t') ||
-                     (sIn[ iCount ] == ' ' ) ) {
-                    sIn[ iCount ] = '\0';
+                if ( (sIn[ iCount ] == __T('\n')) ||
+                     (sIn[ iCount ] == __T('\r')) ||
+                     (sIn[ iCount ] == __T('\t')) ||
+                     (sIn[ iCount ] == __T(' ') ) ) {
+                    sIn[ iCount ] = __T('\0');
                     continue;
                 }
 
                 break;
             }
 
-            argv[0] = "blat.dll";
+            argv[0] = __T("blat.dll");
             iCount = make_argv( sIn,        /* argument list                     */
                                 argv,       /* pointer to argv to use            */
                                 maxEntries, /* maximum number of entries allowed */
                                 1, TRUE );
 
-            iResult = main ((int)iCount, argv, NULL);
+            iResult = _tmain ((int)iCount, argv, NULL);
 
             for ( ; iCount > 1; ) {
                 free (argv[--iCount]);
             }
 
             free (argv);
-        }
-        else
+        } else
             iResult = -1;
-    }
-    else
+    } else
         iResult = -1;
 
     if (sIn)
@@ -1145,14 +1201,62 @@ int APIENTRY Send (LPCSTR sCmd)
 
     return iResult;
 }
-
-
 extern "C"
-int __cdecl cSend (LPCSTR sCmd)
+BLATDLL_API int APIENTRY SendW (LPCWSTR sCmd)
 {
-    return Send (sCmd);
+    int     iResult;
+
+#if defined(_UNICODE) || defined(UNICODE)
+    iResult = localSend( sCmd );
+#else
+    iResult = 0;
+    DWORD byteCount = WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, sCmd, -1, NULL, -1, NULL, NULL );
+    if ( byteCount > 1 ) {
+        char * pCharCmd = (char *) new char[byteCount+1];
+        if ( pCharCmd ) {
+            WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, sCmd, -1, pCharCmd, (int)byteCount, NULL, NULL );
+
+            iResult = localSend( (LPCSTR)pCharCmd );
+        }
+        delete [] pCharCmd;
+    }
+#endif
+
+    return iResult;
+}
+extern "C"
+BLATDLL_API int APIENTRY SendA (LPCSTR sCmd)
+{
+    int     iResult;
+
+#if defined(_UNICODE) || defined(UNICODE)
+    iResult = 0;
+    DWORD byteCount = MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, sCmd, -1, NULL, 0 );
+    if ( byteCount > 1 ) {
+        wchar_t * pWCharCmd = (wchar_t *) new wchar_t[byteCount+1];
+        if ( pWCharCmd ) {
+            MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, sCmd, -1, pWCharCmd, (int)byteCount );
+
+            iResult = localSend( (LPCWSTR)pWCharCmd );
+        }
+        delete [] pWCharCmd;
+    }
+#else
+    iResult = localSend( sCmd );
+#endif
+    return iResult;
 }
 
+extern "C"
+BLATDLL_API int __cdecl cSendW (LPCWSTR sCmd)
+{
+    return SendW (sCmd);
+}
+extern "C"
+BLATDLL_API int __cdecl cSendA (LPCSTR sCmd)
+{
+    return SendA (sCmd);
+}
 
 extern "C"
 BOOL APIENTRY DllMain( HANDLE hModule,
@@ -1177,20 +1281,153 @@ BOOL APIENTRY DllMain( HANDLE hModule,
 }
 
 extern "C"
-BLATDLL_API int _stdcall Blat(int argc, char *argv[]) {
-    return main(argc, argv, NULL);
+BLATDLL_API int _stdcall BlatW(int argc, LPWSTR argv[]) {
+
+#if defined(_UNICODE) || defined(UNICODE)
+    return _tmain(argc, argv, NULL);
+#else
+    int     iResult;
+    char ** newArgv;
+    int     x;
+    DWORD   byteCount;
+
+
+    iResult = 0;
+    newArgv = (char **) new char[sizeof(char *) * (argc+1)];
+    if ( newArgv ) {
+        ZeroMemory( newArgv, sizeof(char *) * (argc+1) );
+        for ( x = 0; x < argc; x++ ) {
+            byteCount = WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, argv[x], -1, NULL, -1, NULL, NULL );
+            if ( byteCount ) {
+                newArgv[x] = (char *) new char[byteCount+1];
+                if ( newArgv[x] ) {
+                    WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, argv[x], -1, newArgv[x], (int)byteCount, NULL, NULL );
+                }
+            }
+            if ( !newArgv[x] )
+                break;
+        }
+        if ( x == argc )
+            iResult = _tmain(argc, newArgv, NULL);
+        x = argc;
+        while ( x ) {
+            --x;
+            if ( newArgv[x] )
+                delete [] newArgv[x];
+        }
+        delete [] newArgv;
+    }
+    return iResult;
+#endif
+}
+extern "C"
+BLATDLL_API int _stdcall BlatA(int argc, LPSTR argv[]) {
+
+#if defined(_UNICODE) || defined(UNICODE)
+    int        iResult;
+    wchar_t ** newArgv;
+    int        x;
+    DWORD      byteCount;
+
+
+    iResult = 0;
+    newArgv = (wchar_t **) new char[sizeof(wchar_t *) * (argc+1)];
+    if ( newArgv ) {
+        ZeroMemory( newArgv, sizeof(wchar_t *) * (argc+1) );
+        for ( x = 0; x < argc; x++ ) {
+            byteCount = MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, argv[x], -1, NULL, 0 );
+            if ( byteCount > 1 ) {
+                newArgv[x] = (wchar_t *) new wchar_t[byteCount+1];
+                if ( newArgv[x] ) {
+                    MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, argv[x], -1, newArgv[x], (int)byteCount );
+                }
+            }
+            if ( !newArgv[x] )
+                break;
+        }
+        if ( x == argc )
+            iResult = _tmain(argc, newArgv, NULL);
+        x = argc;
+        while ( x ) {
+            --x;
+            if ( newArgv[x] )
+                delete [] newArgv[x];
+        }
+        delete [] newArgv;
+    }
+    return iResult;
+#else
+    return _tmain(argc, argv, NULL);
+#endif
 }
 
-void (__stdcall *pPrintDLL)(char *) = 0;
+#if defined(_UNICODE) || defined(UNICODE)
+#  define printDLL printDLLW
+#else
+#  define printDLL printDLLA
+#endif
 
-void printDLL(char *p) {
+static void (__stdcall *pPrintDLL)(LPTSTR) = 0;
+
+/*
+ * Built for Unicode   Set PrintDLL   String Type   Convert?
+ *       Yes             printDLLW     WideChar       No
+ *       Yes             printDLLA     WideChar       Yes
+ *       No              printDLLW     MultiByte      Yes
+ *       No              printDLLA     MultiByte      No
+ */
+
+static void printDLLW(LPTSTR pString) {
+
+#if defined(_UNICODE) || defined(UNICODE)
     if (pPrintDLL)
-        pPrintDLL(p);
+        pPrintDLL( (LPTSTR)pString );
+#else
+    DWORD byteCount = MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, (LPSTR)pString, -1, NULL, 0 );
+    if ( byteCount > 1 ) {
+        LPWSTR pWCharString = (LPWSTR) new wchar_t[byteCount+1];
+        if ( pWCharString ) {
+            MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, (LPSTR)pString, -1, pWCharString, (int)byteCount );
+
+            if (pPrintDLL)
+                pPrintDLL( (LPTSTR)pWCharString );
+        }
+        delete [] pWCharString;
+    }
+#endif
 }
+
+static void printDLLA(LPTSTR pString) {
+
+#if defined(_UNICODE) || defined(UNICODE)
+    DWORD byteCount = WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, (LPWSTR)pString, -1, NULL, -1, NULL, NULL );
+    if ( byteCount > 1 ) {
+        LPSTR pCharString = (LPSTR) new char[byteCount+1];
+        if ( pCharString ) {
+            WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, (LPWSTR)pString, -1, pCharString, (int)byteCount, NULL, NULL );
+
+            if (pPrintDLL)
+                pPrintDLL( (LPTSTR)pCharString );
+        }
+        delete [] pCharString;
+    }
+#else
+    if (pPrintDLL)
+        pPrintDLL( (LPTSTR)pString );
+#endif
+}
+
+static void (*pMyPrintDLL)(LPTSTR) = printDLL;
 
 extern "C"
-BLATDLL_API void _stdcall SetPrintFunc(void (__stdcall *func)(char *)) {
+BLATDLL_API void _stdcall SetPrintFuncW(void (__stdcall *func)(LPTSTR)) {
     pPrintDLL = func;
+    pMyPrintDLL = printDLLW;
+}
+extern "C"
+BLATDLL_API void _stdcall SetPrintFuncA(void (__stdcall *func)(LPTSTR)) {
+    pPrintDLL = func;
+    pMyPrintDLL = printDLLA;
 }
 
 #endif
@@ -1205,16 +1442,16 @@ BLATDLL_API void _stdcall SetPrintFunc(void (__stdcall *func)(char *)) {
 
 */
 
-void printMsg(const char *p, ... )
+void printMsg(LPTSTR p, ... )
 {
     static int  delimiterPrinted = FALSE;
     time_t      nowtime;
     struct tm * localT;
-    char        buf[2048];
+    _TCHAR      buf[2048];
     va_list     args;
     int         x, y;
-    char        timeBuffer[32];
-    static char lastByteSent = 0;
+    _TCHAR      timeBuffer[32];
+    static _TCHAR lastByteSent = 0;
 
     if ( quiet && !logOut )
         return;
@@ -1232,71 +1469,78 @@ void printMsg(const char *p, ... )
     time(&nowtime);
     localT = localtime(&nowtime);
     if ( !localT )
-        strcpy( timeBuffer, "Date/Time not available" );
+        _tcscpy( timeBuffer, __T("Date/Time not available") );
     else
-        sprintf( timeBuffer, "%04u.%02u.%02u %02u:%02u:%02u (%3s)",
-                 localT->tm_year+1900,
-                 localT->tm_mon +1,
-                 localT->tm_mday,
-                 localT->tm_hour,
-                 localT->tm_min,
-                 localT->tm_sec,
-                 days[localT->tm_wday] );
+        _stprintf( timeBuffer, __T("%04u.%02u.%02u %02u:%02u:%02u (%3s)"),
+                   localT->tm_year+1900,
+                   localT->tm_mon +1,
+                   localT->tm_mday,
+                   localT->tm_hour,
+                   localT->tm_min,
+                   localT->tm_sec,
+                   days[localT->tm_wday] );
 
     if ( !p ) {
         if ( logOut ) {
-            if ( lastByteSent != '\n' )
-                fprintf( logOut, "\n" );
+            if ( lastByteSent != __T('\n') )
+                _ftprintf( logOut, __T("\n") );
 
-            fprintf( logOut, "%s-------------End of Session------------------\n", timeBuffer );
+            _ftprintf( logOut, __T("%s-------------End of Session------------------\n"), timeBuffer );
+            fflush( logOut );
+            fclose( logOut );
+            logOut = _tfopen(logFile, __T("a, ccs=UTF-8"));
             delimiterPrinted = FALSE;
         }
         return;
     }
 
-    vsprintf( buf, p, args );
-    y = (int)strlen(buf);
+    _vstprintf( buf, p, args );
+    y = (int)_tcslen(buf);
     for ( x = 0; buf[x]; x++ ) {
-        if ( buf[x] == '\r' ) {
-            if ( (buf[x+1] == '\r') || (buf[x+1] == '\n') ) {
-                memcpy( &buf[x], &buf[x+1], y - x );
+        if ( buf[x] == __T('\r') ) {
+            if ( (buf[x+1] == __T('\r')) || (buf[x+1] == __T('\n')) ) {
+                memcpy( &buf[x], &buf[x+1], (y - x)*sizeof(_TCHAR) );
                 x--;
             }
             continue;
         }
 
-        if ( buf[x] == '\n' ) {
-            if ( buf[x+1] == '\n' ) {
-                memcpy( &buf[x], &buf[x+1], y - x );
+        if ( buf[x] == __T('\n') ) {
+            if ( buf[x+1] == __T('\n') ) {
+                memcpy( &buf[x], &buf[x+1], (y - x)*sizeof(_TCHAR) );
                 x--;
                 continue;
             }
 
-            if ( buf[x+1] == '\r' ) {
-                memcpy( &buf[x+1], &buf[x+2], y - (x+1) );
+            if ( buf[x+1] == __T('\r') ) {
+                memcpy( &buf[x+1], &buf[x+2], (y - (x+1))*sizeof(_TCHAR) );
                 x--;
             }
             continue;
         }
     }
 
-    lastByteSent = buf[strlen(buf) - 1];
+    lastByteSent = buf[_tcslen(buf) - 1];
 
     if ( logOut ) {
         if ( !delimiterPrinted ) {
-            fprintf( logOut, "\n%s------------Start of Session-----------------\n", timeBuffer );
+            _ftprintf( logOut, __T("\n%s------------Start of Session-----------------\n"), timeBuffer );
             delimiterPrinted = TRUE;
         }
 
         if ( timestamp )
-            fprintf( logOut, "%s: ", timeBuffer );
+            _ftprintf( logOut, __T("%s: "), timeBuffer );
 
-        fprintf(logOut, "%s", buf);
+        _ftprintf(logOut, __T("%s"), buf);
+        fflush( logOut );
+        fclose( logOut );
+        logOut = _tfopen(logFile, __T("a, ccs=UTF-8"));
     } else {
 #ifdef BLATDLL_EXPORTS
-        printDLL(buf);
+        pMyPrintDLL(buf);
 #else
-        printf("%s", buf);
+        _tprintf(__T("%s"), buf);
+        fflush( stdout );
 #endif
     }
     va_end(args);
