@@ -32,35 +32,40 @@ extern "C" {
 #endif
 /* function prototypes */
 
-int     gensock_connect      (LPTSTR hostname,
+int     gensock_connect      (struct _COMMON_DATA & CommonData,
+                              LPTSTR hostname,
                               LPTSTR service,
                               socktag FAR * pst);
 
-int     gensock_getchar      (socktag st,
+int     gensock_getchar      (struct _COMMON_DATA & CommonData,
+                              socktag st,
                               int wait,
                               LPTSTR ch);
 
-int     gensock_put_data     (socktag st,
+int     gensock_put_data     (struct _COMMON_DATA & CommonData,
+                              socktag st,
                               LPTSTR pData,
                               unsigned long length);
 
-int     gensock_close        (socktag st);
+int     gensock_close        (struct _COMMON_DATA & CommonData,
+                              socktag st);
 
 #if defined(_UNICODE) || defined(UNICODE)
 #define gensock_getdomainfromhostname gensock_getdomainfromhostnameW
-LPTSTR  gensock_getdomainfromhostnameW (LPTSTR pName);
+LPTSTR  gensock_getdomainfromhostnameW (struct _COMMON_DATA & CommonData, LPTSTR pName);
 #else
 #define gensock_getdomainfromhostname gensock_getdomainfromhostnameA
-char *  gensock_getdomainfromhostnameA (char * pName);
+char *  gensock_getdomainfromhostnameA (struct _COMMON_DATA & CommonData, char * pName);
 #endif
 
 int     gensock_gethostname  (LPTSTR pName, int namelen);
 
-int     gensock_put_data_buffered (socktag st,
+int     gensock_put_data_buffered (struct _COMMON_DATA & CommonData,
+                                   socktag st,
                                    LPTSTR pData,
                                    unsigned long length);
 
-int     gensock_put_data_flush (socktag st);
+int     gensock_put_data_flush (struct _COMMON_DATA & CommonData, socktag st);
 
 extern int globaltimeout;
 

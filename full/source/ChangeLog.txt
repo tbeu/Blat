@@ -5,6 +5,21 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.0
+[+] First attempt to make Blat.dll thread safe, meaning that a multithreaded
+    program that uses Blat.dll should be able to send emails with each thread
+    without stomping on each other.  One caveat, if logging is desired, each
+    thread must provide a unique filename for the log file, so that the threads
+    do not corrupt each other's log entries.  To make this thread safe version,
+    I took all of the global variables and made a structure of these, which a
+    pointer to the structure being passed to all routines.  Each thread calling
+    Blat.dll will cause a new structure to be allocated, initialized, and used
+    for that thread's process.  Some features of this change have not been
+    tested because I do not have the GSS library, nor have a need to use that
+    library for my home testing.  The person who originally requested a thread
+    safe version of Blat.dll should have the means to test this change, and I
+    will attempt to contact that person to shake it out.
+-------------------------------------------------------------------------------
 3.1.2
 [*] Changed the MultiByte to Unicode support calls to use CP_ACP instead of
     CP_OEMCP, because the latter was not working for some folks using Cyrillic

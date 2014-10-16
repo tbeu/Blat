@@ -192,18 +192,15 @@ public:
     ~GssSession();
     LPTSTR StatusText(OM_uint32 major_status, OM_uint32 minor_status, LPTSTR szBuffer = NULL);
     LPTSTR MechtypeText(LPTSTR szBuffer = NULL);
-    void Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR),LPTSTR username, LPTSTR servicename, BOOL mutual, protLev lev);
+    void Authenticate(struct _COMMON_DATA & CommonData, BOOL (*getline) (struct _COMMON_DATA &, LPTSTR), BOOL (*putline) (struct _COMMON_DATA &, LPTSTR),LPTSTR username, LPTSTR servicename, BOOL mutual, protLev lev);
     protLev GetProtectionLevel() const {return protection_level;};
 
     BOOL IsReadyToEncrypt() const {return ((state==ReadyToCommunicate) && (protection_level != GSSAUTH_P_NONE));};
 
-    Buf Encrypt(Buf& msg);
+    Buf Encrypt(struct _COMMON_DATA & CommonData, Buf& msg);
     Buf Decrypt(Buf& msg);
 
 
 };
-
-extern GssSession* pGss; // The one and only GssSession object pointer
-
 
 #endif

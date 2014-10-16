@@ -283,11 +283,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="blat.h" />
+    <ClInclude Include="blatdll.h" />
     <ClInclude Include="buf.h" />
+    <ClInclude Include="common_data.h" />
+    <ClInclude Include="connections.h" />
+    <ClInclude Include="declarations.h" />
     <ClInclude Include="gensock.h" />
     <ClInclude Include="Gssapi\gssapi.h" />
     <ClInclude Include="gssapi_generic.h" />
+    <ClInclude Include="gssfuncs.h" />
+    <ClInclude Include="md5.h" />
     <ClInclude Include="punycode.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="win-mac.h" />
     <ClInclude Include="WinFile.h" />
   </ItemGroup>

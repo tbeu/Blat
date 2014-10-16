@@ -10,71 +10,30 @@
 #include <string.h>
 
 #include "blat.h"
+#include "common_data.h"
 #include "winfile.h"
 
 
 #if BLAT_LITE
 #else
-extern void   douuencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart);
+extern void   douuencode(COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filename, int part, int lastpart);
 #endif
 extern void   base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
-extern void   printMsg(LPTSTR p, ... );                     // Added 23 Aug 2000 Craig Morrison
-extern void   fixup(LPTSTR string, Buf * tempstring2, int headerLen, int linewrap);
+extern void   printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );                     // Added 23 Aug 2000 Craig Morrison
+extern void   fixup(COMMON_DATA & CommonData, LPTSTR string, Buf * tempstring2, int headerLen, int linewrap);
 extern LPTSTR getShortFileName (LPTSTR fileName);
-extern void   getContentType(Buf & pDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName);
+extern void   getContentType(COMMON_DATA & CommonData, Buf & pDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName);
 extern void   incrementBoundary( _TCHAR boundary[] );
 extern void   decrementBoundary( _TCHAR boundary[] );
 extern void   convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequested );
 #if defined(_UNICODE) || defined(UNICODE)
-void checkInputForUnicode ( Buf & stringToCheck );
+extern void   checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck );
 #endif
 
 #if SUPPORT_YENC
-extern void   yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len,
+extern void   yEncode( COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filename, long full_len,
                        int part, int lastpart, unsigned long &full_crc_val );
 #endif
-#if INCLUDE_NNTP
-extern Buf    groups;
-#endif
-
-extern _TCHAR textmode[TEXTMODE_SIZE+1];        // added 15 June 1999 by James Greene "greene@gucc.org"
-extern _TCHAR formattedContent;
-extern int    attach;
-extern _TCHAR attachfile[64][MAX_PATH+1];
-extern _TCHAR charset[40];
-extern LPTSTR defaultCharset;
-extern _TCHAR attachtype[64];
-extern _TCHAR boundaryPosted;
-extern _TCHAR needBoundary;
-extern int    attachFoundFault;
-extern _TCHAR mime;
-extern int    utf;
-
-#if BLAT_LITE
-#else
-extern _TCHAR uuencode;
-extern _TCHAR base64;
-extern _TCHAR yEnc;
-extern _TCHAR eightBitMimeSupported;
-extern _TCHAR eightBitMimeRequested;
-
-extern unsigned long maxMessageSize;
-extern unsigned int  uuencodeBytesLine;
-
-extern Buf     userContentType;
-#endif
-
-
-WIN32_FIND_DATA FindFileData;
-
-typedef struct NODES {
-    NODES * next;
-    LPTSTR  attachmentName;
-    int     fileType;
-    DWORD   fileSize;
-} _NODES;
-
-static NODES * attachList;
 
 static void releaseNode ( NODES * &nextNode )
 {
@@ -87,11 +46,11 @@ static void releaseNode ( NODES * &nextNode )
 }
 
 
-void getAttachmentInfo( int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType )
+void getAttachmentInfo( COMMON_DATA & CommonData, int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType )
 {
     NODES * tmpNode;
 
-    tmpNode = attachList;
+    tmpNode = CommonData.attachList;
     for ( ; attachNbr && tmpNode->next; attachNbr-- )
         tmpNode = tmpNode->next;
 
@@ -101,13 +60,13 @@ void getAttachmentInfo( int attachNbr, LPTSTR & attachName, DWORD & attachSize, 
 }
 
 
-void releaseAttachmentInfo ( void )
+void releaseAttachmentInfo ( COMMON_DATA & CommonData )
 {
-    releaseNode( attachList );
+    releaseNode( CommonData.attachList );
 }
 
 
-int collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize )
+int collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t msgBodySize )
 {
     int      i;
     size_t   x;
@@ -120,20 +79,22 @@ int collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize )
     NODES *  tmpNode;
     _TCHAR   attachedfile[MAX_PATH+1];
     int      errorFound;
+    WIN32_FIND_DATA FindFileData;
 
-    attachList = NULL;
-    tmpNode    = NULL;
+
+    CommonData.attachList = NULL;
+    tmpNode = NULL;
 
     totalsize = (DWORD)msgBodySize;
     nbrOfFilesFound = 0;
     errorFound = FALSE;
-    attachFoundFault = FALSE;
+    CommonData.attachFoundFault = FALSE;
 
     // Process any attachments
-    for ( i = 0; (i < attach) && !errorFound; i++ ) {
+    for ( i = 0; (i < CommonData.attach) && !errorFound; i++ ) {
 
         // Get the path for opening file
-        _tcscpy(path, attachfile[i]);
+        _tcscpy(path, CommonData.attachfile[i]);
         pathptr = _tcsrchr(path, __T('\\'));
         if ( !pathptr )
             pathptr = _tcsrchr(path, __T(':'));
@@ -144,11 +105,11 @@ int collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize )
             path[0] = __T('\0');
         }
 
-        ihandle = FindFirstFile((LPTSTR)attachfile[i], &FindFileData);
+        ihandle = FindFirstFile((LPTSTR)CommonData.attachfile[i], &FindFileData);
         filewasfound = (ihandle != INVALID_HANDLE_VALUE);
         if ( !filewasfound ) {
-            printMsg(__T("No files found matching search string \"%s\".\n"), attachfile[i]);
-            attachFoundFault = TRUE;
+            printMsg(CommonData, __T("No files found matching search string \"%s\".\n"), CommonData.attachfile[i]);
+            CommonData.attachFoundFault = TRUE;
         }
 
         while ( filewasfound && !errorFound ) {
@@ -159,7 +120,7 @@ int collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize )
                     // if ( fileh.IsDiskFile() && FindFileData.nFileSizeLow && !FindFileData.nFileSizeHigh ) {
                     if ( fileh.IsDiskFile() ) {
                         if ( FindFileData.nFileSizeHigh ) {
-                            printMsg(__T("Found \"%s\" matching search string \"%s\", but it is too large (>= 4GB), therefore will not be attached or sent.\n"), attachedfile, attachfile[i]);
+                            printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but it is too large (>= 4GB), therefore will not be attached or sent.\n"), attachedfile, CommonData.attachfile[i]);
                         }
                         else {
                             DWORD tmpSize = totalsize;
@@ -169,8 +130,8 @@ int collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize )
                                 totalsize  = 0;
                                 errorFound = TRUE;
                             } else {
-                                if ( attachList == NULL ) {
-                                    tmpNode = attachList = (NODES *) malloc( sizeof(NODES) );
+                                if ( CommonData.attachList == NULL ) {
+                                    tmpNode = CommonData.attachList = (NODES *) malloc( sizeof(NODES) );
                                 } else {
                                     tmpNode->next = (NODES *) malloc( sizeof(NODES) );
                                     tmpNode = tmpNode->next;
@@ -182,7 +143,7 @@ int collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize )
                                 tmpNode->attachmentName = (LPTSTR) malloc( x );
                                 memcpy( tmpNode->attachmentName, attachedfile, x );
 
-                                tmpNode->fileType = attachtype[i];
+                                tmpNode->fileType = CommonData.attachtype[i];
                                 tmpNode->fileSize = FindFileData.nFileSizeLow;
 
                                 nbrOfFilesFound++;
@@ -190,12 +151,12 @@ int collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize )
                         }
                     }
                     else {
-                        printMsg(__T("Found \"%s\" matching search string \"%s\", but it appears to not be a file that can be opened.\n"), attachedfile, attachfile[i]);
+                        printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but it appears to not be a file that can be opened.\n"), attachedfile, CommonData.attachfile[i]);
                     }
                     fileh.Close();
                 }
                 else {
-                    printMsg(__T("Found \"%s\" matching search string \"%s\", but the file cannot be opened.\n"), attachedfile, attachfile[i]);
+                    printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but the file cannot be opened.\n"), attachedfile, CommonData.attachfile[i]);
                 }
             }
             filewasfound = FindNextFile(ihandle, &FindFileData);
@@ -207,10 +168,11 @@ int collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize )
 }
 
 
-void getMaxMsgSize ( int buildSMTP, DWORD &length )
+void getMaxMsgSize ( COMMON_DATA & CommonData, int buildSMTP, DWORD &length )
 {
 #if BLAT_LITE
-    buildSMTP = buildSMTP;
+    CommonData = CommonData;
+    buildSMTP  = buildSMTP;
 
     length = (DWORD)(-1);
 #else
@@ -219,16 +181,16 @@ void getMaxMsgSize ( int buildSMTP, DWORD &length )
   #else
     int     yEnc_This;
 
-    yEnc_This = yEnc;
-    if ( buildSMTP && !eightBitMimeSupported )
+    yEnc_This = CommonData.yEnc;
+    if ( buildSMTP && !CommonData.eightBitMimeSupported )
         yEnc_This = FALSE;
 
     if ( !yEnc_This )
   #endif
     {
-        if ( uuencode ) {
-            if ( length % uuencodeBytesLine )
-                length -= (length % uuencodeBytesLine);
+        if ( CommonData.uuencode ) {
+            if ( length % CommonData.uuencodeBytesLine )
+                length -= (length % CommonData.uuencodeBytesLine);
         } else {
             // base64 encoding for this attachment.
             if ( length % 54 )
@@ -261,7 +223,7 @@ static _TCHAR getBitSize( LPTSTR pString )
     return bitSize;
 }
 
-int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
+int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
                          DWORD startOffset, DWORD &length,
                          int part, int totalparts, int attachNbr, int * prevAttachType )
 {
@@ -289,19 +251,19 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
 #endif
 
 #if SUPPORT_YENC
-    yEnc_This = yEnc;
-    if ( buildSMTP && !eightBitMimeSupported )
+    yEnc_This = CommonData.yEnc;
+    if ( buildSMTP && !CommonData.eightBitMimeSupported )
 #endif
         yEnc_This = FALSE;
 
-    if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 )
+    if ( memcmp( CommonData.charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 )
         localCharset[0] = __T('\0');
     else
-        _tcscpy( localCharset, charset );
+        _tcscpy( localCharset, CommonData.charset );
 
     textFileBuffer.Free();
     tmpstr2.Clear();
-    getAttachmentInfo( attachNbr, attachName, fullFileSize, attachType );
+    getAttachmentInfo( CommonData, attachNbr, attachName, fullFileSize, attachType );
     shortNameBuf.Clear();
     shortname = getShortFileName(attachName);
     shortNameBuf = shortname;
@@ -317,18 +279,18 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
 
   #if BLAT_LITE
   #else
-        savedEightBitMimeRequested = eightBitMimeRequested;
+        savedEightBitMimeRequested = CommonData.eightBitMimeRequested;
   #endif
-        savedUTF  = utf;
-        savedMime = mime;
+        savedUTF  = CommonData.utf;
+        savedMime = CommonData.mime;
 
-        utf = 0;
-        checkInputForUnicode( shortNameBuf );
-        utf = savedUTF;
-        mime = savedMime;
+        CommonData.utf = 0;
+        checkInputForUnicode( CommonData, shortNameBuf );
+        CommonData.utf = savedUTF;
+        CommonData.mime = savedMime;
   #if BLAT_LITE
   #else
-        eightBitMimeRequested = savedEightBitMimeRequested;
+        CommonData.eightBitMimeRequested = savedEightBitMimeRequested;
   #endif
     }
 #endif
@@ -338,9 +300,9 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
     // 9/18/1998 by Toby Korn
     // Replaced default Content-Type with a lookup based on file extension
 #if BLAT_LITE
-    getContentType (tmpstr1, NULL, NULL                 , shortname);
+    getContentType (CommonData, tmpstr1, NULL, NULL                            , shortname);
 #else
-    getContentType (tmpstr1, NULL, userContentType.Get(), shortname);
+    getContentType (CommonData, tmpstr1, NULL, CommonData.userContentType.Get(), shortname);
 #endif
     if ( _memicmp( tmpstr1.Get(), __T("Content-Type: message/rfc822"), 28*sizeof(_TCHAR) ) == 0 )
         attachType |= 0x80;
@@ -356,7 +318,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
 
         //get the text of the file into a string buffer
         if ( !fileh.OpenThisFile(attachName) ) {
-            printMsg(__T("error opening %s, aborting\n"), attachName);
+            printMsg(CommonData, __T("error opening %s, aborting\n"), attachName);
             tmpstr2.Free();
             localHdr.Free();
             fileBuffer.Free();
@@ -368,7 +330,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
         fileBuffer.SetLength( attachSize );
 
         if ( !fileh.ReadThisFile(fileBuffer.Get(), attachSize, &dummy, NULL) ) {
-            printMsg(__T("error reading %s, aborting\n"), attachName);
+            printMsg(CommonData, __T("error reading %s, aborting\n"), attachName);
             fileh.Close();
             tmpstr2.Free();
             localHdr.Free();
@@ -381,7 +343,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
         tempUTF = 0;
 #if BLAT_LITE
 #else
-        if ( eightBitMimeSupported )
+        if ( CommonData.eightBitMimeSupported )
             utfRequested = 8;
         else
 #endif
@@ -411,35 +373,34 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
         full_crc_val = (unsigned long)(-1L);
 
         if ( attachType == EMBED_ATTACHMENT )
-            printMsg(__T("Embedded binary file: %s\n"), attachName);
+            printMsg(CommonData, __T("Embedded binary file: %s\n"), attachName);
         else
         if ( attachType == EMBED_MESSAGE_ATTACHMENT )
-            printMsg(__T("Embedded binary file: %s\n"), attachName);
+            printMsg(CommonData, __T("Embedded binary file: %s\n"), attachName);
         else
         if ( attachType == BINARY_ATTACHMENT )
-            printMsg(__T("Attached binary file: %s\n"), attachName);
+            printMsg(CommonData, __T("Attached binary file: %s\n"), attachName);
         else
-            printMsg(__T("Attached text file: %s\n"), attachName);
+            printMsg(CommonData, __T("Attached text file: %s\n"), attachName);
 
 #if BLAT_LITE
 #else
-        if ( uuencode || yEnc_This || (!buildSMTP && !base64) ) {
-            if ( needBoundary && !boundaryPosted ) {
+        if ( CommonData.uuencode || yEnc_This || (!buildSMTP && !CommonData.base64) ) {
+            if ( CommonData.needBoundary && !CommonData.boundaryPosted ) {
                 localHdr.Add( __T("--") BOUNDARY_MARKER );
                 localHdr.Add( attachment_boundary );
-                boundaryPosted = TRUE;
+                CommonData.boundaryPosted = TRUE;
             }
         } else
 #endif
         {
             Buf tmpstr3;
 
-            fixup( shortNameBuf.Get(), &tmpstr3, 22, TRUE );
-
             switch( attachType ) {
                 case EMBED_ATTACHMENT:
                 case EMBED_MESSAGE_ATTACHMENT:
                     tmpstr2 = __T("Content-ID: <");
+                    fixup(CommonData, shortNameBuf.Get(), &tmpstr3, 13, TRUE );
                     tmpstr2.Add( tmpstr3 );
                     tmpstr2.Add( __T(">\r\n") );
                     tmpstr2.Add( __T("Content-Transfer-Encoding: BASE64\r\n") );
@@ -449,6 +410,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
                 case BINARY_ATTACHMENT:
                     tmpstr2    = __T("Content-Transfer-Encoding: BASE64\r\n");
                     tmpstr2.Add( __T("Content-Disposition: ATTACHMENT;\r\n") );
+                    fixup(CommonData, shortNameBuf.Get(), &tmpstr3, 11, TRUE );
                     tmpstr2.Add( __T(" filename=\"") );
                     tmpstr2.Add( tmpstr3 );
                     tmpstr2.Add( __T("\"\r\n") );
@@ -459,8 +421,9 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
                 case TEXT_MESSAGE_ATTACHMENT:
                     if ( attachType == TEXT_ATTACHMENT ) {
                         tmpstr1 = __T("Content-Type: text/");
-                        tmpstr1.Add( textmode );
+                        tmpstr1.Add( CommonData.textmode );
                         tmpstr1.Add( __T(";\r\n") );
+                        fixup(CommonData, shortNameBuf.Get(), &tmpstr3, 7, TRUE );
                         tmpstr1.Add( __T(" name=\"") );
                         tmpstr1.Add( tmpstr3 );
                         tmpstr1.Add( __T("\"") );
@@ -482,10 +445,12 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
                     tmpstr2.Add( getBitSize( textFileBuffer.Get() ) );
                     tmpstr2.Add( __T("BIT\r\n") );
                     tmpstr2.Add( __T("Content-Disposition: ATTACHMENT;\r\n") );
+                    fixup(CommonData, shortNameBuf.Get(), &tmpstr3, 11, TRUE );
                     tmpstr2.Add( __T(" filename=\"") );
                     tmpstr2.Add( tmpstr3 );
                     tmpstr2.Add( __T("\"\r\n") );
                     tmpstr2.Add( __T("Content-Description: \"") );
+                    fixup(CommonData, shortNameBuf.Get(), &tmpstr3, 22, TRUE );
                     tmpstr2.Add( tmpstr3 );
                     tmpstr2.Add( __T("\"\r\n") );
                     break;
@@ -494,7 +459,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
                 case INLINE_MESSAGE_ATTACHMENT:
                     if ( attachType == INLINE_ATTACHMENT ) {
                         tmpstr1 = __T("Content-Type: text/");
-                        tmpstr1.Add( textmode );
+                        tmpstr1.Add( CommonData.textmode );
                     }
                     else {
                         tmpstr1.Remove();               // remove the line feed ('\n')
@@ -512,6 +477,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
                     tmpstr2.Add( __T("BIT\r\n") );
                     tmpstr2.Add( __T("Content-Disposition: INLINE\r\n") );
                     tmpstr2.Add( __T("Content-Description: \"") );
+                    fixup(CommonData, shortNameBuf.Get(), &tmpstr3, 22, TRUE );
                     tmpstr2.Add( tmpstr3 );
                     tmpstr2.Add( __T("\"\r\n") );
                     break;
@@ -529,14 +495,14 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
             localHdr.Add( attachment_boundary );
             localHdr.Add( tmpstr1 );
             localHdr.Add( tmpstr2 );
-            boundaryPosted = TRUE;
+            CommonData.boundaryPosted = TRUE;
             tmpstr1.Free();
             tmpstr2.Free();
             tmpstr3.Free();
         }
 
         *prevAttachType = (attachType & 0x07);
-        if ( formattedContent )
+        if ( CommonData.formattedContent )
             if ( (localHdr.Length() > 2) && (*(localHdr.GetTail()-3) != __T('\n')) )
                 localHdr.Add( __T("\r\n") );
 
@@ -547,7 +513,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
     if ( (attachType == BINARY_ATTACHMENT) || ((attachType & 0x07) == EMBED_ATTACHMENT) ) {
         //get the text of the file into a string buffer
         if ( !fileh.OpenThisFile(attachName) ) {
-            printMsg(__T("error opening %s, aborting\n"), attachName);
+            printMsg(CommonData, __T("error opening %s, aborting\n"), attachName);
             textFileBuffer.Free();
             tmpstr2.Free();
             localHdr.Free();
@@ -559,7 +525,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
 #if SUPPORT_MULTIPART
         if ( startOffset ) {
             if ( !fileh.SetPosition( (LONG)startOffset, 0, FILE_BEGIN ) ) {
-                printMsg(__T("error accessing %s, aborting\n"), attachName);
+                printMsg(CommonData, __T("error accessing %s, aborting\n"), attachName);
                 fileh.Close();
                 textFileBuffer.Free();
                 tmpstr2.Free();
@@ -578,7 +544,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
         fileBuffer.SetLength( attachSize );
 
         if ( !fileh.ReadThisFile(fileBuffer.Get(), attachSize, &dummy, NULL) ) {
-            printMsg(__T("error reading %s, aborting\n"), attachName);
+            printMsg(CommonData, __T("error reading %s, aborting\n"), attachName);
             fileh.Close();
             textFileBuffer.Free();
             tmpstr2.Free();
@@ -593,16 +559,16 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
 #if SUPPORT_YENC
         if ( yEnc_This ) {
             if ( totalparts == 1 )
-                yEncode( fileBuffer, messageBuffer, shortname, (long)fullFileSize, 0, 0, full_crc_val );
+                yEncode( CommonData, fileBuffer, messageBuffer, shortname, (long)fullFileSize, 0, 0, full_crc_val );
             else
-                yEncode( fileBuffer, messageBuffer, shortname, (long)fullFileSize, part, totalparts, full_crc_val );
+                yEncode( CommonData, fileBuffer, messageBuffer, shortname, (long)fullFileSize, part, totalparts, full_crc_val );
         } else
 #endif
         {
 #if BLAT_LITE
 #else
-            if ( uuencode || (!buildSMTP && !base64) ) {
-                douuencode( fileBuffer, messageBuffer, shortname, part, totalparts );
+            if ( CommonData.uuencode || (!buildSMTP && !CommonData.base64) ) {
+                douuencode( CommonData, fileBuffer, messageBuffer, shortname, part, totalparts );
             } else
 #endif
             {
@@ -640,7 +606,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
 }
 
 
-int add_attachments ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary, int nbrOfAttachments )
+int add_attachments ( COMMON_DATA & CommonData, Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary, int nbrOfAttachments )
 {
     int   retval;
     DWORD length;
@@ -650,7 +616,7 @@ int add_attachments ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bound
     prevAttachType = -1;
     for ( attachNbr = 0; attachNbr < nbrOfAttachments; attachNbr++ ) {
         length = (DWORD)-1;
-        retval = add_one_attachment( messageBuffer, buildSMTP, attachment_boundary,
+        retval = add_one_attachment( CommonData, messageBuffer, buildSMTP, attachment_boundary,
                                      0, length, 1, 1, attachNbr, &prevAttachType );
         if ( retval )
             return retval;

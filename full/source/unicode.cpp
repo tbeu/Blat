@@ -10,14 +10,9 @@
 #include <string.h>
 
 #include "blat.h"
+#include "common_data.h"
 
-#if BLAT_LITE
-extern _TCHAR       mime;
-#else
-extern _TCHAR       eightBitMimeRequested;
-#endif
-extern int          utf;
-extern LPTSTR       base64table;
+extern LPTSTR base64table;
 
 extern void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
 
@@ -709,7 +704,7 @@ void compactUnicodeFileData( Buf &sourceText )
 }
 
 
-void checkInputForUnicode ( Buf & stringToCheck )
+void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
 {
     size_t    length;
     size_t    x;
@@ -733,11 +728,11 @@ void checkInputForUnicode ( Buf & stringToCheck )
             newString.Add( (LPTSTR)pStr, length );  /* Now add the user's Unicode string */
             stringToCheck = newString;
 
-            utf = UTF_REQUESTED;
+            CommonData.utf = UTF_REQUESTED;
   #if BLAT_LITE
-            mime = TRUE;
+            CommonData.mime = TRUE;
   #else
-            eightBitMimeRequested = TRUE;
+            CommonData.eightBitMimeRequested = TRUE;
   #endif
             break;
         }
@@ -758,11 +753,11 @@ void checkInputForUnicode ( Buf & stringToCheck )
                  (_tcscmp( stringToCheck, newString.Get()+3 ) != 0) ) {         /* or if the string itself is not the same */
                 stringToCheck = newString;
                 if ( *newString.Get() == 0xFEFF ) {
-                    utf = UTF_REQUESTED;
+                    CommonData.utf = UTF_REQUESTED;
   #if BLAT_LITE
-                    mime = TRUE;
+                    CommonData.mime = TRUE;
   #else
-                    eightBitMimeRequested = TRUE;
+                    CommonData.eightBitMimeRequested = TRUE;
   #endif
                 }
                 else {
@@ -770,9 +765,9 @@ void checkInputForUnicode ( Buf & stringToCheck )
                     for ( savedLength = 0; savedLength < stringToCheck.Length(); savedLength++ ) {
                         if ( *pStr > 0x007F ) {
   #if BLAT_LITE
-                            mime = TRUE;
+                            CommonData.mime = TRUE;
   #else
-                            eightBitMimeRequested = TRUE;
+                            CommonData.eightBitMimeRequested = TRUE;
   #endif
                             break;
                         }
@@ -784,9 +779,9 @@ void checkInputForUnicode ( Buf & stringToCheck )
                 for ( savedLength = 0; savedLength < stringToCheck.Length(); savedLength++ ) {
                     if ( *pStr > 0x007F ) {
   #if BLAT_LITE
-                        mime = TRUE;
+                        CommonData.mime = TRUE;
   #else
-                        eightBitMimeRequested = TRUE;
+                        CommonData.eightBitMimeRequested = TRUE;
   #endif
                         break;
                     }

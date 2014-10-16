@@ -8,22 +8,21 @@
 #include <windows.h>
 
 #include "blat.h"
+#include "common_data.h"
 
 #if BLAT_LITE
 #else
 
   #define INCLUDE_XXENCODE  FALSE
 
-unsigned int uuencodeBytesLine = 45;
-
 static unsigned int encodedLineLength;
 
-extern void fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewrap );
+extern void fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString, int headerLen, int linewrap );
 
 
   #define UU_Mask(Ch) (_TCHAR) ((((Ch) - 1) & 0x3F) + 0x21)
 
-void douuencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart)
+void douuencode(COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filename, int part, int lastpart)
 {
     DWORD         filesize;
     DWORD         tempLength;
@@ -37,7 +36,7 @@ void douuencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart
     if ( !p )
         return;
 
-    fixupFileName( filename, shortNameBuf, 0, FALSE );
+    fixupFileName( CommonData, filename, shortNameBuf, 0, FALSE );
     if ( part < 2 ) {
         out.Add( __T("begin 644 ") );
         out.Add( shortNameBuf );
@@ -46,13 +45,13 @@ void douuencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart
 
     filesize = (DWORD)source.Length();
     tempLength = (((filesize *8)+5)/6);
-    tempLength += (((tempLength + (uuencodeBytesLine * 4/3) - 1) / (uuencodeBytesLine * 4/3)) * 3) + 1;
+    tempLength += (((tempLength + (CommonData.uuencodeBytesLine * 4/3) - 1) / (CommonData.uuencodeBytesLine * 4/3)) * 3) + 1;
     out.Alloc( out.Length() + tempLength );
 
     // Ensure the data is padded with NULL to work the for() loop.
     p[filesize] = __T('\0');
 
-    encodedLineLength = (uuencodeBytesLine * 4) / 3;
+    encodedLineLength = (CommonData.uuencodeBytesLine * 4) / 3;
 
     for ( bytes_out = 0; filesize > 2; filesize -= 3, p += 3 ) {
         if ( bytes_out > encodedLineLength ) {
@@ -63,7 +62,7 @@ void douuencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart
         }
 
         if ( bytes_out == 0 )
-            tmpstr[ bytes_out++ ] = UU_Mask((filesize > uuencodeBytesLine) ? uuencodeBytesLine : filesize);
+            tmpstr[ bytes_out++ ] = UU_Mask((filesize > CommonData.uuencodeBytesLine) ? CommonData.uuencodeBytesLine : filesize);
 
         bitStream = (unsigned long)(p[0] << 16) | (unsigned long)(p[1] << 8) | p[2];
         tmpstr[ bytes_out++ ] = UU_Mask( bitStream >> 18 );
@@ -126,7 +125,7 @@ void xxencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart )
     if ( !p )
         return;
 
-    fixupFileName( filename, shortNameBuf, 0, FALSE );
+    fixupFileName( CommonData, filename, shortNameBuf, 0, FALSE );
     if ( part < 2 ) {
         out.Add( __T("begin 700 ") );
         out.Add( shortNameBuf );
@@ -139,7 +138,7 @@ void xxencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart )
     // Ensure the data is padded with NULL to work the for() loop.
     p[filesize] = __T('\0');
 
-    encodedLineLength = (uuencodeBytesLine * 4) / 3;
+    encodedLineLength = (CommonData.uuencodeBytesLine * 4) / 3;
 
     for ( bytes_out = 0; filesize > 2; filesize -= 3, p += 3 ) {
         if ( bytes_out > encodedLineLength ) {
@@ -150,7 +149,7 @@ void xxencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart )
         }
 
         if ( bytes_out == 0 )
-            tmpstr[ bytes_out++ ] = XX_Mask((filesize > uuencodeBytesLine) ? uuencodeBytesLine : filesize);
+            tmpstr[ bytes_out++ ] = XX_Mask((filesize > CommonData.uuencodeBytesLine) ? CommonData.uuencodeBytesLine : filesize);
 
         bitStream = (p[0] << 16) | (p[1] << 8) | p[2];
         tmpstr[ bytes_out++ ] = XX_Mask( bitStream >> 18 );

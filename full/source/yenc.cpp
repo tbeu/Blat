@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "blat.h"
+#include "common_data.h"
 
 #if SUPPORT_YENC
 /*
@@ -48,7 +49,7 @@ unsigned long crc_32_table[256] = {
     0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d };
 */
 
-extern void fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewrap );
+extern void fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString, int headerLen, int linewrap );
 
 // yEnc encoding has been provided via the web.
 // The source code example for the yEncoder can be found at http://www.yenc.org/
@@ -76,7 +77,7 @@ static unsigned long crc_32_table[] = { 0x00000000l, 0x1DB71064l, 0x3B6E20C8l, 0
                                         0x9B64C2B0l, 0x86D3D2D4l, 0xA00AE278l, 0xBDBDF21Cl,
                                       };
 
-void yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len,
+void yEncode( COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filename, long full_len,
               int part, int lastpart, unsigned long & full_crc_val )
 {
     DWORD           filesize;
@@ -100,7 +101,7 @@ void yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len,
     pSrc    = (_TUCHAR *) source.Get();
     out.Alloc( out.Length() + (filesize*2) + 4 );
 
-    fixupFileName( filename, shortNameBuf, 0, FALSE );
+    fixupFileName( CommonData, filename, shortNameBuf, 0, FALSE );
 
     if ( !part || ((part == 1) && (lastpart == 1)) ) {  // SinglePart message
         full_crc_val = (unsigned long)(-1L);

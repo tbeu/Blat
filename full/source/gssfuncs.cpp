@@ -30,14 +30,11 @@ extern "C" {
 #endif
 }
 #include "blat.h"
+#include "common_data.h"
 
 #if SUPPORT_GSSAPI  //Added 2003-11-20 Joseph Calzaretta
 
-#include "gssfuncs.h" // Please read the comments here for information about how to use GssSession
-
-extern _TCHAR quiet;
-extern void   printMsg( LPTSTR p, ... );
-extern _TCHAR debug;
+extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );
 
 extern void base64_encode(_TUCHAR * in, size_t length, LPTSTR out, int inclCrLf);
 extern int  base64_decode(_TUCHAR * in, LPTSTR out);
@@ -210,7 +207,7 @@ void GssSession::Cleanup()
     case GettingContext:
 
         /* flush security context */
-        if (debug) printMsg( __T("Releasing GSS credentials\n") );
+        //if (CommonData.debug) printMsg( CommonData, __T("Releasing GSS credentials\n") );
         {
             gss_buffer_desc send_token;
             my_gss_delete_sec_context(&min_stat, &context, &send_token);
@@ -342,7 +339,7 @@ LPTSTR GssSession::MechtypeText(LPTSTR szBuffer)
 
 //  Authenticate to SMTP server (see gssfuncs.h)
 
-void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR), LPTSTR username, LPTSTR servicename, BOOL mutual, protLev lev)
+void GssSession::Authenticate(COMMON_DATA & CommonData, BOOL (*getline) (struct _COMMON_DATA &,LPTSTR), BOOL (*putline) (struct _COMMON_DATA &,LPTSTR), LPTSTR username, LPTSTR servicename, BOOL mutual, protLev lev)
 {
 
     if (!username) username=__T("");
@@ -376,8 +373,7 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
     _tcscpy(buf1,servicename);
     request_buf.char_value = buf1;
     request_buf.length = _tcslen(buf1) + 1;
-    maj_stat = my_gss_import_name(&min_stat, &request_buf, MY_GSS_C_NT_HOSTBASED_SERVICE,
-        &target_name);
+    maj_stat = my_gss_import_name(&min_stat, &request_buf, MY_GSS_C_NT_HOSTBASED_SERVICE, &target_name);
 
     if (maj_stat != GSS_S_COMPLETE) {
         _TCHAR szMsg[1024];
@@ -387,11 +383,10 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
     }
 
 
-    if (debug)
+    if (CommonData.debug)
     {
-        maj_stat = my_gss_display_name(&min_stat, target_name, &request_buf,
-            &mech_name);
-        printMsg(__T("Using service name [%s]\n"),request_buf.value);
+        maj_stat = my_gss_display_name(&min_stat, target_name, &request_buf, &mech_name);
+        printMsg(CommonData, __T("Using service name [%s]\n"),request_buf.value);
         maj_stat = my_gss_release_buffer(&min_stat, &request_buf);
     }
 
@@ -400,8 +395,8 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
     context = GSS_C_NO_CONTEXT;
     BOOL firsttime;
     firsttime = TRUE;
-    if (debug)
-        printMsg(__T("Sending credentials\n"));
+    if (CommonData.debug)
+        printMsg(CommonData, __T("Sending credentials\n"));
     state = GettingContext;
     do {
         min_stat = NULL;
@@ -420,8 +415,8 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
 
 
         if ((maj_stat!=GSS_S_COMPLETE) && (maj_stat!=GSS_S_CONTINUE_NEEDED)) {
-            putline(__T("=QUIT\r\n"));
-            getline(NULL);
+            putline(CommonData, __T("=QUIT\r\n"));
+            getline(CommonData, NULL);
             OM_uint32 tmpstat; my_gss_release_name(&tmpstat, &target_name);
             Cleanup();
             throw GssNonzeroStatus(maj_stat,min_stat,__T("Error exchanging credentials"));
@@ -430,12 +425,12 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
         if (firsttime)
         {
             _stprintf (out_data, __T("AUTH GSSAPI\r\n"));
-            if (!(putline(out_data))) {
+            if (!(putline(CommonData, out_data))) {
                 OM_uint32 tmpstat; my_gss_release_name(&tmpstat, &target_name);
                 Cleanup();
                 throw GssBadSocket();
             }
-            getline(buf1);
+            getline(CommonData, buf1);
             result = extract_server_retval(buf1);
             if ( result != 334 ) {
                 _TCHAR szMsg[1024]=__T("The mail server doesn't require AUTH GSSAPI.  Are you sure the server supports AUTH?");
@@ -451,13 +446,13 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
             base64_encode((_TUCHAR *)send_token.uchar_value, (size_t)send_token.length, buf1, FALSE);
             my_gss_release_buffer(&min_stat, &send_token);
             _stprintf (out_data, __T("%s\r\n"), buf1);
-            if (!(putline(out_data))) {
+            if (!(putline(CommonData, out_data))) {
                 OM_uint32 tmpstat; my_gss_release_name(&tmpstat, &target_name);
                 Cleanup();
                 throw GssBadSocket();
             }
             _tcscpy(buf1,__T(""));
-            getline(buf1);
+            getline(CommonData, buf1);
             result = extract_server_retval(buf1);
             if (result != 334) {
                 _TCHAR szMsg[1024]=__T("The mail server doesn't accept the token.");
@@ -476,7 +471,7 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
             sec_token = &request_buf;
         } else {
             _stprintf (out_data, __T("\r\n"));
-            if (!(putline(out_data))) {
+            if (!(putline(CommonData, out_data))) {
                 OM_uint32 tmpstat; my_gss_release_name(&tmpstat, &target_name);
                 Cleanup();
                 throw GssBadSocket();
@@ -494,7 +489,7 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
     /* get security flags and buffer size */
 
     _tcscpy(buf1,__T(""));
-    getline(buf1);
+    getline(CommonData, buf1);
     result = extract_server_retval(buf1);
 
     if (result != 334) {
@@ -515,8 +510,8 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
         Cleanup();
         throw GssNonzeroStatus(maj_stat,min_stat,__T("Couldn't unwrap security level data."));
     }
-    if (debug)
-        printMsg(__T("Credential exchange complete\n"));
+    if (CommonData.debug)
+        printMsg(CommonData, __T("Credential exchange complete\n"));
 
 
     /* first octet is security levels supported. We want none, for now */
@@ -534,12 +529,12 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
     buf_size = ntohl( send_token.ulong_value[0] );
 
     my_gss_release_buffer(&min_stat, &send_token);
-    if (debug) {
-        printMsg(__T("Server supports: %s%s%s"),
+    if (CommonData.debug) {
+        printMsg(CommonData, __T("Server supports: %s%s%s"),
                  (server_conf_flags & GSSAUTH_P_NONE)      ? __T("GSSAUTH_P_NONE ")      : __T(""),
                  (server_conf_flags & GSSAUTH_P_INTEGRITY) ? __T("GSSAUTH_P_INTEGRITY ") : __T(""),
                  (server_conf_flags & GSSAUTH_P_PRIVACY)   ? __T("GSSAUTH_P_PRIVACY")    : __T(""));
-        printMsg(__T("\nMaximum GSS token size is %lu after wrapping\n"),buf_size);
+        printMsg(CommonData, __T("\nMaximum GSS token size is %lu after wrapping\n"),buf_size);
     }
 
     /* now respond in kind */
@@ -553,8 +548,8 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
             Cleanup();
             throw GssNonzeroStatus(maj_stat,min_stat,__T("Error determining maxmimum pre-wrapped token size."));
         }
-        if (debug)
-            printMsg(__T("Maximum GSS token size is %lu before wrapping\n"),max_prewrapped);
+        if (CommonData.debug)
+            printMsg(CommonData, __T("Maximum GSS token size is %lu before wrapping\n"),max_prewrapped);
 
     }
 
@@ -578,15 +573,15 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
     base64_encode((_TUCHAR *)send_token.uchar_value, (size_t)send_token.length, buf1, FALSE);
     my_gss_release_buffer(&min_stat, &send_token);
 
-    if (debug) {
-        printMsg(__T("Requesting GSSAUTH_P_%s protection as \"%s\"\n"),
+    if (CommonData.debug) {
+        printMsg(CommonData, __T("Requesting GSSAUTH_P_%s protection as \"%s\"\n"),
                  (protection_level==GSSAUTH_P_NONE)?"NONE":(protection_level==GSSAUTH_P_PRIVACY)?"PRIVACY":"INTEGRITY",
                  username);
     }
 
     _stprintf (out_data, __T("%s\r\n"), buf1);
 
-    if (!(putline(out_data))){
+    if (!(putline(CommonData, out_data))){
         Cleanup();
         throw GssBadSocket();
     }
@@ -595,7 +590,7 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
     /* We should be done. Get status and finish up */
 
     _tcscpy(buf1,__T(""));
-    getline(buf1);
+    getline(CommonData, buf1);
     result = extract_server_retval(buf1);
 
     if (result!=235) {
@@ -608,9 +603,9 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
     }
 
     state = ReadyToCommunicate;
-    if (debug) {
+    if (CommonData.debug) {
         if (protection_level!=GSSAUTH_P_NONE)
-            printMsg(__T("From now on, everything is encrypted via GSSAUTH_P_%s.\n"),
+            printMsg(CommonData, __T("From now on, everything is encrypted via GSSAUTH_P_%s.\n"),
                      (protection_level==GSSAUTH_P_PRIVACY)?__T("PRIVACY"):__T("INTEGRITY"));
     }
 
@@ -618,7 +613,7 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
 
 
 // Encrypt a message (see gssfuncs.h)
-Buf GssSession::Encrypt(Buf& msg)
+Buf GssSession::Encrypt(COMMON_DATA & CommonData, Buf& msg)
 {
     if (protection_level==GSSAUTH_P_NONE) return msg;
     Buf outp;
@@ -653,8 +648,8 @@ Buf GssSession::Encrypt(Buf& msg)
 
         my_gss_release_buffer(&min_stat, &send_token);
 
-        if (debug && (bytes_encrypted<msg.Length()))
-            printMsg(__T("Message to be encrypted is being split into several tokens: %d bytes left\n"),
+        if (CommonData.debug && (bytes_encrypted<msg.Length()))
+            printMsg(CommonData, __T("Message to be encrypted is being split into several tokens: %d bytes left\n"),
                      msg.Length()-bytes_encrypted);
 
     }

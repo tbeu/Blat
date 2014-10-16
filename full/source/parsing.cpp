@@ -14,13 +14,13 @@
 #include <string.h>
 
 #include "blat.h"
+#include "common_data.h"
 
 
-extern void printMsg( LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
-extern _TCHAR commentChar;
+extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
 
 
-void parseCommaDelimitString ( LPTSTR source, Buf & parsed_strings, int pathNames )
+void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & parsed_strings, int pathNames )
 {
     LPTSTR tmpstr;
     LPTSTR srcptr;
@@ -135,7 +135,7 @@ void parseCommaDelimitString ( LPTSTR source, Buf & parsed_strings, int pathName
         while ( *srcptr && (_tcschr (__T(" ,\n\t\r"), *srcptr)) ) // eat leading white space
             srcptr++;
 
-        if ( *srcptr == commentChar ) {
+        if ( *srcptr == CommonData.commentChar ) {
             startLen = _tcslen (srcptr);
             len = 0;
             for ( ; srcptr[len] && (len < startLen); len++ ) {

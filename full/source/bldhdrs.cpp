@@ -15,92 +15,27 @@
 #endif
 
 #include "blat.h"
+#include "common_data.h"
 #include "gensock.h"
 
 extern LPTSTR getShortFileName (LPTSTR fileName);
-extern int    CheckIfNeedQuotedPrintable(LPTSTR pszStr, int inHeader);
-extern int    GetLengthQuotedPrintable(LPTSTR pszStr, int inHeader);
-extern void   ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader);
+extern int    CheckIfNeedQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHeader);
+extern int    GetLengthQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHeader);
+extern void   ConvertToQuotedPrintable(COMMON_DATA & CommonData, Buf & source, Buf & out, int inHeader);
 extern void   base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
 extern void   convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
 
 #if SMART_CONTENT_TYPE
-extern void   getContentType(Buf & sDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName);
+extern void   getContentType(COMMON_DATA & CommonData, Buf & sDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName);
 #endif
 #if SUPPORT_SALUTATIONS
-extern void   find_and_strip_salutation( Buf & email_addresses );
+extern void   find_and_strip_salutation( COMMON_DATA & CommonData, Buf & email_addresses );
 #endif
 
-extern _TCHAR       blatVersion[];
-extern _TCHAR       blatVersionSuf[];
+extern _TCHAR blatVersion[];
+extern _TCHAR blatVersionSuf[];
 
-#if INCLUDE_NNTP
-extern _TCHAR       NNTPHost[];
-extern Buf          groups;
-#endif
-
-extern Buf          destination;
-extern Buf          cc_list;
-extern Buf          bcc_list;
-extern _TCHAR       loginname[];    // RFC 821 MAIL From. <loginname>. There are some inconsistencies in usage
-extern _TCHAR       senderid[];     // Inconsistent use in Blat for some RFC 822 Field definitions
-extern _TCHAR       sendername[];   // RFC 822 Sender: <sendername>
-extern _TCHAR       fromid[];       // RFC 822 From: <fromid>
-extern _TCHAR       replytoid[];    // RFC 822 Reply-To: <replytoid>
-extern _TCHAR       returnpathid[]; // RFC 822 Return-Path: <returnpath>
-extern _TCHAR       textmode[];
-extern _TCHAR       bodyFilename[];
-extern _TCHAR       my_hostname[];
-extern _TCHAR       formattedContent;
-extern _TCHAR       mime;
-extern int          attach;
-extern _TCHAR       needBoundary;
-extern _TCHAR       ConsoleDone;
-extern _TCHAR       haveEmbedded;
-extern _TCHAR       haveAttachments;
-extern Buf          alternateText;
-extern Buf          TempConsole;
-
-#if BLAT_LITE
-#else
-extern _TCHAR       xheaders[];
-extern _TCHAR       aheaders1[];
-extern _TCHAR       aheaders2[];
-
-extern _TCHAR       uuencode;
-extern _TCHAR       base64;
-extern _TCHAR       yEnc;
-
-extern _TCHAR       eightBitMimeSupported;
-extern _TCHAR       eightBitMimeRequested;
-extern _TCHAR       binaryMimeSupported;
-//extern _TCHAR       binaryMimeRequested;
-#endif
-
-extern _TCHAR       charset[];          // Added 25 Apr 2001 Tim Charron (default ISO-8859-1)
-extern LPTSTR       days[];
-extern LPTSTR       stdinFileName;
-extern LPTSTR       defaultCharset;
-extern Buf          subject;
-
-#if BLAT_LITE
-#else
-extern _TCHAR       organization[];
-
-_TCHAR        forcedHeaderEncoding = 0;
-_TCHAR        noheader             = 0;
-#endif
-
-_TCHAR        impersonating        = FALSE;
-_TCHAR        returnreceipt        = FALSE;
-_TCHAR        disposition          = FALSE;
-_TCHAR        ssubject             = FALSE;
-_TCHAR        includeUserAgent     = FALSE;
-_TCHAR        sendUndisclosed      = FALSE;
-
-_TCHAR        priority[2];
-_TCHAR        sensitivity[2];
-
+extern LPTSTR days[];
 
 static _TCHAR base64_marker[] = __T("?B?"); // RFC 2047 section 4.1. The "B" encoding
 static _TCHAR mime_marker[]   = __T("?Q?"); // RFC 2047 section 4.2. The "Q" encoding
@@ -193,7 +128,7 @@ void addStringToHeaderNoQuoting(LPTSTR string, Buf & outS, int & headerLen, int 
  *      or "=?charset?b?text?=".
  */
 
-void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
+void fixup( COMMON_DATA & CommonData, LPTSTR string, Buf * outString, int headerLen, int linewrap )
 {
     int    i, qLen, bLen;
     Buf    outS;
@@ -210,19 +145,19 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
     _TCHAR savedEightBitMimeSupported;
     _TCHAR savedBinaryMimeSupported;
 
-    savedEightBitMimeSupported = eightBitMimeSupported;
-    savedBinaryMimeSupported   = binaryMimeSupported;
-    if ( eightBitMimeSupported )
+    savedEightBitMimeSupported = CommonData.eightBitMimeSupported;
+    savedBinaryMimeSupported   = CommonData.binaryMimeSupported;
+    if ( CommonData.eightBitMimeSupported )
         utfRequested = 8;
     else
 #endif
         utfRequested = 7;
 
-    if ( memcmp(charset, __T("utf-"), 4*sizeof(_TCHAR)) == 0 ) {
+    if ( memcmp(CommonData.charset, __T("utf-"), 4*sizeof(_TCHAR)) == 0 ) {
         localCharset[0] = __T('\0');
         charsetLen   = 0;
     } else {
-        _tcscpy( localCharset, charset );
+        _tcscpy( localCharset, CommonData.charset );
         charsetLen = _tcslen( localCharset );
     }
     if ( !charsetLen )
@@ -235,7 +170,7 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
     outS.Clear();
     tempUTF = 0;
 
-    if ( CheckIfNeedQuotedPrintable( tempstring.Get(), TRUE ) ) {
+    if ( CheckIfNeedQuotedPrintable( CommonData, tempstring.Get(), TRUE ) ) {
         Buf    tmpstr;
         LPTSTR pStr;
 
@@ -248,8 +183,8 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
 
 #if BLAT_LITE
 #else
-        eightBitMimeSupported = FALSE;
-        binaryMimeSupported   = 0;
+        CommonData.eightBitMimeSupported = FALSE;
+        CommonData.binaryMimeSupported   = 0;
 #endif
         do {
             Buf holdingPen;
@@ -272,14 +207,14 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
             for ( ; ; ) {
                 int encodingLength;
 
-                qLen = GetLengthQuotedPrintable(pStr, TRUE );
+                qLen = GetLengthQuotedPrintable(CommonData, pStr, TRUE );
                 bLen = ((i / 3) * 4) + ((i % 3) ? 4 : 0);
 #if BLAT_LITE
 #else
-                if ( forcedHeaderEncoding == __T('q') ) {
+                if ( CommonData.forcedHeaderEncoding == __T('q') ) {
                     bLen = qLen + 1;
                 } else
-                if ( forcedHeaderEncoding == __T('b') ) {
+                if ( CommonData.forcedHeaderEncoding == __T('b') ) {
                     qLen = bLen + 1;
                 }
 #endif
@@ -318,7 +253,7 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
                 fixupString.Add( mime_marker );
                 outS.Add(fixupString);
 
-                ConvertToQuotedPrintable(tempstring, tmpstr, TRUE );
+                ConvertToQuotedPrintable(CommonData, tempstring, tmpstr, TRUE );
             } else {
                 /* BASE64 encoding is computed to be shorter.
                  */
@@ -336,7 +271,7 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
                 headerLen = 1;
 
 //#if 0 // if this is enabled, then email clients will tend to insert an unintended space in the decoded string.
-//                if ( !CheckIfNeedQuotedPrintable( tempstring.Get(), TRUE ) ) {
+//                if ( !CheckIfNeedQuotedPrintable( CommonData, tempstring.Get(), TRUE ) ) {
 //                    // quoting not necessary for the remaining balance
 //                    pStr = tempstring.Get();
 //                    while ( *pStr == __T(' ') )
@@ -352,8 +287,8 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
         tmpstr.Free();
 #if BLAT_LITE
 #else
-        eightBitMimeSupported = savedEightBitMimeSupported;
-        binaryMimeSupported   = savedBinaryMimeSupported;
+        CommonData.eightBitMimeSupported = savedEightBitMimeSupported;
+        CommonData.binaryMimeSupported   = savedBinaryMimeSupported;
 #endif
     } else {
         // quoting not necessary
@@ -377,7 +312,7 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
 }
 
 
-void fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewrap )
+void fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString, int headerLen, int linewrap )
 {
     LPTSTR  shortname;
 
@@ -391,7 +326,7 @@ void fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewr
 
     for ( size_t x = 0; ; x++ ) {
         if ( x || (shortname[0] != 0xFEFF) ) {
-            if ( ((_TUCHAR)shortname[x] > 0x00FF) || ((memcmp(charset, __T("UTF-"), 4*sizeof(_TCHAR)) == 0) && ((_TUCHAR)shortname[x] > 0x007F)) ) {
+            if ( ((_TUCHAR)shortname[x] > 0x00FF) || ((memcmp(CommonData.charset, __T("UTF-"), 4*sizeof(_TCHAR)) == 0) && ((_TUCHAR)shortname[x] > 0x007F)) ) {
                 shortNameBuf.Clear();
                 if ( shortname[0] != 0xFEFF )
                     shortNameBuf.Add( (_TCHAR)0xFEFF );
@@ -404,14 +339,14 @@ void fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewr
         if ( shortname[x] == __T('\0') )
             break;
     }
-    fixup(shortNameBuf.Get(), &outString, headerLen, linewrap);
+    fixup(CommonData, shortNameBuf.Get(), &outString, headerLen, linewrap);
     shortNameBuf.Free();
 #else
-    fixup(shortname, &outString, headerLen, linewrap);
+    fixup(CommonData, shortname, &outString, headerLen, linewrap);
 #endif
 }
 
-void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewrap )
+void fixupEmailHeaders(COMMON_DATA & CommonData, LPTSTR string, Buf * outString, int headerLen, int linewrap )
 {
     int    doBase64;
     int    i, qLen, bLen;
@@ -434,15 +369,15 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
     _TCHAR  savedEightBitMimeSupported;
     _TCHAR  savedBinaryMimeSupported;
 
-    savedEightBitMimeSupported = eightBitMimeSupported;
-    savedBinaryMimeSupported   = binaryMimeSupported;
+    savedEightBitMimeSupported = CommonData.eightBitMimeSupported;
+    savedBinaryMimeSupported   = CommonData.binaryMimeSupported;
 #endif
 
-    if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 ) {
+    if ( memcmp( CommonData.charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 ) {
         localCharset[0] = __T('\0');
         charsetLen = 0;
     } else {
-        _tcscpy( localCharset, charset );
+        _tcscpy( localCharset, CommonData.charset );
         charsetLen = _tcslen( localCharset );
     }
     if ( !charsetLen )
@@ -486,7 +421,7 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
 
             fixupString.Clear();
 
-            if ( i && CheckIfNeedQuotedPrintable( tempstring.Get(), TRUE ) ) {
+            if ( i && CheckIfNeedQuotedPrintable( CommonData, tempstring.Get(), TRUE ) ) {
                 int tempUTF;
                 Buf holdingPen;
 
@@ -504,7 +439,7 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
                     if ( (*pStr > 0x00FF) || ((memcmp(localCharset, __T("UTF-"), 4*sizeof(_TCHAR)) == 0) && (*pStr > 0x007F)) ) {
   #if BLAT_LITE
   #else
-                        if ( savedEightBitMimeSupported && eightBitMimeRequested )
+                        if ( savedEightBitMimeSupported && CommonData.eightBitMimeRequested )
                             utfRequested = 8;
                         else
   #endif
@@ -520,18 +455,18 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
                     }
                 }
 #endif
-                qLen = GetLengthQuotedPrintable( holdingPen.Get(), TRUE );
+                qLen = GetLengthQuotedPrintable( CommonData, holdingPen.Get(), TRUE );
                 bLen = ((i / 3) * 4) + ((i % 3) ? 4 : 0);
 
 #if BLAT_LITE
 #else
-                eightBitMimeSupported = FALSE;
-                binaryMimeSupported   = 0;
+                CommonData.eightBitMimeSupported = FALSE;
+                CommonData.binaryMimeSupported   = 0;
 
-                if ( forcedHeaderEncoding == __T('q') ) {
+                if ( CommonData.forcedHeaderEncoding == __T('q') ) {
                     bLen = qLen + 1;
                 } else
-                if ( forcedHeaderEncoding == __T('b') ) {
+                if ( CommonData.forcedHeaderEncoding == __T('b') ) {
                     qLen = bLen + 1;
                 }
 #endif
@@ -553,7 +488,7 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
                     base64_encode(t, tmpstr, FALSE, TRUE);
                 } else {
                     fixupString.Add( mime_marker );
-                    ConvertToQuotedPrintable(t, tmpstr, TRUE );
+                    ConvertToQuotedPrintable(CommonData, t, tmpstr, TRUE );
                 }
 
                 outS.Add( fixupString );
@@ -583,8 +518,8 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
                 headerLen += (int)tmpstr.Length() + 2;
 #if BLAT_LITE
 #else
-                eightBitMimeSupported = savedEightBitMimeSupported;
-                binaryMimeSupported   = savedBinaryMimeSupported;
+                CommonData.eightBitMimeSupported = savedEightBitMimeSupported;
+                CommonData.binaryMimeSupported   = savedBinaryMimeSupported;
 #endif
                 holdingPen.Free();
             }
@@ -601,22 +536,22 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
             c = pStr3[1];
             pStr3[1] = __T('\0');
 
-            if ( CheckIfNeedQuotedPrintable( pStr4, TRUE ) ) {
+            if ( CheckIfNeedQuotedPrintable( CommonData, pStr4, TRUE ) ) {
                 fixupString.Clear();
                 i = (int)(pStr3 + 1 - pStr4);
-                qLen = GetLengthQuotedPrintable( pStr4, TRUE );
+                qLen = GetLengthQuotedPrintable( CommonData, pStr4, TRUE );
                 bLen = ((i / 3) * 4) + ((i % 3) ? 4 : 0);
 
 #if BLAT_LITE
 #else
-                eightBitMimeSupported = FALSE;
-                binaryMimeSupported   = 0;
+                CommonData.eightBitMimeSupported = FALSE;
+                CommonData.binaryMimeSupported   = 0;
 
-                if ( forcedHeaderEncoding == __T('q') ) {
+                if ( CommonData.forcedHeaderEncoding == __T('q') ) {
                     bLen = qLen + 1;
                 }
                 else
-                if ( forcedHeaderEncoding == __T('b') ) {
+                if ( CommonData.forcedHeaderEncoding == __T('b') ) {
                     qLen = bLen + 1;
                 }
 #endif
@@ -637,7 +572,7 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
                     base64_encode(t, tmpstr, FALSE, TRUE);
                 } else {
                     fixupString.Add( mime_marker );
-                    ConvertToQuotedPrintable(t, tmpstr, TRUE );
+                    ConvertToQuotedPrintable(CommonData, t, tmpstr, TRUE );
                 }
 
                 outS.Add(fixupString);
@@ -666,8 +601,8 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
                 headerLen += (int)tmpstr.Length() + 2;
 #if BLAT_LITE
 #else
-                eightBitMimeSupported = savedEightBitMimeSupported;
-                binaryMimeSupported   = savedBinaryMimeSupported;
+                CommonData.eightBitMimeSupported = savedEightBitMimeSupported;
+                CommonData.binaryMimeSupported   = savedBinaryMimeSupported;
 #endif
             } else {
                 // quoting not necessary
@@ -682,7 +617,7 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
             pStr3[1] = __T('\0');
             tempstring.SetLength();
 
-            fixup(tempstring.Get(), &tmpstr, headerLen, linewrap );
+            fixup(CommonData, tempstring.Get(), &tmpstr, headerLen, linewrap );
             outS.Add(tmpstr.Get());
             pStr3[1] = c;
         }
@@ -712,7 +647,7 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
     }
 
     if ( !pStr2 || !pStr3 ) {
-        fixup(tempstring.Get(), &tmpstr, headerLen, linewrap );
+        fixup(CommonData, tempstring.Get(), &tmpstr, headerLen, linewrap );
         outS.Add(tmpstr.Get());
     }
 
@@ -735,13 +670,13 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
 }
 
 
-LPTSTR getCharsetString( void )
+LPTSTR getCharsetString( COMMON_DATA & CommonData )
 {
     static _TCHAR localCharset[40];
 
 
-    if ( charset[0] )
-        _tcscpy( localCharset, charset );
+    if ( CommonData.charset[0] )
+        _tcscpy( localCharset, CommonData.charset );
     else
         _tcscpy( localCharset, defaultCharset );
 
@@ -750,7 +685,7 @@ LPTSTR getCharsetString( void )
 }
 
 
-void build_headers( BLDHDRS & bldHdrs )
+void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
 {
     int                   i;
     int                   yEnc_This;
@@ -781,58 +716,58 @@ void build_headers( BLDHDRS & bldHdrs )
 
 
 #if SUPPORT_YENC
-    yEnc_This = yEnc;
-    if ( bldHdrs.buildSMTP && !eightBitMimeSupported && !binaryMimeSupported )
+    yEnc_This = CommonData.yEnc;
+    if ( bldHdrs.buildSMTP && !CommonData.eightBitMimeSupported && !CommonData.binaryMimeSupported )
 #endif
         yEnc_This = FALSE;
 
-    needBoundary = FALSE;
+    CommonData.needBoundary = FALSE;
 
-    if ( alternateText.Length() ) {
+    if ( CommonData.alternateText.Length() ) {
 #if BLAT_LITE
-        alternateText.Clear();
+        CommonData.alternateText.Clear();
 #else
-        if ( uuencode )
-            base64 = TRUE;
+        if ( CommonData.uuencode )
+            CommonData.base64 = TRUE;
         else
-        if ( !base64 )
-            mime = TRUE;
+        if ( !CommonData.base64 )
+            CommonData.mime = TRUE;
 
-        uuencode  = FALSE;
+        CommonData.uuencode  = FALSE;
         yEnc_This = FALSE;
   #if SUPPORT_YENC
-        yEnc      = FALSE;
+        CommonData.yEnc      = FALSE;
   #endif
 #endif
     }
 
-    if ( charset[0] ) {
-        if ( _tcscmp(charset, defaultCharset) ) {
-            mime      = TRUE;   // If -charset option was used, then set mime so the charset can be identified in the headers.
-            yEnc_This = FALSE;
+    if ( CommonData.charset[0] ) {
+        if ( _tcscmp(CommonData.charset, defaultCharset) ) {
+            CommonData.mime     = TRUE;   // If -charset option was used, then set mime so the charset can be identified in the headers.
+            yEnc_This           = FALSE;
 #if BLAT_LITE
 #else
-            uuencode  = FALSE;
+            CommonData.uuencode = FALSE;
 #endif
 #if SUPPORT_YENC
-            yEnc      = FALSE;
+            CommonData.yEnc     = FALSE;
 #endif
         }
     } else
-        _tcscpy(charset, defaultCharset);
+        _tcscpy(CommonData.charset, defaultCharset);
 
-    fixupEmailHeaders(fromid,       &fixedFromId      , 6 , TRUE); // "From: "
-    fixupEmailHeaders(senderid,     &fixedSenderId    , 6 , TRUE); // "From: "
-    fixupEmailHeaders(loginname,    &fixedLoginName   , 10, TRUE); // "Sender: " or "Reply-to: "
-    fixupEmailHeaders(sendername,   &fixedSenderName  , 8 , TRUE); // "Sender: "
-    fixupEmailHeaders(replytoid,    &fixedReplyToId   , 10, TRUE); // "Reply-to: "
+    fixupEmailHeaders(CommonData, CommonData.fromid,       &fixedFromId      , 6 , TRUE); // "From: "
+    fixupEmailHeaders(CommonData, CommonData.senderid,     &fixedSenderId    , 6 , TRUE); // "From: "
+    fixupEmailHeaders(CommonData, CommonData.loginname,    &fixedLoginName   , 10, TRUE); // "Sender: " or "Reply-to: "
+    fixupEmailHeaders(CommonData, CommonData.sendername,   &fixedSenderName  , 8 , TRUE); // "Sender: "
+    fixupEmailHeaders(CommonData, CommonData.replytoid,    &fixedReplyToId   , 10, TRUE); // "Reply-to: "
 #if BLAT_LITE
 #else
-    fixup(organization, &fixedOrganization, 14, TRUE); // "Organization: "
+    fixup(CommonData, CommonData.organization, &fixedOrganization, 14, TRUE); // "Organization: "
 #endif
 
-    if ( returnpathid[0] ) {
-        _stprintf( tmpstr, __T("<%s>"), returnpathid );
+    if ( CommonData.returnpathid[0] ) {
+        _stprintf( tmpstr, __T("<%s>"), CommonData.returnpathid );
         for ( ; ; ) {
             pp = _tcschr( &(tmpstr)[1], __T('<') );
             if ( !pp )
@@ -841,7 +776,7 @@ void build_headers( BLDHDRS & bldHdrs )
             _tcscpy(tmpstr, pp);
         }
         *(_tcschr(tmpstr, __T('>'))+1) = __T('\0');
-        fixup(tmpstr, &fixedReturnPathId, 13, TRUE);    // "Return-Path: "
+        fixup(CommonData, tmpstr, &fixedReturnPathId, 13, TRUE);    // "Return-Path: "
     }
 
     // create a header for the message
@@ -866,7 +801,7 @@ void build_headers( BLDHDRS & bldHdrs )
         if ( bldHdrs.wanted_hostname && *bldHdrs.wanted_hostname )
             _tcscpy( &bldHdrs.multipartID[22], bldHdrs.wanted_hostname );
         else
-            _tcscpy( &bldHdrs.multipartID[22], my_hostname );
+            _tcscpy( &bldHdrs.multipartID[22], CommonData.my_hostname );
 #endif
 
         GetLocalTime( &curtime );
@@ -900,7 +835,7 @@ void build_headers( BLDHDRS & bldHdrs )
 
         // RFC 822 From: definition in Blat changed 2000-02-03 Axel Skough SCB-SE
         bldHdrs.header->Add( __T("From: ") );
-        if ( fromid[0] )
+        if ( CommonData.fromid[0] )
             bldHdrs.header->Add( fixedFromId );
         else
             bldHdrs.header->Add( fixedSenderId );
@@ -922,16 +857,16 @@ void build_headers( BLDHDRS & bldHdrs )
             bldHdrs.header->Add( tmpstr);
         }
 
-        if ( impersonating ) {
+        if ( CommonData.impersonating ) {
             bldHdrs.header->Add( __T("Sender: ") );
             bldHdrs.header->Add( fixedLoginName );
             bldHdrs.header->Add( __T("\r\n") );
-            if ( replytoid[0] ) {
+            if ( CommonData.replytoid[0] ) {
                 bldHdrs.header->Add( __T("Reply-To: ") );
                 bldHdrs.header->Add( fixedReplyToId );
                 bldHdrs.header->Add( __T("\r\n") );
             } else
-            if ( formattedContent ) {
+            if ( CommonData.formattedContent ) {
                 bldHdrs.header->Add( tmpstr );
                 bldHdrs.header->Add( __T("Reply-To: ") );
                 bldHdrs.header->Add( fixedLoginName );
@@ -939,13 +874,13 @@ void build_headers( BLDHDRS & bldHdrs )
             }
         } else {
             // RFC 822 Sender: definition in Blat changed 2000-02-03 Axel Skough SCB-SE
-            if ( sendername[0] ) {
+            if ( CommonData.sendername[0] ) {
                 bldHdrs.header->Add( __T("Sender: ") );
                 bldHdrs.header->Add( fixedSenderName );
                 bldHdrs.header->Add( __T("\r\n") );
             }
             // RFC 822 Reply-To: definition in Blat changed 2000-02-03 Axel Skough SCB-SE
-            if ( replytoid[0] ) {
+            if ( CommonData.replytoid[0] ) {
                 bldHdrs.header->Add( __T("Reply-To: ") );
                 bldHdrs.header->Add( fixedReplyToId );
                 bldHdrs.header->Add( __T("\r\n") );
@@ -953,33 +888,33 @@ void build_headers( BLDHDRS & bldHdrs )
         }
 
         if ( bldHdrs.buildSMTP ) {
-            if ( destination.Length() ) {
+            if ( CommonData.destination.Length() ) {
 #if SUPPORT_SALUTATIONS
-                find_and_strip_salutation( destination );
+                find_and_strip_salutation( CommonData, CommonData.destination );
 #endif
-                fixupEmailHeaders(destination.Get(), &tempstring, 4, TRUE);
+                fixupEmailHeaders(CommonData, CommonData.destination.Get(), &tempstring, 4, TRUE);
                 bldHdrs.header->Add( __T("To: ") );
                 bldHdrs.header->Add( tempstring );
                 bldHdrs.header->Add( __T("\r\n") );
                 tempstring.Clear();
             }
-            else if ( !cc_list.Length() ) {
-                if ( sendUndisclosed )
+            else if ( !CommonData.cc_list.Length() ) {
+                if ( CommonData.sendUndisclosed )
                     bldHdrs.header->Add( __T("To: Undisclosed recipients:;\r\n") );
             }
 
-            if ( cc_list.Length() ) {
+            if ( CommonData.cc_list.Length() ) {
                 // Add line for the Carbon Copies
-                fixupEmailHeaders(cc_list.Get(), &tempstring, 4, TRUE);
+                fixupEmailHeaders(CommonData, CommonData.cc_list.Get(), &tempstring, 4, TRUE);
                 bldHdrs.header->Add( __T("Cc: ") );
                 bldHdrs.header->Add( tempstring );
                 bldHdrs.header->Add( __T("\r\n") );
                 tempstring.Clear();
             }
 
-            if ( bldHdrs.addBccHeader && bcc_list.Length() ) {
+            if ( bldHdrs.addBccHeader && CommonData.bcc_list.Length() ) {
                 // Add line for the Blind Carbon Copies, for transmitting through POP3
-                fixupEmailHeaders(bcc_list.Get(), &tempstring, 5, TRUE);
+                fixupEmailHeaders(CommonData, CommonData.bcc_list.Get(), &tempstring, 5, TRUE);
                 bldHdrs.header->Add( __T("Bcc: ") );
                 bldHdrs.header->Add( tempstring );
                 bldHdrs.header->Add( __T("\r\n") );
@@ -990,28 +925,28 @@ void build_headers( BLDHDRS & bldHdrs )
             // Either separate definitions should be used for these fileds to get full flexibility or - as a compromise -
             // the content of the Reply-To. field would rather be used when specified. 2000-02-03 Axel Skough SCB-SE
 
-            if ( disposition ) {
+            if ( CommonData.disposition ) {
                 bldHdrs.header->Add( __T("Disposition-Notification-To: ") );
-                if ( replytoid[0] )
+                if ( CommonData.replytoid[0] )
                     bldHdrs.header->Add( fixedReplyToId );
                 else
-                    bldHdrs.header->Add( loginname );
+                    bldHdrs.header->Add( CommonData.loginname );
                 bldHdrs.header->Add( __T("\r\n") );
             }
 
-            if ( returnreceipt ) {
+            if ( CommonData.returnreceipt ) {
                 bldHdrs.header->Add( __T("Return-Receipt-To: ") );
-                if ( replytoid[0] )
+                if ( CommonData.replytoid[0] )
                     bldHdrs.header->Add( fixedReplyToId );
                 else
-                    bldHdrs.header->Add( loginname );
+                    bldHdrs.header->Add( CommonData.loginname );
                 bldHdrs.header->Add( __T("\r\n") );
             }
 
             // Toby Korn tkorn@snl.com 8/4/1999
             // If priority is specified on the command line, add it to the header
             // The latter two options are X.400, mainly for Lotus Notes (blah)
-            if ( priority [0] == __T('0')) {
+            if ( CommonData.priority [0] == __T('0')) {
                 bldHdrs.header->Add( __T("X-MSMail-Priority: Low\r\n") \
                                      __T("X-Priority: 5\r\n") \
                                      __T("Priority: normal\r\n") \
@@ -1020,7 +955,7 @@ void build_headers( BLDHDRS & bldHdrs )
                 bldHdrs.header->Add( blatVersion );
                 bldHdrs.header->Add( __T("\r\n") );
             }
-            else if (priority [0] == __T('1')) {
+            else if (CommonData.priority [0] == __T('1')) {
                 bldHdrs.header->Add( __T("X-MSMail-Priority: High\r\n") \
                                      __T("X-Priority: 1\r\n") \
                                      __T("Priority: urgent\r\n") \
@@ -1031,19 +966,19 @@ void build_headers( BLDHDRS & bldHdrs )
             }
             // If sensitivity is specified on the command line, add it to the header
             // These are X.400
-            if ( sensitivity [0] == __T('0')) {
+            if ( CommonData.sensitivity [0] == __T('0')) {
                 bldHdrs.header->Add( __T("Sensitivity: Personal\r\n") );
             }
-            else if (sensitivity [0] == __T('1')) {
+            else if (CommonData.sensitivity [0] == __T('1')) {
                 bldHdrs.header->Add( __T("Sensitivity: Private\r\n") );
             }
-            else if (sensitivity [0] == __T('2')) {
+            else if (CommonData.sensitivity [0] == __T('2')) {
                 bldHdrs.header->Add( __T("Sensitivity: Company-Confidential\r\n") );
             }
 #if INCLUDE_NNTP
         } else {
-            if ( groups.Length() && NNTPHost[0] ) {
-                fixup(groups.Get(), &tempstring, 12, TRUE);
+            if ( CommonData.groups.Length() && CommonData.NNTPHost[0] ) {
+                fixup(CommonData, CommonData.groups.Get(), &tempstring, 12, TRUE);
                 bldHdrs.header->Add( __T("Newsgroups: ") );
                 bldHdrs.header->Add( tempstring );
                 bldHdrs.header->Add( __T("\r\n") );
@@ -1054,7 +989,7 @@ void build_headers( BLDHDRS & bldHdrs )
 
 #if BLAT_LITE
 #else
-        if ( organization[0] ) {
+        if ( CommonData.organization[0] ) {
             bldHdrs.header->Add( __T("Organization: ") );
             bldHdrs.header->Add( fixedOrganization );
             bldHdrs.header->Add( __T("\r\n") );
@@ -1062,45 +997,45 @@ void build_headers( BLDHDRS & bldHdrs )
 #endif
 
         // RFC 822 Return-Path: definition in Blat entered 2000-02-03 Axel Skough SCB-SE
-        if ( returnpathid[0] ) {
+        if ( CommonData.returnpathid[0] ) {
             bldHdrs.header->Add( __T("Return-Path: ") );
             bldHdrs.header->Add( fixedReturnPathId );
             bldHdrs.header->Add( __T("\r\n") );
         }
 
 #if BLAT_LITE
-        if ( includeUserAgent ) {
+        if ( CommonData.includeUserAgent ) {
             _stprintf( tmpstr, __T("User-Agent: Blat /%s%s (a ") WIN_32_STR __T(" SMTP mailer) (http://www.blat.net)\r\n"), blatVersion, blatVersionSuf );
         } else {
             _stprintf( tmpstr, __T("X-Mailer: Blat v%s%s, a ") WIN_32_STR __T(" SMTP mailer (http://www.blat.net)\r\n"), blatVersion, blatVersionSuf );
         }
         bldHdrs.header->Add( tmpstr );
 #else
-        if ( xheaders[0] ) {
-            bldHdrs.header->Add( xheaders );
+        if ( CommonData.xheaders[0] ) {
+            bldHdrs.header->Add( CommonData.xheaders );
             bldHdrs.header->Add( __T("\r\n") );
         }
 
-        if ( aheaders1[0] ) {
-            bldHdrs.header->Add( aheaders1 );
+        if ( CommonData.aheaders1[0] ) {
+            bldHdrs.header->Add( CommonData.aheaders1 );
             bldHdrs.header->Add( __T("\r\n") );
         }
 
-        if ( aheaders2[0] ) {
-            bldHdrs.header->Add( aheaders2 );
+        if ( CommonData.aheaders2[0] ) {
+            bldHdrs.header->Add( CommonData.aheaders2 );
             bldHdrs.header->Add( __T("\r\n") );
         }
 
-        if ( noheader < 2 ) {
-            if ( includeUserAgent ) {
+        if ( CommonData.noheader < 2 ) {
+            if ( CommonData.includeUserAgent ) {
                 _stprintf( tmpstr, __T("User-Agent: Blat /%s%s (a ") WIN_32_STR __T(" SMTP/NNTP mailer)"), blatVersion, blatVersionSuf );
                 bldHdrs.header->Add( tmpstr );
-                if ( noheader == 0 )
+                if ( CommonData.noheader == 0 )
                     bldHdrs.header->Add( __T(" (http://www.blat.net)") );
             } else {
                 _stprintf( tmpstr, __T("X-Mailer: Blat v%s%s, a ") WIN_32_STR __T(" SMTP/NNTP mailer"), blatVersion, blatVersionSuf );
                 bldHdrs.header->Add( tmpstr );
-                if ( noheader == 0 )
+                if ( CommonData.noheader == 0 )
                     bldHdrs.header->Add( __T(" http://www.blat.net") );
             }
             bldHdrs.header->Add( __T("\r\n") );
@@ -1117,7 +1052,7 @@ void build_headers( BLDHDRS & bldHdrs )
     }
 #endif
 
-    domainPtr = gensock_getdomainfromhostname(bldHdrs.server_name);
+    domainPtr = gensock_getdomainfromhostname(CommonData, bldHdrs.server_name);
     if (!domainPtr)
         domainPtr = bldHdrs.server_name;
 
@@ -1140,31 +1075,31 @@ void build_headers( BLDHDRS & bldHdrs )
     tmpstr[0] = __T('\0');
     shortNameBuf.Clear();
 
-    if ( !subject.Length() ) {
-        if ( !ssubject ) {          //$$ASD
-            subject.Free();
-            if ( _tcscmp(bodyFilename, __T("-")) == 0 ) {
-                subject.Add( __T("Contents of console input") );
+    if ( !CommonData.subject.Length() ) {
+        if ( !CommonData.ssubject ) {          //$$ASD
+            CommonData.subject.Free();
+            if ( _tcscmp(CommonData.bodyFilename, __T("-")) == 0 ) {
+                CommonData.subject.Add( __T("Contents of console input") );
             } else {
-                subject.Add( __T("Contents of file: ") );
+                CommonData.subject.Add( __T("Contents of file: ") );
                 shortNameBuf.Clear();
-                fixupFileName( bodyFilename, shortNameBuf, 27, TRUE );
-                subject.Add( shortNameBuf.Get() );
+                fixupFileName( CommonData, CommonData.bodyFilename, shortNameBuf, 27, TRUE );
+                CommonData.subject.Add( shortNameBuf.Get() );
             }
         }
     }
-    if ( subject.Length() && subject.Get()[0] ) {
+    if ( CommonData.subject.Length() && CommonData.subject.Get()[0] ) {
         Buf fixedSubject;
         Buf newSubject;
 
         fixedSubject.Clear();
-        newSubject = subject;
+        newSubject = CommonData.subject;
         bldHdrs.header->Add( __T("Subject: ") );
 
 #if SUPPORT_MULTIPART
         Buf mpSubject;
 
-        mpSubject  = subject;
+        mpSubject  = CommonData.subject;
         bldHdrs.multipartHdrs->Add( __T("Subject: ") );
 #endif
         if ( bldHdrs.attachName && *bldHdrs.attachName ) {
@@ -1182,12 +1117,12 @@ void build_headers( BLDHDRS & bldHdrs )
             }
 #endif
             newSubject.Add( __T(" \"") );
-            fixupFileName( bldHdrs.attachName, shortNameBuf, 0, FALSE );
+            fixupFileName( CommonData, bldHdrs.attachName, shortNameBuf, 0, FALSE );
             newSubject.Add( shortNameBuf );
             newSubject.Add( __T('\"') );
 
 #if SUPPORT_YENC
-            if ( yEnc_This && attach ) {
+            if ( yEnc_This && CommonData.attach ) {
   #if SUPPORT_MULTIPART
                 if ( bldHdrs.totalparts > 1 ) {
                     mpSubject.Add(  __T(" yEnc") );
@@ -1217,27 +1152,27 @@ void build_headers( BLDHDRS & bldHdrs )
 
 #if SUPPORT_MULTIPART
   #if INCLUDE_NNTP
-        if ( groups.Length() && NNTPHost[0] ) {
-            fixup(mpSubject.Get(), &fixedSubject, 9, FALSE);
+        if ( CommonData.groups.Length() && CommonData.NNTPHost[0] ) {
+            fixup(CommonData, mpSubject.Get(), &fixedSubject, 9, FALSE);
             bldHdrs.multipartHdrs->Add( fixedSubject );
             bldHdrs.multipartHdrs->Add( __T("\r\n") );
 
-            fixup(newSubject.Get(), &fixedSubject, 9, FALSE);
+            fixup(CommonData, newSubject.Get(), &fixedSubject, 9, FALSE);
             bldHdrs.header->Add( fixedSubject );
             bldHdrs.header->Add( __T("\r\n") );
         } else
   #endif
         {
-            fixup(mpSubject.Get(), &fixedSubject, 9, TRUE);
+            fixup(CommonData, mpSubject.Get(), &fixedSubject, 9, TRUE);
             bldHdrs.multipartHdrs->Add( fixedSubject );
             bldHdrs.multipartHdrs->Add( __T("\r\n") );
 
-            fixup(newSubject.Get(), &fixedSubject, 9, TRUE);
+            fixup(CommonData, newSubject.Get(), &fixedSubject, 9, TRUE);
             bldHdrs.header->Add( fixedSubject );
             bldHdrs.header->Add( __T("\r\n") );
         }
 #else
-        fixup(newSubject.Get(), &fixedSubject, 9, TRUE);
+        fixup(CommonData, newSubject.Get(), &fixedSubject, 9, TRUE);
         bldHdrs.header->Add( fixedSubject );
         bldHdrs.header->Add( __T("\r\n") );
 #endif
@@ -1249,19 +1184,19 @@ void build_headers( BLDHDRS & bldHdrs )
     _tcscpy( &boundary2[21], __T("\"\r\n") );
 
     // This is either mime, base64, uuencoded, or neither.  With or without attachments.  Whew!
-    if ( mime ) {
+    if ( CommonData.mime ) {
         // Indicate MIME version and type
 
-        if ( !bldHdrs.attachNbr || (bldHdrs.totalparts > 1) || alternateText.Length() ) {
+        if ( !bldHdrs.attachNbr || (bldHdrs.totalparts > 1) || CommonData.alternateText.Length() ) {
             contentType.Add( __T("MIME-Version: 1.0\r\n") );
-            if ( attach || alternateText.Length() ) {
+            if ( CommonData.attach || CommonData.alternateText.Length() ) {
                 contentType.Add( __T("Content-Type:") );
-                if ( haveAttachments ) {
+                if ( CommonData.haveAttachments ) {
                     contentType.Add( __T(" multipart/mixed;\r\n") );
                 } else
-                if ( haveEmbedded ) {
+                if ( CommonData.haveEmbedded ) {
                     contentType.Add( __T(" multipart/related;\r\n") );
-                    if ( alternateText.Length() )
+                    if ( CommonData.alternateText.Length() )
                         contentType.Add( __T(" type=\"multipart/alternative\";\r\n") );
                 } else
                     contentType.Add( __T(" multipart/alternative;\r\n") );
@@ -1276,41 +1211,41 @@ void build_headers( BLDHDRS & bldHdrs )
                 _TCHAR foundType  [0x200];
 
                 _tcscpy( foundType, __T("text/") );
-                _tcscat( foundType, textmode );
+                _tcscat( foundType, CommonData.textmode );
 #endif
                 contentType.Add( __T("Content-Transfer-Encoding: quoted-printable\r\n") );
 #if SMART_CONTENT_TYPE
-                if ( !ConsoleDone && !_tcscmp( textmode, __T("plain")) )
-                    getContentType( tmpBuf, foundType, foundType, getShortFileName( bodyFilename ) );
+                if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode, __T("plain")) )
+                    getContentType( CommonData, tmpBuf, foundType, foundType, getShortFileName( CommonData.bodyFilename ) );
 
                 contentType.Add( __T("Content-Type: ") );
                 contentType.Add( foundType );
 #else
                 contentType.Add( __T("Content-Type: text/") );
-                contentType.Add( textmode );
+                contentType.Add( CommonData.textmode );
 #endif
                 contentType.Add( __T(";\r\n charset=\"") );
-                contentType.Add( getCharsetString() );
+                contentType.Add( getCharsetString(CommonData) );
                 contentType.Add( __T("\"\r\n") );
             }
         }
     } else {
 #if BLAT_LITE
 #else
-        if ( base64 ) {
+        if ( CommonData.base64 ) {
             // Indicate MIME version and type
             contentType.Add( __T("MIME-Version: 1.0\r\n") );
             contentType.Add( __T("Content-Type:") );
-            if ( haveAttachments ) {
+            if ( CommonData.haveAttachments ) {
                 contentType.Add( __T(" multipart/mixed;\r\n") );
             } else
-            if ( haveEmbedded ) {
+            if ( CommonData.haveEmbedded ) {
                 contentType.Add( __T(" multipart/related;\r\n") );
                 // the next is required per RFC 2387
-                if ( alternateText.Length() )
+                if ( CommonData.alternateText.Length() )
                     contentType.Add( __T(" type=\"multipart/alternative\";\r\n") );
             } else
-                if ( alternateText.Length() )
+                if ( CommonData.alternateText.Length() )
                     contentType.Add( __T(" multipart/alternative;\r\n") );
                 else
                     contentType.Add( __T(" multipart/mixed;\r\n") );
@@ -1321,7 +1256,7 @@ void build_headers( BLDHDRS & bldHdrs )
         } else
 #endif
         {
-            if ( attach ) {
+            if ( CommonData.attach ) {
 #if BLAT_LITE
                 contentType.Add( __T("MIME-Version: 1.0\r\n") );
                 contentType.Add( __T("Content-Type:") );
@@ -1330,7 +1265,7 @@ void build_headers( BLDHDRS & bldHdrs )
                 contentType.Add( boundary2);
                 contentType.Add( __T("\r\nThis is a multi-part message in MIME format.\r\n") );
 #else
-                if ( uuencode || yEnc_This || !bldHdrs.buildSMTP ) {
+                if ( CommonData.uuencode || yEnc_This || !bldHdrs.buildSMTP ) {
  /*
   * Having this code enabled causes Mozilla to ignore attachments and treat them as inline text.
   *
@@ -1338,7 +1273,7 @@ void build_headers( BLDHDRS & bldHdrs )
                     _TCHAR foundType  [0x200];
 
                     _tcscpy( foundType, __T("text/") );
-                    _tcscat( foundType, textmode );
+                    _tcscat( foundType, CommonData.textmode );
   #endif
                     contentType.Add( __T("Content-description: " );
                     if ( bldHdrs.buildSMTP )
@@ -1347,17 +1282,17 @@ void build_headers( BLDHDRS & bldHdrs )
                         contentType.Add( __T("News") );
                     contentType.Add( __T(" message body\r\n") );
   #if SMART_CONTENT_TYPE
-                    if ( !ConsoleDone && !_tcscmp( textmode, __T("plain")) )
-                        getContentType( NULL, foundType, foundType, getShortFileName( bodyFilename ) );
+                    if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode, __T("plain")) )
+                        getContentType( CommonData, NULL, foundType, foundType, getShortFileName( CommonData.bodyFilename ) );
 
                     contentType.Add( __T("Content-Type: ") );
                     contentType.Add( foundType );
   #else
                     contentType.Add( __T("Content-Type: text/") );
-                    contentType.Add( textmode );
+                    contentType.Add( CommonData.textmode );
   #endif
                     contentType.Add( __T(";\r\n charset=\"") );
-                    contentType.Add( getCharsetString() );
+                    contentType.Add( getCharsetString(CommonData) );
                     contentType.Add( __T("\"\r\n") );
   */
                 } else {
@@ -1373,18 +1308,18 @@ void build_headers( BLDHDRS & bldHdrs )
                 }
 #endif
             } else {
-                if ( formattedContent ) {
+                if ( CommonData.formattedContent ) {
                     LPTSTR pString1;
                     LPTSTR pString2;
 
                     pString1 = pString2 = NULL;
-                    if ( TempConsole.Get() ) {
-                        pString1 = _tcsstr( TempConsole.Get(), __T("\r\n\r\n") );
+                    if ( CommonData.TempConsole.Get() ) {
+                        pString1 = _tcsstr( CommonData.TempConsole.Get(), __T("\r\n\r\n") );
                         if ( pString1 ) {
                             *pString1 = __T('\0');
-                            pString2 = _tcsstr( TempConsole.Get(), __T("Content-Type: ") );
+                            pString2 = _tcsstr( CommonData.TempConsole.Get(), __T("Content-Type: ") );
                             if ( pString2 == NULL )
-                                pString2 = _tcsstr( TempConsole.Get(), __T("Content-Transfer-Encoding:") );
+                                pString2 = _tcsstr( CommonData.TempConsole.Get(), __T("Content-Transfer-Encoding:") );
                             *pString1 = __T('\r');
                         }
                     }
@@ -1393,31 +1328,31 @@ void build_headers( BLDHDRS & bldHdrs )
                         _TCHAR foundType  [0x200];
 
                         _tcscpy( foundType, __T("text/") );
-                        _tcscat( foundType, textmode );
+                        _tcscat( foundType, CommonData.textmode );
 #endif
 #if BLAT_LITE
 #else
-                        if ( (binaryMimeSupported || eightBitMimeSupported) && (eightBitMimeRequested || yEnc_This) )
+                        if ( (CommonData.binaryMimeSupported || CommonData.eightBitMimeSupported) && (CommonData.eightBitMimeRequested || yEnc_This) )
                             contentType.Add( __T("Content-Transfer-Encoding: 8BIT\r\n") );
                         else
-                        if ( CheckIfNeedQuotedPrintable( TempConsole.Get(), FALSE ) )
+                        if ( CheckIfNeedQuotedPrintable( CommonData, CommonData.TempConsole.Get(), FALSE ) )
                             contentType.Add( __T("Content-Transfer-Encoding: 8BIT\r\n") );
                         else
 #endif
                             contentType.Add( __T("Content-Transfer-Encoding: 7BIT\r\n") );
 
 #if SMART_CONTENT_TYPE
-                        if ( !ConsoleDone && !_tcscmp( textmode, __T("plain")) )
-                            getContentType( tmpBuf, foundType, foundType, getShortFileName( bodyFilename ) );
+                        if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode, __T("plain")) )
+                            getContentType( CommonData, tmpBuf, foundType, foundType, getShortFileName( CommonData.bodyFilename ) );
 
                         contentType.Add( __T("Content-Type: ") );
                         contentType.Add( foundType );
 #else
                         contentType.Add( __T("Content-Type: text/") );
-                        contentType.Add( textmode );
+                        contentType.Add( CommonData.textmode );
 #endif
                         contentType.Add( __T(";\r\n charset=\"") );
-                        contentType.Add( getCharsetString() );
+                        contentType.Add( getCharsetString(CommonData) );
                         contentType.Add( __T("\"\r\n") );
                     }
                 }
@@ -1447,14 +1382,14 @@ void build_headers( BLDHDRS & bldHdrs )
     if ( bldHdrs.lpszOtherHeader->Length() )
         bldHdrs.header->Add( bldHdrs.lpszOtherHeader->Get() );
 
-    if ( formattedContent )
+    if ( CommonData.formattedContent )
         bldHdrs.header->Add( __T("\r\n") );
 
     bldHdrs.messageBuffer->Clear();
     bldHdrs.messageBuffer->Add( bldHdrs.header->Get() );
 
     if ( _tcsstr(bldHdrs.messageBuffer->Get(), BOUNDARY_MARKER ) )
-        needBoundary = TRUE;
+        CommonData.needBoundary = TRUE;
 
     shortNameBuf.Free();
     contentType.Free();

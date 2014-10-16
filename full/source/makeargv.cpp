@@ -8,8 +8,6 @@
 #include <windows.h>
 #include <ctype.h>
 
-_TCHAR commentChar = __T(';');
-
 /*
  * Parse the arguments read in from an options file.  Allow the semicolon (';') to
  * be a comment character.  This can be changed by  the user whenn using a new option
@@ -17,7 +15,8 @@ _TCHAR commentChar = __T(';');
  *
  */
 
-size_t make_argv( LPTSTR arglist,                /* argument list                     */
+size_t make_argv( _TCHAR commentChar,
+                  LPTSTR arglist,                /* argument list                     */
                   LPTSTR*static_argv,            /* pointer to argv to use            */
                   size_t max_static_entries,     /* maximum number of entries allowed */
                   size_t starting_entry,         /* entry in argv to begin placing    */

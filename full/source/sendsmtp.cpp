@@ -10,123 +10,60 @@
 #include <string.h>
 
 #include "blat.h"
+#include "common_data.h"
 #include "winfile.h"
 #include "gensock.h"
 #include "md5.h"
-#if SUPPORT_GSSAPI
-#include "gssfuncs.h" // Please read the comments here for information about how to use GssSession
-#endif
 
 #define ALLOW_PIPELINING    FALSE
 #define ALLOW_CHUNKING      FALSE
 
-#if SUPPORT_GSSAPI
-  extern BOOL    authgssapi;
-  extern _TCHAR  servicename[SERVICENAME_SIZE];
-  extern protLev gss_protection_level;
-  extern BOOL    mutualauth;
-#endif
-
 extern void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
 extern void base64_encode(_TUCHAR * in, size_t length, LPTSTR out, int inclCrLf);
 extern int  base64_decode(_TUCHAR * in, LPTSTR out);
-extern int  open_server_socket( LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR portName );
-extern int  get_server_response( Buf * responseStr, int * enhancedStatusCode );
+extern int  open_server_socket( COMMON_DATA & CommonData, LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR portName );
+extern int  get_server_response( COMMON_DATA & CommonData, Buf * responseStr, int * enhancedStatusCode );
 #if INCLUDE_IMAP
-extern int  get_imap_untagged_server_response( Buf * responseStr  );
-extern int  get_imap_tagged_server_response( Buf * responseStr, LPTSTR tag  );
+extern int  get_imap_untagged_server_response( COMMON_DATA & CommonData, Buf * responseStr  );
+extern int  get_imap_tagged_server_response( COMMON_DATA & CommonData, Buf * responseStr, LPTSTR tag  );
 #endif
 #if SUPPORT_GSSAPI
-extern int  get_server_response( LPTSTR responseStr );
+extern int  get_server_response( COMMON_DATA & CommonData, LPTSTR responseStr );
 #endif
-extern int  put_message_line( socktag sock, LPTSTR line );
-extern int  finish_server_message( void );
-extern int  close_server_socket( void );
-extern void server_error( LPTSTR message);
-extern void server_warning( LPTSTR message);
+extern int  put_message_line( COMMON_DATA & CommonData, socktag sock, LPTSTR line );
+extern int  finish_server_message( COMMON_DATA & CommonData );
+extern int  close_server_socket( COMMON_DATA & CommonData );
+extern void server_error( COMMON_DATA & CommonData, LPTSTR message );
+extern void server_warning( COMMON_DATA & CommonData, LPTSTR message );
 #ifdef BLATDLL_TC_WCX
-extern int  send_edit_data (LPTSTR message, Buf * responseStr, DWORD attachmentSize );
-extern int  send_edit_data (LPTSTR message, int expected_response, Buf * responseStr, DWORD attachmentSize );
+extern int  send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, Buf * responseStr, DWORD attachmentSize );
+extern int  send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, int expected_response, Buf * responseStr, DWORD attachmentSize );
 #else
-extern int  send_edit_data (LPTSTR message, Buf * responseStr );
-extern int  send_edit_data (LPTSTR message, int expected_response, Buf * responseStr );
+extern int  send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, Buf * responseStr );
+extern int  send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, int expected_response, Buf * responseStr );
 #endif
-extern int  noftry();
-extern void build_headers( BLDHDRS & bldHdrs /* Buf & messageBuffer, Buf & header, int buildSMTP,
+extern int  noftry( COMMON_DATA & CommonData );
+extern void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs /* Buf & messageBuffer, Buf & header, int buildSMTP,
                            Buf & lpszFirstReceivedData, Buf & lpszOtherHeader,
                            LPTSTR attachment_boundary, LPTSTR wanted_hostname, LPTSTR server */ );
 #if SUPPORT_MULTIPART
-extern int  add_one_attachment( Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
+extern int  add_one_attachment( COMMON_DATA & CommonData, Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
                                 DWORD startOffset, DWORD & length,
                                 int part, int totalparts, int attachNbr, int * prevAttachType );
-extern void getAttachmentInfo( int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType );
-extern void getMaxMsgSize( int buildSMTP, DWORD & length );
+extern void getAttachmentInfo( COMMON_DATA & CommonData, int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType );
+extern void getMaxMsgSize( COMMON_DATA & CommonData, int buildSMTP, DWORD & length );
 #endif
-extern int  add_message_body( Buf & messageBuffer, size_t msgBodySize, Buf & multipartHdrs, int buildSMTP,
+extern int  add_message_body( COMMON_DATA & CommonData, Buf & messageBuffer, size_t msgBodySize, Buf & multipartHdrs, int buildSMTP,
                               LPTSTR attachment_boundary, DWORD startOffset, int part, int attachNbr );
-extern int  add_attachments( Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary, int nbrOfAttachments );
-extern void add_msg_boundary( Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary );
-extern void parseCommaDelimitString ( LPTSTR source, Buf & parsed_addys, int pathNames );
+extern int  add_attachments( COMMON_DATA & CommonData, Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary, int nbrOfAttachments );
+extern void add_msg_boundary( COMMON_DATA & CommonData, Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary );
+extern void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & parsed_addys, int pathNames );
 
-extern void printMsg( LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
-
-extern socktag ServerSocket;
+extern void printMsg( COMMON_DATA & CommonData, LPTSTR p, ... );  // Added 23 Aug 2000 Craig Morrison
 
 #if INCLUDE_POP3
-extern int   get_pop3_server_response( Buf * responseStr );
-
-extern _TCHAR  xtnd_xmit_supported;
-extern _TCHAR  xtnd_xmit_wanted;
-extern _TCHAR  POP3Host[SERVER_SIZE+1];
-extern _TCHAR  POP3Port[SERVER_SIZE+1];
-extern Buf     POP3Login;
-extern Buf     POP3Password;
+extern int   get_pop3_server_response( COMMON_DATA & CommonData, Buf * responseStr );
 #endif
-#if INCLUDE_IMAP
-extern _TCHAR  IMAPHost[SERVER_SIZE+1];
-extern _TCHAR  IMAPPort[SERVER_SIZE+1];
-extern Buf     IMAPLogin;
-extern Buf     IMAPPassword;
-#endif
-extern _TCHAR  SMTPHost[];
-extern _TCHAR  SMTPPort[];
-
-extern Buf     AUTHLogin;
-extern Buf     AUTHPassword;
-extern Buf     Sender;
-extern _TCHAR  my_hostname[];
-extern Buf     Recipients;
-extern _TCHAR  loginname[]; // RFC 821 MAIL From. <loginname>. There are some inconsistencies in usage
-extern _TCHAR  quiet;
-extern _TCHAR  mime;
-extern _TCHAR  formattedContent;
-extern _TCHAR  boundaryPosted;
-
-extern _TCHAR  my_hostname_wanted[];
-extern int     delayBetweenMsgs;
-
-#if INCLUDE_SUPERDEBUG
-extern _TCHAR  superDebug;
-#endif
-
-#if BLAT_LITE
-#else
-extern _TCHAR  base64;
-extern _TCHAR  uuencode;
-extern _TCHAR  yEnc;
-extern _TCHAR  deliveryStatusRequested;
-extern _TCHAR  deliveryStatusSupported;
-
-extern _TCHAR  charset[];
-extern _TCHAR  eightBitMimeSupported;
-extern _TCHAR  eightBitMimeRequested;
-extern _TCHAR  binaryMimeSupported;
-extern _TCHAR  chunkingSupported;
-#endif
-#if SUPPORT_MULTIPART
-extern unsigned long multipartSize;
-#endif
-extern _TCHAR        disableMPS;
 
 LPTSTR               defaultSMTPPort     = __T("25");
 #if INCLUDE_POP3
@@ -139,36 +76,23 @@ LPTSTR               SubmissionPort      = __T("587");
 LPTSTR               defaultIMAPPort     = __T("143");
 #endif
 
-int                  maxNames            = 0;
-
-
-unsigned long maxMessageSize       = 0;
-_TCHAR        commandPipelining    = FALSE;
-_TCHAR        cramMd5AuthSupported = FALSE;
-_TCHAR        plainAuthSupported   = FALSE;
-_TCHAR        loginAuthSupported   = FALSE;
-_TCHAR        enhancedCodeSupport  = FALSE;
-_TCHAR        ByPassCRAM_MD5       = FALSE;
 #if SUPPORT_GSSAPI
-_TCHAR        gssapiAuthSupported  = FALSE;
 
-
-BOOL putline ( LPTSTR line )
+BOOL putline ( COMMON_DATA & CommonData, LPTSTR line )
 {
-    return (put_message_line(ServerSocket,line) == 0);
+    return (put_message_line(CommonData,CommonData.ServerSocket,line) == 0);
 }
 
 
-BOOL getline ( LPTSTR line )
+BOOL getline ( COMMON_DATA & CommonData, LPTSTR line )
 {
-    return (get_server_response(line) != -1);
+    return (get_server_response( CommonData,line) != -1);
 }
 #endif
 
 #if SUPPORT_SALUTATIONS
-extern Buf salutation;
 
-void find_and_strip_salutation ( Buf &email_addresses )
+void find_and_strip_salutation ( COMMON_DATA & CommonData, Buf &email_addresses )
 {
   #if 0
     // Old (working) version
@@ -182,10 +106,10 @@ void find_and_strip_salutation ( Buf &email_addresses )
     int    x;
 
 
-    salutation.Free();
+    CommonData.salutation.Free();
 
     //_tprintf( __T("find_and_strip_salutation ()\n") );
-    parseCommaDelimitString( email_addresses.Get(), tmpstr, FALSE );
+    parseCommaDelimitString( CommonData, email_addresses.Get(), tmpstr, FALSE );
     srcptr = tmpstr.Get();
     if ( !srcptr )
         return;
@@ -216,7 +140,7 @@ void find_and_strip_salutation ( Buf &email_addresses )
 
                     for ( ; *pp2 && (*pp2 != __T('"')); pp2++ )
                         if ( *pp2 != __T('\\') ) {
-                            salutation.Add( *pp2 );
+                            CommonData.salutation.Add( *pp2 );
                             addToSal = TRUE;
                         }
                 }
@@ -269,14 +193,14 @@ void find_and_strip_salutation ( Buf &email_addresses )
             //_tprintf( __T("4 new_addresses.Add( '%s' )\n"), srcptr );
         }
         if ( addToSal )
-            salutation.Add( __T('\0') );
+            CommonData.salutation.Add( __T('\0') );
     }
 
-    if ( salutation.Length() )
-        salutation.Add( __T('\0') );
+    if ( CommonData.salutation.Length() )
+        CommonData.salutation.Add( __T('\0') );
 
-    //if ( salutation.Length() )
-    //     _tprintf( __T("salutation = '%s'\n"), salutation.Get() );
+    //if ( CommonData.salutation.Length() )
+    //     _tprintf( __T("salutation = '%s'\n"), CommonData.salutation.Get() );
 
     if ( x ) {
         email_addresses.Move( new_addresses );
@@ -300,10 +224,10 @@ void find_and_strip_salutation ( Buf &email_addresses )
     int    addToSal;
 
 
-    salutation.Free();
+    CommonData.salutation.Free();
 
     //_tprintf( __T("find_and_strip_salutation ()\n") );
-    parseCommaDelimitString( email_addresses.Get(), tmpstr, FALSE );
+    parseCommaDelimitString( CommonData, email_addresses.Get(), tmpstr, FALSE );
     srcptr = tmpstr.Get();
     if ( !srcptr )
         return;
@@ -370,7 +294,7 @@ void find_and_strip_salutation ( Buf &email_addresses )
                 foundQuote = FALSE;
                 while ( tempLen ) {
                     if ( (*pp2 == __T('\\')) && (tempLen > 1) ) {
-                        salutation.Add( pp2[1] );
+                        CommonData.salutation.Add( pp2[1] );
                         pp2 += 2;
                         addToSal = TRUE;
                         tempLen -= 2;
@@ -384,23 +308,23 @@ void find_and_strip_salutation ( Buf &email_addresses )
                         if ( !foundQuote )
                             break;
 
-                        salutation.Add( *pp2++ );
+                        CommonData.salutation.Add( *pp2++ );
                         addToSal = TRUE;
                         tempLen--;
                     } else
                     if ( *pp2 == __T('[') ) {
-                        salutation.Add( __T('<') );
+                        CommonData.salutation.Add( __T('<') );
                         pp2++;
                         addToSal = TRUE;
                         tempLen--;
                     } else
                     if ( *pp2 == __T(']') ) {
-                        salutation.Add( __T('>') );
+                        CommonData.salutation.Add( __T('>') );
                         pp2++;
                         addToSal = TRUE;
                         tempLen--;
                     } else {
-                        salutation.Add( *pp2++ );
+                        CommonData.salutation.Add( *pp2++ );
                         addToSal = TRUE;
                         tempLen--;
                     }
@@ -453,16 +377,16 @@ void find_and_strip_salutation ( Buf &email_addresses )
             }
         }
         if ( addToSal ) {
-            salutation.Add( __T('\0') );
+            CommonData.salutation.Add( __T('\0') );
             addToSal = FALSE;
         }
     }
 
     if ( addToSal )
-        salutation.Add( __T('\0') );
+        CommonData.salutation.Add( __T('\0') );
 
-    //if ( salutation.Length() )
-    //     _tprintf( __T("salutation = '%s'\n"), salutation.Get() );
+    //if ( CommonData.salutation.Length() )
+    //     _tprintf( __T("salutation = '%s'\n"), CommonData.salutation.Get() );
 
     if ( x )
         email_addresses.Move( new_addresses );
@@ -475,7 +399,7 @@ void find_and_strip_salutation ( Buf &email_addresses )
 #endif
 
 
-void parse_email_addresses ( LPTSTR email_addresses, Buf & parsed_addys )
+void parse_email_addresses ( COMMON_DATA & CommonData, LPTSTR email_addresses, Buf & parsed_addys )
 {
     Buf    tmpstr;
     LPTSTR srcptr;
@@ -488,7 +412,7 @@ void parse_email_addresses ( LPTSTR email_addresses, Buf & parsed_addys )
     if ( !len )
         return;
 
-    parseCommaDelimitString( (LPTSTR )email_addresses, tmpstr, FALSE );
+    parseCommaDelimitString( CommonData, (LPTSTR )email_addresses, tmpstr, FALSE );
     srcptr = tmpstr.Get();
     if ( !srcptr )
         return;
@@ -519,7 +443,7 @@ void parse_email_addresses ( LPTSTR email_addresses, Buf & parsed_addys )
 
 #define EMAIL_KEYWORD   __T("myself")
 
-void searchReplaceEmailKeyword (Buf & email_addresses)
+void searchReplaceEmailKeyword (COMMON_DATA & CommonData, Buf & email_addresses)
 {
     Buf    tmpstr;
     LPTSTR srcptr;
@@ -530,7 +454,7 @@ void searchReplaceEmailKeyword (Buf & email_addresses)
     if ( !len )
         return;
 
-    parseCommaDelimitString( email_addresses.Get(), tmpstr, FALSE );
+    parseCommaDelimitString( CommonData, email_addresses.Get(), tmpstr, FALSE );
     srcptr = tmpstr.Get();
     if ( !srcptr )
         return;
@@ -540,7 +464,7 @@ void searchReplaceEmailKeyword (Buf & email_addresses)
         len = (DWORD)_tcslen( srcptr );
         pp = srcptr;
         if ( !_tcscmp( srcptr, EMAIL_KEYWORD ) )
-            pp = loginname;
+            pp = CommonData.loginname;
 
         if ( email_addresses.Length() )
             email_addresses.Add( __T(',') );
@@ -552,7 +476,7 @@ void searchReplaceEmailKeyword (Buf & email_addresses)
 }
 
 
-static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
+static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bAgain = FALSE)
 {
     _TCHAR out_data[MAXOUTLINE];
     Buf    responseStr;
@@ -567,36 +491,36 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
         if ( !*wanted_hostname )
             wanted_hostname = NULL;
 
-    no_of_try = noftry();
+    no_of_try = noftry(CommonData);
     tryCount = 0;
     for ( ; (tryCount < no_of_try) || (no_of_try == -1); tryCount++ ) {
         if ( tryCount ) {
 #if INCLUDE_SUPERDEBUG
-            if ( superDebug ) {
-                _TCHAR savedQuiet = quiet;
-                quiet = FALSE;
-                printMsg( __T("superDebug: ::say_hello() failed to connect, retry count remaining is %d\n"),
-                          no_of_try - tryCount );
-                quiet = savedQuiet;
+            if ( CommonData.superDebug ) {
+                _TCHAR savedQuiet = CommonData.quiet;
+                CommonData.quiet = FALSE;
+                printMsg( CommonData, __T("superDebug: ::say_hello() failed to connect, retry count remaining is %d\n"),
+                                      no_of_try - tryCount );
+                CommonData.quiet = savedQuiet;
             }
 #endif
             Sleep( 1000 );
         }
         if (!bAgain) {
-            socketError = open_server_socket( SMTPHost, SMTPPort, defaultSMTPPort, __T("smtp") );
+            socketError = open_server_socket( CommonData, CommonData.SMTPHost, CommonData.SMTPPort, defaultSMTPPort, __T("smtp") );
             if ( socketError )
                 continue;
 
-            if ( get_server_response( NULL, &enhancedStatusCode ) != 220 ) {
-                close_server_socket();
+            if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) != 220 ) {
+                close_server_socket( CommonData );
                 continue;
             }
         }
 
         // Changed to EHLO processing 27 Feb 2001 Craig Morrison
         _stprintf( out_data, __T("EHLO %s"),
-                   (wanted_hostname==NULL) ? my_hostname : wanted_hostname);
-        pStr = _tcsrchr( Sender.Get(), __T('@') );
+                   (wanted_hostname==NULL) ? CommonData.my_hostname : wanted_hostname);
+        pStr = _tcsrchr( CommonData.Sender.Get(), __T('@') );
         if ( pStr ) {
             _tcscat( out_data, __T(".") );
             _tcscat( out_data, pStr+1 );
@@ -606,38 +530,38 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
             }
         }
         _tcscat( out_data, __T("\r\n") );
-//        printMsg( __T(" ... About to send 'EHLO'\n") );
-        socketError = put_message_line( ServerSocket, out_data );
+//        printMsg( CommonData, __T(" ... About to send 'EHLO'\n") );
+        socketError = put_message_line( CommonData, CommonData.ServerSocket, out_data );
         if ( socketError ) {
-//            printMsg( __T(" ... After attempting to send 'EHLO', Windows returned socket error %d\n"), socketError );
-            close_server_socket();
+//            printMsg( CommonData, __T(" ... After attempting to send 'EHLO', Windows returned socket error %d\n"), socketError );
+            close_server_socket( CommonData );
             bAgain = FALSE;
             continue;
         }
 
-//        printMsg( __T(" ... Waiting for the server's response.\n") );
-        serverResponseValue = get_server_response( &responseStr, &enhancedStatusCode );
-//        printMsg( __T(" ... Blat parsed the 'EHLO' server response code = %d\n"), serverResponseValue );
+//        printMsg( CommonData, __T(" ... Waiting for the server's response.\n") );
+        serverResponseValue = get_server_response( CommonData, &responseStr, &enhancedStatusCode );
+//        printMsg( CommonData, __T(" ... Blat parsed the 'EHLO' server response code = %d\n"), serverResponseValue );
         if ( serverResponseValue == 250 ) {
             LPTSTR   index;
 //            unsigned count = 0;
 
-//            printMsg( __T(" ... About to parse the server response\n") );
+//            printMsg( CommonData, __T(" ... About to parse the server response\n") );
             index = responseStr.Get();  // The responses are already individually NULL terminated, with no CR or LF bytes.
             for ( ; ; )
             {
                 if ( index[0] == __T('\0') )
                     break;
 
-//                printMsg( __T(" ... Parsing line #%2u, '%s'\n"), count++, index );
+//                printMsg( CommonData, __T(" ... Parsing line #%2u, '%s'\n"), count++, index );
                 /* Parse the server responses for things we can utilize. */
                 _tcslwr( index );
 
                 if ( (index[3] == __T('-')) || (index[3] == __T(' ')) ) {
 #if ALLOW_PIPELINING
                     if ( memcmp(&index[4], __T("pipelining"), 10*sizeof(_TCHAR)) == 0 ) {
-                        commandPipelining = TRUE;
-//                        printMsg( __T(" ... Server supports pipelining.\n") );
+                        CommonData.commandPipelining = TRUE;
+//                        printMsg( CommonData, __T(" ... Server supports pipelining.\n") );
                     } else
 #endif
 #if BLAT_LITE
@@ -648,7 +572,7 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
                                 long maxSize = _tstol(&index[9]);
 
                                 if ( maxSize > 0 ) {
-                                    maxMessageSize = (unsigned long)(maxSize / 10L) * 7L;
+                                    CommonData.maxMessageSize = (DWORD)(maxSize / 10L) * 7L;
 //                                    {
 //                                        DWORD    reduced;
 //                                        unsigned index;
@@ -668,38 +592,38 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
 //                                                break;
 //                                            reduced >>= 10;
 //                                        }
-//                                        printMsg( __T(" ... Server supports message sizes up to %lu %s\n"), reduced, sizeStrings[index] );
+//                                        printMsg( CommonData, __T(" ... Server supports message sizes up to %lu %s\n"), reduced, sizeStrings[index] );
 //                                    }
                                 }
                             } else {
-//                                printMsg( __T(" ... Server mentioned SIZE argument without a value.\n") );
+//                                printMsg( CommonData, __T(" ... Server mentioned SIZE argument without a value.\n") );
                             }
                         } else {
-//                            printMsg( __T(" ... Server mentioned SIZE argument without a value.\n") );
+//                            printMsg( CommonData, __T(" ... Server mentioned SIZE argument without a value.\n") );
                         }
                     } else
                     if ( memcmp(&index[4], __T("dsn"), 3*sizeof(_TCHAR)) == 0 ) {
-                        deliveryStatusSupported = TRUE;
-//                        printMsg( __T(" ... Server supports delivery status notification\n") );
+                        CommonData.deliveryStatusSupported = TRUE;
+//                        printMsg( CommonData, __T(" ... Server supports delivery status notification\n") );
                     } else
                     if ( memcmp(&index[4], __T("8bitmime"), 8*sizeof(_TCHAR)) == 0 ) {
-                        eightBitMimeSupported = TRUE;
-                        //_tcsupr( charset );
-//                        printMsg( __T(" ... Server supports 8 bit MIME\n") );
+                        CommonData.eightBitMimeSupported = TRUE;
+                        //_tcsupr( CommonData.charset );
+//                        printMsg( CommonData, __T(" ... Server supports 8 bit MIME\n") );
                     } else
                     if ( memcmp(&index[4], __T("binarymime"), 10*sizeof(_TCHAR)) == 0 ) {
-                        binaryMimeSupported = 1;
-//                        printMsg( __T(" ... Server supports binary messages (non-displayable bytes)\n") );
+                        CommonData.binaryMimeSupported = 1;
+//                        printMsg( CommonData, __T(" ... Server supports binary messages (non-displayable bytes)\n") );
                     } else
                     if ( memcmp(&index[4], __T("enhancedstatuscodes"), 19*sizeof(_TCHAR)) == 0 ) {
-                        enhancedCodeSupport = TRUE;
-//                        printMsg( __T(" ... Server supports enhanced status codes\n") );
+                        CommonData.enhancedCodeSupport = TRUE;
+//                        printMsg( CommonData, __T(" ... Server supports enhanced status codes\n") );
                     } else
 #endif
 #if ALLOW_CHUNKING
                     if ( memcmp(&index[4], __T("chunking"), 8*sizeof(_TCHAR)) == 0 ) {
-                        chunkingSupported = TRUE;
-//                        printMsg( __T(" ... Server supports CHUNKING\n") );
+                        CommonData.chunkingSupported = TRUE;
+//                        printMsg( CommonData, __T(" ... Server supports CHUNKING\n") );
                     } else
 #endif
                     if ( (memcmp(&index[4], __T("auth"), 4*sizeof(_TCHAR)) == 0) &&
@@ -716,35 +640,35 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
 
                             if ( (y - x) == 5 ) {
                                 if ( memcmp(&index[x], __T("plain"), 5*sizeof(_TCHAR)) == 0 ) {
-                                    plainAuthSupported = TRUE;
-//                                    printMsg( __T(" ... Server supports authentication type PLAIN\n") );
+                                    CommonData.plainAuthSupported = TRUE;
+//                                    printMsg( CommonData, __T(" ... Server supports authentication type PLAIN\n") );
                                 }
 
                                 if ( memcmp(&index[x], __T("login"), 5*sizeof(_TCHAR)) == 0 ) {
-                                    loginAuthSupported = TRUE;
-//                                    printMsg( __T(" ... Server supports authentication type LOGIN\n") );
+                                    CommonData.loginAuthSupported = TRUE;
+//                                    printMsg( CommonData, __T(" ... Server supports authentication type LOGIN\n") );
                                 }
                             }
 
 #if SUPPORT_GSSAPI
                             if ( (y - x) == 6 ) {
                                 if ( memcmp(&index[x], __T("gssapi"), 6*sizeof(_TCHAR)) == 0 ) {
-                                    gssapiAuthSupported = TRUE;
-//                                    printMsg( __T(" ... Server supports authentication type GSSAPI") );
-//                                    if ( !authgssapi )
-//                                        printMsg( __T(", but this will not be used.") );
-//                                    printMsg( __T("\n") );
+                                    CommonData.gssapiAuthSupported = TRUE;
+//                                    printMsg( CommonData, __T(" ... Server supports authentication type GSSAPI") );
+//                                    if ( !CommonData.authgssapi )
+//                                        printMsg( CommonData, __T(", but this will not be used.") );
+//                                    printMsg( CommonData, __T("\n") );
                                 }
                             }
 #endif
                             if ( (y - x) == 8 ) {
                                 if ( memcmp(&index[x], __T("cram-md5"), 8*sizeof(_TCHAR)) == 0 ) {
-//                                    printMsg( __T(" ... Server supports authentication type CRAM MD5") );
-                                    if ( !ByPassCRAM_MD5 )
-                                        cramMd5AuthSupported = TRUE;
+//                                    printMsg( CommonData, __T(" ... Server supports authentication type CRAM MD5") );
+                                    if ( !CommonData.ByPassCRAM_MD5 )
+                                        CommonData.cramMd5AuthSupported = TRUE;
 //                                    else
-//                                        printMsg( __T(", but this will not be used.") );
-//                                    printMsg( __T("\n") );
+//                                        printMsg( CommonData, __T(", but this will not be used.") );
+//                                    printMsg( CommonData, __T("\n") );
                                 }
                             }
 
@@ -762,10 +686,10 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
                 index += _tcslen(index) + 1;
             }
         } else {
-//            printMsg( __T(" ... About to send 'HELO'\n") );
+//            printMsg( CommonData, __T(" ... About to send 'HELO'\n") );
             _stprintf( out_data, __T("HELO %s"),
-                       (wanted_hostname==NULL) ? my_hostname : wanted_hostname);
-            pStr = _tcsrchr( Sender.Get(), __T('@') );
+                       (wanted_hostname==NULL) ? CommonData.my_hostname : wanted_hostname);
+            pStr = _tcsrchr( CommonData.Sender.Get(), __T('@') );
             if ( pStr ) {
                 _tcscat( out_data, __T(".") );
                 _tcscat( out_data, pStr+1 );
@@ -775,25 +699,25 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
                 }
             }
             _tcscat( out_data, __T("\r\n") );
-            socketError = put_message_line( ServerSocket, out_data );
+            socketError = put_message_line( CommonData, CommonData.ServerSocket, out_data );
             if ( socketError ) {
-//                printMsg( __T(" ... After attempting to send 'HELO', Windows returned socket error %d\n"), socketError );
-                close_server_socket();
+//                printMsg( CommonData, __T(" ... After attempting to send 'HELO', Windows returned socket error %d\n"), socketError );
+                close_server_socket( CommonData );
                 bAgain = FALSE;
                 continue;
             }
 
-            serverResponseValue = get_server_response( NULL, &enhancedStatusCode );
-//            printMsg( __T(" ... Blat parsed the 'HELO' server response code = %d\n"), serverResponseValue );
+            serverResponseValue = get_server_response( CommonData, NULL, &enhancedStatusCode );
+//            printMsg( CommonData, __T(" ... Blat parsed the 'HELO' server response code = %d\n"), serverResponseValue );
             if ( serverResponseValue != 250 ) {
-                close_server_socket();
+                close_server_socket( CommonData );
                 bAgain = FALSE;
                 continue;
             }
 
-            loginAuthSupported = TRUE;  // no extended responses available, so assume "250-AUTH LOGIN"
+            CommonData.loginAuthSupported = TRUE;  // no extended responses available, so assume "250-AUTH LOGIN"
 #if SUPPORT_GSSAPI
-            gssapiAuthSupported = TRUE; // might as well make the same assumption for gssapi
+            CommonData.gssapiAuthSupported = TRUE; // might as well make the same assumption for gssapi
 #endif
         }
         break;
@@ -802,17 +726,17 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
 
     if ( tryCount == no_of_try ) {
         if ( !socketError ) {
-            server_error( __T("SMTP server error\n") );
-            finish_server_message();
+            server_error( CommonData, __T("SMTP server error\n") );
+            finish_server_message(CommonData);
         }
         return(-1);
     }
 
 #if BLAT_LITE
 #else
-    if ( !eightBitMimeSupported ) {
-        if ( _tcscmp( charset, __T("utf-8") ) == 0 )
-            _tcscpy( charset, __T("UTF-7") );
+    if ( !CommonData.eightBitMimeSupported ) {
+        if ( _tcscmp( CommonData.charset, __T("utf-8") ) == 0 )
+            _tcscpy( CommonData.charset, __T("UTF-7") );
     }
 #endif
     return(0);
@@ -820,14 +744,14 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
 
 #if SUPPORT_GSSAPI
 
-static int say_hello_again (LPTSTR wanted_hostname)
+static int say_hello_again (COMMON_DATA & CommonData, LPTSTR wanted_hostname)
 {
-    return say_hello(wanted_hostname, TRUE);
+    return say_hello(CommonData, wanted_hostname, TRUE);
 }
 #endif
 
 
-static void cram_md5( Buf &challenge, _TCHAR str[] )
+static void cram_md5( COMMON_DATA & CommonData, Buf &challenge, _TCHAR str[] )
 {
     md5_context   ctx;
     _TUCHAR       k_ipad[65];    /* inner padding - key XORd with ipad */
@@ -842,7 +766,7 @@ static void cram_md5( Buf &challenge, _TCHAR str[] )
     decodedResponse.Alloc( challenge.Length() + 65 );
     base64_decode( (_TUCHAR *)challenge.Get(), decodedResponse.Get() );
     decodedResponse.SetLength();
-    x = _tcslen(AUTHPassword.Get());
+    x = _tcslen(CommonData.AUTHPassword.Get());
     tmp.Alloc( x + 65 );
     if ( *decodedResponse.Get() == __T('\"') ) {
         LPTSTR pStr = _tcschr( decodedResponse.Get()+1, __T('\"') );
@@ -852,7 +776,7 @@ static void cram_md5( Buf &challenge, _TCHAR str[] )
         _tcscpy( decodedResponse.Get(), decodedResponse.Get()+1 );
     }
 
-    tmp.Add( AUTHPassword.Get(), x );
+    tmp.Add( CommonData.AUTHPassword.Get(), x );
     for ( ; x % 64; x++ ) {
         tmp.Add( __T('\0') );             /* pad the password to a multiple of 64 bytes */
     }
@@ -906,7 +830,7 @@ static void cram_md5( Buf &challenge, _TCHAR str[] )
     md5_update( &ctx, digest, 16 );     /* then results of 1st hash */
     md5_finish( &ctx, digest );         /* finish up 2nd pass */
 
-    _tcscpy( out_data, AUTHLogin.Get() );
+    _tcscpy( out_data, CommonData.AUTHLogin.Get() );
     x = _tcslen( out_data );
     out_data[x++] = __T(' ');
     for ( i = 0; i < 16; i++ ) {
@@ -921,7 +845,7 @@ static void cram_md5( Buf &challenge, _TCHAR str[] )
     decodedResponse.Free();
 }
 
-static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
+static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LPTSTR pwdAuth)
 {
     int    enhancedStatusCode;
     _TCHAR out_data[MAXOUTLINE];
@@ -931,38 +855,37 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
     int    retval;
 
 #if INCLUDE_POP3
-    if ( xtnd_xmit_supported )
+    if ( CommonData.xtnd_xmit_supported )
        return 0;
 #endif
 
     /* NOW: auth */
 #if SUPPORT_GSSAPI // Added 2003-11-07, Joseph Calzaretta
-    if ( authgssapi ) {
-//        printMsg( __T(" ... AUTH GSSAPI requested.\n") );
-        if (!gssapiAuthSupported) {
-            server_error( __T("The SMTP server will not accept AUTH GSSAPI value.\n") );
-            finish_server_message();
+    if ( CommonData.authgssapi ) {
+//        printMsg( CommonData, __T(" ... AUTH GSSAPI requested.\n") );
+        if (!CommonData.gssapiAuthSupported) {
+            server_error( CommonData, __T("The SMTP server will not accept AUTH GSSAPI value.\n") );
+            finish_server_message(CommonData);
             return(-2);
         }
         try{
-            if (!pGss)
+            if (!CommonData.pGss)
             {
-                static GssSession TheSession;
-                pGss = &TheSession;
+                CommonData.pGss = &CommonData.TheSession;
             }
 
             _TCHAR servname[1024];
 
-            if (*servicename)
-                _tcscpy(servname,servicename);
+            if (*CommonData.servicename)
+                _tcscpy(servname,CommonData.servicename);
             else
-                _stprintf(servname, __T("smtp@%s"), SMTPHost);
+                _stprintf(servname, __T("smtp@%s"), CommonData.SMTPHost);
 
-            pGss->Authenticate(getline,putline,AUTHLogin.Get(),servname,mutualauth,gss_protection_level);
+            CommonData.pGss->Authenticate(CommonData,getline,putline,CommonData.AUTHLogin.Get(),servname,CommonData.mutualauth,CommonData.gss_protection_level);
 
-            if (pGss->GetProtectionLevel()!=GSSAUTH_P_NONE)
+            if (CommonData.pGss->GetProtectionLevel()!=GSSAUTH_P_NONE)
             {
-                if (say_hello_again(my_hostname_wanted)!=0)
+                if (say_hello_again(CommonData, CommonData.my_hostname_wanted)!=0)
                     return (-5);
             }
         }
@@ -970,9 +893,9 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
         {
             _TCHAR szMsg[1024];
             _stprintf(szMsg, __T("Cannot do AUTH GSSAPI: %s"), e.message());
-            server_error(szMsg);
-            finish_server_message();
-            pGss=NULL;
+            server_error(CommonData, szMsg);
+            finish_server_message(CommonData);
+            CommonData.pGss=NULL;
             return (-5);
         }
         return(0);
@@ -981,33 +904,33 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
     if ( !*loginAuth )
         return(0);
 
-    if ( cramMd5AuthSupported && !ByPassCRAM_MD5 ) {
+    if ( CommonData.cramMd5AuthSupported && !CommonData.ByPassCRAM_MD5 ) {
         Buf response;
         Buf response1;
 
-        if ( put_message_line( ServerSocket, __T("AUTH CRAM-MD5\r\n") ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, __T("AUTH CRAM-MD5\r\n") ) )
             return(-1);
 
-        if ( get_server_response( &response, &enhancedStatusCode ) == 334 ) {
+        if ( get_server_response( CommonData, &response, &enhancedStatusCode ) == 334 ) {
             response1.Add( response.Get() + 4 );
-            cram_md5( response1, str );
+            cram_md5( CommonData, response1, str );
             response1.Free();
             response.Free();
 
-            if ( put_message_line( ServerSocket, str ) ) {
+            if ( put_message_line( CommonData, CommonData.ServerSocket, str ) ) {
                 return(-1);
             }
-            if ( get_server_response( NULL, &enhancedStatusCode ) == 235 ) {
+            if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) == 235 ) {
                 return(0);                  // cram-md5 authentication successful
             }
-            server_warning( __T("The SMTP server did not accept Auth CRAM-MD5 value.\n") \
-                            __T("Are your login userid and password correct?\n") );
+            server_warning( CommonData, __T("The SMTP server did not accept Auth CRAM-MD5 value.\n") \
+                                        __T("Are your login userid and password correct?\n") );
         } else
-            server_warning( __T("The SMTP server claimed CRAM-MD5, but did not accept Auth CRAM-MD5 request.\n") );
+            server_warning( CommonData, __T("The SMTP server claimed CRAM-MD5, but did not accept Auth CRAM-MD5 request.\n") );
 
         response.Free();
     }
-    if ( plainAuthSupported ) {
+    if ( CommonData.plainAuthSupported ) {
 
 // The correct form of the AUTH PLAIN value is 'authid\0userid\0passwd'
 // where '\0' is the null byte.
@@ -1026,21 +949,21 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
         base64_encode((_TUCHAR *)&str[11], (size_t)(out - outstart), outstart, FALSE);
         _tcscat(str, __T("\r\n"));
 
-        if ( put_message_line( ServerSocket, str ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, str ) )
             return(-1);
 
-        if ( get_server_response( NULL, &enhancedStatusCode ) == 235 )
+        if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) == 235 )
             return(0);                  // plain authentication successful
 
-        server_warning( __T("The SMTP server did not accept Auth PLAIN value.\n") \
-                        __T("Are your login userid and password correct?\n") );
+        server_warning( CommonData, __T("The SMTP server did not accept Auth PLAIN value.\n") \
+                                    __T("Are your login userid and password correct?\n") );
     }
 
 /* At this point, authentication was requested, but not it did not match the
    server.  As a last resort, try AUTH LOGIN. */
 
 #if ALLOW_PIPELINING
-    if ( commandPipelining ) {
+    if ( CommonData.commandPipelining ) {
         int retval;
         Buf response;
 
@@ -1054,33 +977,33 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
         base64_encode((_TUCHAR *)pwdAuth, _tcslen(pwdAuth), out, FALSE);
         _tcscat( out, __T("\r\n") );
 
-        if ( put_message_line( ServerSocket, out_data ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) )
             return(-1);
 
-        retval = get_server_response( &response, &enhancedStatusCode );
+        retval = get_server_response( CommonData, &response, &enhancedStatusCode );
         if ( (retval != 334) && (retval != 235) ) {
-            server_warning( __T("The SMTP server does not require AUTH LOGIN.\n") \
-                            __T("Are you sure server supports AUTH?\n") );
+            server_warning( CommonData, __T("The SMTP server does not require AUTH LOGIN.\n") \
+                                        __T("Are you sure server supports AUTH?\n") );
             response.Free();
             return(0);
         }
 
         if ( (retval != 235) && (response.Get()[3] == __T(' ')) ) {
-            retval = get_server_response( &response, &enhancedStatusCode );
+            retval = get_server_response( CommonData, &response, &enhancedStatusCode );
             if ( (retval != 334) && (retval != 235) ) {
-                server_error( __T("The SMTP server did not accept LOGIN name.\n") );
-                finish_server_message();
+                server_error( CommonData, __T("The SMTP server did not accept LOGIN name.\n") );
+                finish_server_message(CommonData);
                 response.Free();
                 return(-2);
             }
         }
 
         if ( (retval != 235) && (response.Get()[3] == __T(' ')) ) {
-            retval = get_server_response( &response, &enhancedStatusCode );
+            retval = get_server_response( CommonData, &response, &enhancedStatusCode );
             if ( retval != 235 ) {
-                server_error( __T("The SMTP server did not accept Auth LOGIN PASSWD value.\n") \
-                              __T("Is your password correct?\n") );
-                finish_server_message();
+                server_error( CommonData, __T("The SMTP server did not accept Auth LOGIN PASSWD value.\n") \
+                                          __T("Is your password correct?\n") );
+                finish_server_message(CommonData);
                 response.Free();
                 return(-2);
             }
@@ -1090,45 +1013,45 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
     }
 #endif
 
-    if ( put_message_line( ServerSocket, __T("AUTH LOGIN\r\n") ) )
+    if ( put_message_line( CommonData, CommonData.ServerSocket, __T("AUTH LOGIN\r\n") ) )
         return(-1);
 
-    if ( get_server_response( NULL, &enhancedStatusCode ) != 334 ) {
-        server_warning( __T("The SMTP server does not require AUTH LOGIN.\n") \
-                        __T("Are you sure server supports AUTH?\n") );
+    if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) != 334 ) {
+        server_warning( CommonData, __T("The SMTP server does not require AUTH LOGIN.\n") \
+                                    __T("Are you sure server supports AUTH?\n") );
         return(0);
     }
 
     base64_encode((_TUCHAR *)loginAuth, _tcslen(loginAuth), out_data, FALSE);
     _tcscat(out_data, __T("\r\n"));
-    if ( put_message_line( ServerSocket, out_data ) )
+    if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) )
         return(-1);
 
-    retval = get_server_response( NULL, &enhancedStatusCode );
+    retval = get_server_response( CommonData, NULL, &enhancedStatusCode );
     if ( retval == 235 )
         return(0);
 
     if ( retval == 334 ) {
         base64_encode((_TUCHAR *)pwdAuth, _tcslen(pwdAuth), out_data, FALSE);
         _tcscat(out_data, __T("\r\n"));
-        if ( put_message_line( ServerSocket, out_data ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) )
             return(-1);
 
-        if ( get_server_response( NULL, &enhancedStatusCode ) == 235 )
+        if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) == 235 )
             return(0);
 
-        server_warning( __T("The SMTP server did not accept Auth LOGIN PASSWD value.\n") );
+        server_warning( CommonData, __T("The SMTP server did not accept Auth LOGIN PASSWD value.\n") );
     } else
-        server_warning( __T("The SMTP server did not accept LOGIN name.\n") );
+        server_warning( CommonData, __T("The SMTP server did not accept LOGIN name.\n") );
 
-    finish_server_message();
+    finish_server_message(CommonData);
     return(-2);
 }
 
 
 // 'destination' is the address the message is to be sent to
 
-static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
+static int prepare_smtp_message( COMMON_DATA & CommonData, LPTSTR dest, DWORD msgLength )
 {
     int    enhancedStatusCode;
     int    yEnc_This;
@@ -1142,22 +1065,22 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
     Buf    tmpBuf;
 
 #if INCLUDE_POP3
-    if ( xtnd_xmit_supported )
+    if ( CommonData.xtnd_xmit_supported )
         return 0;
 #endif
 
-    parse_email_addresses (loginname, tmpBuf);
+    parse_email_addresses (CommonData, CommonData.loginname, tmpBuf);
     ptr = tmpBuf.Get();
     if ( !ptr ) {
-        server_error( __T("No email address was found for the sender name.\n") \
-                      __T("Have you set your mail address correctly?\n") );
-        finish_server_message();
+        server_error( CommonData, __T("No email address was found for the sender name.\n") \
+                                  __T("Have you set your mail address correctly?\n") );
+        finish_server_message(CommonData);
         return(-2);
     }
 
 #if SUPPORT_YENC
-    yEnc_This = yEnc;
-    if ( !eightBitMimeSupported && !binaryMimeSupported )
+    yEnc_This = CommonData.yEnc;
+    if ( !CommonData.eightBitMimeSupported && !CommonData.binaryMimeSupported )
 #endif
         yEnc_This = FALSE;
 
@@ -1168,39 +1091,39 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
 
 #if BLAT_LITE
 #else
-    if ( binaryMimeSupported && yEnc_This )
+    if ( CommonData.binaryMimeSupported && yEnc_This )
         _tcscat (out_data, __T(" BODY=BINARYMIME"));
     else
-    if ( eightBitMimeSupported && (eightBitMimeRequested || yEnc_This) )
+    if ( CommonData.eightBitMimeSupported && (CommonData.eightBitMimeRequested || yEnc_This) )
         _tcscat (out_data, __T(" BODY=8BITMIME"));
 #endif
 
     tmpBuf.Free();      // release the parsed login email address
 
     _tcscat (out_data, __T("\r\n") );
-    if ( put_message_line( ServerSocket, out_data ) )
+    if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) )
         return(-1);
 
-    if ( get_server_response( NULL, &enhancedStatusCode ) != 250 ) {
-        server_error( __T("The SMTP server does not like the sender name.\n") \
-                      __T("Have you set your mail address correctly?\n") );
-        finish_server_message();
+    if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) != 250 ) {
+        server_error( CommonData, __T("The SMTP server does not like the sender name.\n") \
+                                  __T("Have you set your mail address correctly?\n") );
+        finish_server_message(CommonData);
         return(-2);
     }
 
     // do a series of RCPT lines for each name in address line
-    parse_email_addresses (dest, tmpBuf);
+    parse_email_addresses (CommonData, dest, tmpBuf);
     pp = tmpBuf.Get();
     if ( !pp ) {
-        server_error( __T("No email address was found for recipients.\n") \
-                      __T("Have you set the 'To:' field correctly?\n") );
-        finish_server_message();
+        server_error( CommonData, __T("No email address was found for recipients.\n") \
+                                  __T("Have you set the 'To:' field correctly?\n") );
+        finish_server_message(CommonData);
         return(-2);
     }
 
     errorsFound = recipientsSent = 0;
 #if ALLOW_PIPELINING
-    if ( commandPipelining ) {
+    if ( CommonData.commandPipelining ) {
         Buf outRcpts;
         int recipientsRcvd;
 
@@ -1210,23 +1133,23 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
             outRcpts.Add( ptr );
             outRcpts.Add( __T('>') );
 
-            if ( deliveryStatusRequested && deliveryStatusSupported ) {
+            if ( CommonData.deliveryStatusRequested && CommonData.deliveryStatusSupported ) {
                 outRcpts.Add( __T(" NOTIFY=") );
-                if ( deliveryStatusRequested & DSN_NEVER )
+                if ( CommonData.deliveryStatusRequested & DSN_NEVER )
                     outRcpts.Add( __T("NEVER") );
                 else {
-                    if ( deliveryStatusRequested & DSN_SUCCESS )
+                    if ( CommonData.deliveryStatusRequested & DSN_SUCCESS )
                         outRcpts.Add( __T("SUCCESS") );
 
-                    if ( deliveryStatusRequested & DSN_FAILURE ) {
-                        if ( deliveryStatusRequested & DSN_SUCCESS )
+                    if ( CommonData.deliveryStatusRequested & DSN_FAILURE ) {
+                        if ( CommonData.deliveryStatusRequested & DSN_SUCCESS )
                             outRcpts.Add( __T(',') );
 
                         outRcpts.Add( __T("FAILURE") );
                     }
 
-                    if ( deliveryStatusRequested & DSN_DELAYED ) {
-                        if ( deliveryStatusRequested & (DSN_SUCCESS | DSN_FAILURE) )
+                    if ( CommonData.deliveryStatusRequested & DSN_DELAYED ) {
+                        if ( CommonData.deliveryStatusRequested & (DSN_SUCCESS | DSN_FAILURE) )
                             outRcpts.Add( __T(',') );
 
                         outRcpts.Add( __T("DELAY") );
@@ -1237,12 +1160,12 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
             outRcpts.Add( __T("\r\n") );
         }
 
-        put_message_line( ServerSocket, outRcpts.Get() );
+        put_message_line( CommonData, CommonData.ServerSocket, outRcpts.Get() );
         recipientsRcvd = 0;
         for ( ptr = pp; recipientsRcvd < recipientsSent; ) {
             LPTSTR index;
 
-            if ( get_server_response( &response, &enhancedStatusCode ) < 0 ) {
+            if ( get_server_response( CommonData, &response, &enhancedStatusCode ) < 0 ) {
                 errorsFound = recipientsSent;
                 break;
             }
@@ -1255,9 +1178,9 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
                 _tcscpy( out_data, index );
 
                 if ( ( ret_temp != 250 ) && ( ret_temp != 251 ) ) {
-                    server_warning( __T("The SMTP server does not like the name %s.\n") \
-                                    __T("Have you set the 'To:' field correctly, or do you need authorization (-u/-pw) ?\n"), ptr);
-                    server_warning( __T("The SMTP server response was -> %s\n"), out_data );
+                    server_warning( CommonData, __T("The SMTP server does not like the name %s.\n") \
+                                                __T("Have you set the 'To:' field correctly, or do you need authorization (-u/-pw) ?\n"), ptr);
+                    server_warning( CommonData, __T("The SMTP server response was -> %s\n"), out_data );
                     errorsFound++;
                 }
 
@@ -1278,23 +1201,23 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
 
 #if BLAT_LITE
 #else
-            if ( deliveryStatusRequested && deliveryStatusSupported ) {
+            if ( CommonData.deliveryStatusRequested && CommonData.deliveryStatusSupported ) {
                 _tcscat(out_data, __T(" NOTIFY="));
-                if ( deliveryStatusRequested & DSN_NEVER )
+                if ( CommonData.deliveryStatusRequested & DSN_NEVER )
                     _tcscat(out_data, __T("NEVER"));
                 else {
-                    if ( deliveryStatusRequested & DSN_SUCCESS )
+                    if ( CommonData.deliveryStatusRequested & DSN_SUCCESS )
                         _tcscat(out_data, __T("SUCCESS"));
 
-                    if ( deliveryStatusRequested & DSN_FAILURE ) {
-                        if ( deliveryStatusRequested & DSN_SUCCESS )
+                    if ( CommonData.deliveryStatusRequested & DSN_FAILURE ) {
+                        if ( CommonData.deliveryStatusRequested & DSN_SUCCESS )
                             _tcscat(out_data, __T(","));
 
                         _tcscat(out_data, __T("FAILURE"));
                     }
 
-                    if ( deliveryStatusRequested & DSN_DELAYED ) {
-                        if ( deliveryStatusRequested & (DSN_SUCCESS | DSN_FAILURE) )
+                    if ( CommonData.deliveryStatusRequested & DSN_DELAYED ) {
+                        if ( CommonData.deliveryStatusRequested & (DSN_SUCCESS | DSN_FAILURE) )
                             _tcscat(out_data, __T(","));
 
                         _tcscat(out_data, __T("DELAY"));
@@ -1303,10 +1226,10 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
             }
 #endif
             _tcscat (out_data, __T("\r\n"));
-            put_message_line( ServerSocket, out_data );
+            put_message_line( CommonData, CommonData.ServerSocket, out_data );
             recipientsSent++;
 
-            ret_temp = get_server_response( &response, &enhancedStatusCode );
+            ret_temp = get_server_response( CommonData, &response, &enhancedStatusCode );
             if ( ( ret_temp != 250 ) && ( ret_temp != 251 ) ) {
                 Buf tmpString;
 
@@ -1317,7 +1240,7 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
                                __T("The SMTP server response was -> ") );
                 tmpString.Add( response.Get() );
                 tmpString.Add( __T("\n") );
-                server_warning( tmpString.Get() );
+                server_warning( CommonData, tmpString.Get() );
                 tmpString.Free();
                 errorsFound++;
             }
@@ -1327,34 +1250,34 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
 
     tmpBuf.Free();      // release the parsed email addresses
     if ( errorsFound == recipientsSent ) {
-        finish_server_message();
+        finish_server_message(CommonData);
         return(-1);
     }
 
     UNREFERENCED_PARAMETER( msgLength );
 #if BLAT_LITE
 #else
-    if ( !binaryMimeSupported )
-        chunkingSupported = FALSE;
+    if ( !CommonData.binaryMimeSupported )
+        CommonData.chunkingSupported = FALSE;
 
   #if ALLOW_CHUNKING
-    if ( chunkingSupported ) {
+    if ( CommonData.chunkingSupported ) {
         _TCHAR serverMessage[80];
 
         _stprintf( serverMessage, __T("BDAT %lu LAST\r\n"), msgLength );
-        if ( put_message_line( ServerSocket, serverMessage ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, serverMessage ) )
             return(-1);
     } else
   #else
   #endif
 #endif
     {
-        if ( put_message_line( ServerSocket, __T("DATA\r\n") ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, __T("DATA\r\n") ) )
             return(-1);
 
-        if ( get_server_response( NULL, &enhancedStatusCode ) != 354 ) {
-            server_error (__T("SMTP server error accepting message data\n"));
-            finish_server_message();
+        if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) != 354 ) {
+            server_error (CommonData, __T("SMTP server error accepting message data\n"));
+            finish_server_message(CommonData);
             return(-1);
         }
     }
@@ -1378,89 +1301,89 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
  * <<<getline<<< 221 2.0.0 /munged.domain/ closing connection
  */
 
-static int prefetch_smtp_info(LPTSTR wanted_hostname)
+static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
 {
 #if INCLUDE_POP3
 
-    if ( POP3Login.Get()[0] || POP3Password.Get()[0] )
-        if ( !POP3Host[0] )
-            _tcscpy( POP3Host, SMTPHost );
+    if ( CommonData.POP3Login.Get()[0] || CommonData.POP3Password.Get()[0] )
+        if ( !CommonData.POP3Host[0] )
+            _tcscpy( CommonData.POP3Host, CommonData.SMTPHost );
 
-    if ( POP3Host[0] ) {
+    if ( CommonData.POP3Host[0] ) {
         _TCHAR saved_quiet;
 
-        saved_quiet = quiet;
-        quiet       = TRUE;
+        saved_quiet = CommonData.quiet;
+        CommonData.quiet = TRUE;
 
-        if ( !open_server_socket( POP3Host, POP3Port, defaultPOP3Port, __T("pop3") ) ) {
+        if ( !open_server_socket( CommonData, CommonData.POP3Host, CommonData.POP3Port, defaultPOP3Port, __T("pop3") ) ) {
             Buf  responseStr;
 
             for ( ; ; ) {
-                if ( get_pop3_server_response( &responseStr ) )
+                if ( get_pop3_server_response( CommonData, &responseStr ) )
                     break;
 
-                if ( POP3Login.Get()[0] || AUTHLogin.Get()[0] ) {
+                if ( CommonData.POP3Login.Get()[0] || CommonData.AUTHLogin.Get()[0] ) {
                     responseStr = __T("USER ");
-                    if ( POP3Login.Get()[0] )
-                        responseStr.Add( POP3Login );
+                    if ( CommonData.POP3Login.Get()[0] )
+                        responseStr.Add( CommonData.POP3Login );
                     else
-                        responseStr.Add( AUTHLogin );
+                        responseStr.Add( CommonData.AUTHLogin );
 
                     responseStr.Add( __T("\r\n") );
-                    if ( put_message_line( ServerSocket, responseStr.Get() ) )
+                    if ( put_message_line( CommonData, CommonData.ServerSocket, responseStr.Get() ) )
                         break;
 
-                    if ( get_pop3_server_response( &responseStr ) )
+                    if ( get_pop3_server_response( CommonData, &responseStr ) )
                         break;
                 }
-                if ( POP3Password.Get()[0] || AUTHPassword.Get()[0] ) {
+                if ( CommonData.POP3Password.Get()[0] || CommonData.AUTHPassword.Get()[0] ) {
                     responseStr = __T("PASS ");
-                    if ( POP3Password.Get()[0] )
-                        responseStr.Add( POP3Password );
+                    if ( CommonData.POP3Password.Get()[0] )
+                        responseStr.Add( CommonData.POP3Password );
                     else
-                        responseStr.Add( AUTHPassword );
+                        responseStr.Add( CommonData.AUTHPassword );
 
                     responseStr.Add( __T("\r\n") );
-                    if ( put_message_line( ServerSocket, responseStr.Get() ) )
+                    if ( put_message_line( CommonData, CommonData.ServerSocket, responseStr.Get() ) )
                         break;
 
-                    if ( get_pop3_server_response( &responseStr ) )
+                    if ( get_pop3_server_response( CommonData, &responseStr ) )
                         break;
                 }
-                if ( put_message_line( ServerSocket, __T("STAT\r\n") ) )
+                if ( put_message_line( CommonData, CommonData.ServerSocket, __T("STAT\r\n") ) )
                     break;
 
-                if ( get_pop3_server_response( &responseStr ) )
+                if ( get_pop3_server_response( CommonData, &responseStr ) )
                     break;
 
-                if ( xtnd_xmit_wanted ) {
-                    if ( put_message_line( ServerSocket, __T("XTND XMIT\r\n") ) )
+                if ( CommonData.xtnd_xmit_wanted ) {
+                    if ( put_message_line( CommonData, CommonData.ServerSocket, __T("XTND XMIT\r\n") ) )
                         break;
 
-                    if ( get_pop3_server_response( &responseStr ) == 0 ) {
-                        xtnd_xmit_supported = TRUE;
+                    if ( get_pop3_server_response( CommonData, &responseStr ) == 0 ) {
+                        CommonData.xtnd_xmit_supported = TRUE;
                         return 0;
                     }
                 }
 
                 break;
             }
-            if ( !put_message_line( ServerSocket, __T("QUIT\r\n") ) )
-                get_pop3_server_response( &responseStr );
+            if ( !put_message_line( CommonData, CommonData.ServerSocket, __T("QUIT\r\n") ) )
+                get_pop3_server_response( CommonData, &responseStr );
 
             responseStr.Free();
-            close_server_socket();
+            close_server_socket( CommonData );
 
-            if ( delayBetweenMsgs ) {
-                printMsg( __T("*** Delay %d seconds...\n"), delayBetweenMsgs );
-                Sleep( delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
+            if ( CommonData.delayBetweenMsgs ) {
+                printMsg( CommonData, __T("*** Delay %d seconds...\n"), CommonData.delayBetweenMsgs );
+                Sleep( CommonData.delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
             }
         }
-        quiet = saved_quiet;
+        CommonData.quiet = saved_quiet;
     }
 #endif
 #if INCLUDE_IMAP
-    if ( IMAPHost[0] ) {
+    if ( CommonData.IMAPHost[0] ) {
 //        Buf  savedResponse;
         _TCHAR saved_quiet;
         _TCHAR imapLogin;
@@ -1468,25 +1391,25 @@ static int prefetch_smtp_info(LPTSTR wanted_hostname)
         _TCHAR imapCRAM;
         int  retVal;
 
-        saved_quiet = quiet;
-        quiet       = TRUE;
+        saved_quiet = CommonData.quiet;
+        CommonData.quiet = TRUE;
         imapLogin   = 0;
         imapPlain   = 0;
         imapCRAM    = 0;
         retVal      = 0;
 
-        if ( !open_server_socket( IMAPHost, IMAPPort, defaultIMAPPort, __T("imap") ) ) {
+        if ( !open_server_socket( CommonData, CommonData.IMAPHost, CommonData.IMAPPort, defaultIMAPPort, __T("imap") ) ) {
             Buf    responseStr;
             LPTSTR pStr;
             LPTSTR pStr1;
             LPTSTR pStrEnd;
 
             for ( ; ; ) {
-                retVal = get_imap_untagged_server_response( &responseStr );
+                retVal = get_imap_untagged_server_response( CommonData, &responseStr );
                 if ( retVal < 0 ) {
                     responseStr.Free();
-                    close_server_socket();
-                    quiet = saved_quiet;
+                    close_server_socket( CommonData );
+                    CommonData.quiet = saved_quiet;
                     return( retVal );
                 }
 
@@ -1496,14 +1419,14 @@ static int prefetch_smtp_info(LPTSTR wanted_hostname)
 
                 pStr = _tcsstr( responseStr.Get(), __T(" capability") );
                 if ( !pStr ) {
-                    if ( put_message_line( ServerSocket, __T("a001 CAPABILITY\r\n") ) )
+                    if ( put_message_line( CommonData, CommonData.ServerSocket, __T("a001 CAPABILITY\r\n") ) )
                         break;
 
-                    retVal = get_imap_tagged_server_response( &responseStr, __T("a001") );
+                    retVal = get_imap_tagged_server_response( CommonData, &responseStr, __T("a001") );
                     if ( retVal < 0 ) {
                         responseStr.Free();
-                        close_server_socket();
-                        quiet = saved_quiet;
+                        close_server_socket( CommonData );
+                        CommonData.quiet = saved_quiet;
                         return( retVal );
                     }
                     _tcslwr( responseStr.Get() );
@@ -1553,30 +1476,30 @@ static int prefetch_smtp_info(LPTSTR wanted_hostname)
 //                if ( _tcsstr( savedResponse.Get(), __T("logindisabled") ) )
 //                    imapLogin = 0;
 
-                if ( IMAPLogin.Get()[0] || AUTHLogin.Get()[0] || IMAPPassword.Get()[0] || AUTHPassword.Get()[0] ) {
+                if ( CommonData.IMAPLogin.Get()[0] || CommonData.AUTHLogin.Get()[0] || CommonData.IMAPPassword.Get()[0] || CommonData.AUTHPassword.Get()[0] ) {
                     if ( imapCRAM ) {
                         Buf  challenge;
                         _TCHAR str[1024];
 
                         responseStr = __T("a010 AUTHENTICATE \"CRAM-MD5\"");
-                        retVal = get_imap_untagged_server_response( &responseStr );
+                        retVal = get_imap_untagged_server_response( CommonData, &responseStr );
                         if ( retVal < 0 ) {
                             responseStr.Free();
-                            close_server_socket();
-                            quiet = saved_quiet;
+                            close_server_socket( CommonData );
+                            CommonData.quiet = saved_quiet;
                             return( retVal );
                         }
                         challenge.Add( responseStr.Get()+2 );
-                        cram_md5( challenge, str );
+                        cram_md5( CommonData, challenge, str );
 
-                        if ( put_message_line( ServerSocket, str ) )
+                        if ( put_message_line( CommonData, CommonData.ServerSocket, str ) )
                             break;
 
-                        retVal = get_imap_tagged_server_response( &responseStr, __T("a010") );
+                        retVal = get_imap_tagged_server_response( CommonData, &responseStr, __T("a010") );
                         if ( retVal < 0 ) {
                             responseStr.Free();
-                            close_server_socket();
-                            quiet = saved_quiet;
+                            close_server_socket( CommonData );
+                            CommonData.quiet = saved_quiet;
                             return( retVal );
                         }
                         _tcslwr( responseStr.Get() );
@@ -1585,26 +1508,26 @@ static int prefetch_smtp_info(LPTSTR wanted_hostname)
                     } else
                     if ( imapPlain ) {
                         responseStr = __T("a020 AUTHENTICATE PLAIN\r\n\0\"");
-                        if ( IMAPLogin.Get()[0] )
-                            responseStr.Add( IMAPLogin );
+                        if ( CommonData.IMAPLogin.Get()[0] )
+                            responseStr.Add( CommonData.IMAPLogin );
                         else
-                            responseStr.Add( AUTHLogin );
+                            responseStr.Add( CommonData.AUTHLogin );
 
                         responseStr.Add( __T("\"\0") );
-                        if ( IMAPPassword.Get()[0] )
-                            responseStr.Add( IMAPPassword );
+                        if ( CommonData.IMAPPassword.Get()[0] )
+                            responseStr.Add( CommonData.IMAPPassword );
                         else
-                            responseStr.Add( AUTHPassword );
+                            responseStr.Add( CommonData.AUTHPassword );
 
                         responseStr.Add( __T("\"\r\n") );
-                        if ( put_message_line( ServerSocket, responseStr.Get() ) )
+                        if ( put_message_line( CommonData, CommonData.ServerSocket, responseStr.Get() ) )
                             break;
 
-                        retVal = get_imap_tagged_server_response( &responseStr, __T("a020") );
+                        retVal = get_imap_tagged_server_response( CommonData, &responseStr, __T("a020") );
                         if ( retVal < 0 ) {
                             responseStr.Free();
-                            close_server_socket();
-                            quiet = saved_quiet;
+                            close_server_socket( CommonData );
+                            CommonData.quiet = saved_quiet;
                             return( retVal );
                         }
                         _tcslwr( responseStr.Get() );
@@ -1613,26 +1536,26 @@ static int prefetch_smtp_info(LPTSTR wanted_hostname)
                     } else
                     if ( imapLogin ) {
                         responseStr = __T("a030 LOGIN \"");
-                        if ( IMAPLogin.Get()[0] )
-                            responseStr.Add( IMAPLogin );
+                        if ( CommonData.IMAPLogin.Get()[0] )
+                            responseStr.Add( CommonData.IMAPLogin );
                         else
-                            responseStr.Add( AUTHLogin );
+                            responseStr.Add( CommonData.AUTHLogin );
 
                         responseStr.Add( __T("\" \"") );
-                        if ( IMAPPassword.Get()[0] )
-                            responseStr.Add( IMAPPassword );
+                        if ( CommonData.IMAPPassword.Get()[0] )
+                            responseStr.Add( CommonData.IMAPPassword );
                         else
-                            responseStr.Add( AUTHPassword );
+                            responseStr.Add( CommonData.AUTHPassword );
 
                         responseStr.Add( __T("\"\r\n") );
-                        if ( put_message_line( ServerSocket, responseStr.Get() ) )
+                        if ( put_message_line( CommonData, CommonData.ServerSocket, responseStr.Get() ) )
                             break;
 
-                        retVal = get_imap_tagged_server_response( &responseStr, __T("a030") );
+                        retVal = get_imap_tagged_server_response( CommonData, &responseStr, __T("a030") );
                         if ( retVal < 0 ) {
                             responseStr.Free();
-                            close_server_socket();
-                            quiet = saved_quiet;
+                            close_server_socket( CommonData );
+                            CommonData.quiet = saved_quiet;
                             return( retVal );
                         }
                         _tcslwr( responseStr.Get() );
@@ -1642,40 +1565,40 @@ static int prefetch_smtp_info(LPTSTR wanted_hostname)
                 }
                 break;
             }
-            // if ( !put_message_line( ServerSocket, __T("a003 STATUS \"INBOX\" (MESSAGES UNSEEN)\r\n") ) )
-            if ( !put_message_line( ServerSocket, __T("a097 SELECT \"INBOX\"\r\n") ) ) {
-                retVal = get_imap_tagged_server_response( NULL, __T("a097") );
+            // if ( !put_message_line( CommonData, CommonData.ServerSocket, __T("a003 STATUS \"INBOX\" (MESSAGES UNSEEN)\r\n") ) )
+            if ( !put_message_line( CommonData, CommonData.ServerSocket, __T("a097 SELECT \"INBOX\"\r\n") ) ) {
+                retVal = get_imap_tagged_server_response( CommonData, NULL, __T("a097") );
                 if ( retVal < 0 ) {
                     responseStr.Free();
-                    close_server_socket();
-                    quiet = saved_quiet;
+                    close_server_socket( CommonData );
+                    CommonData.quiet = saved_quiet;
                     return( retVal );
                 }
             }
 
-            if ( (IMAPLogin.Get()[0] || AUTHLogin.Get()[0] || IMAPPassword.Get()[0] || AUTHPassword.Get()[0]) && imapLogin ) {
-                if ( !put_message_line( ServerSocket, __T("a098 LOGOUT\r\n") ) ) {
-                    retVal = get_imap_tagged_server_response( NULL, __T("a098") );
+            if ( (CommonData.IMAPLogin.Get()[0] || CommonData.AUTHLogin.Get()[0] || CommonData.IMAPPassword.Get()[0] || CommonData.AUTHPassword.Get()[0]) && imapLogin ) {
+                if ( !put_message_line( CommonData, CommonData.ServerSocket, __T("a098 LOGOUT\r\n") ) ) {
+                    retVal = get_imap_tagged_server_response( CommonData, NULL, __T("a098") );
                 }
             } else
-                if ( !put_message_line( ServerSocket, __T("a099 BYE\r\n") ) ) {
-                    retVal = get_imap_tagged_server_response( NULL, __T("a099")  );
+                if ( !put_message_line( CommonData, CommonData.ServerSocket, __T("a099 BYE\r\n") ) ) {
+                    retVal = get_imap_tagged_server_response( CommonData, NULL, __T("a099")  );
                 }
 
             responseStr.Free();
-            close_server_socket();
+            close_server_socket( CommonData );
         }
-        quiet = saved_quiet;
+        CommonData.quiet = saved_quiet;
         if ( retVal < 0 )
             return( retVal );
     }
 #endif
 
-    return say_hello( wanted_hostname );
+    return say_hello( CommonData, wanted_hostname );
 }
 
 
-int send_email( size_t msgBodySize,
+int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
                 Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
                 LPTSTR attachment_boundary, LPTSTR multipartID,
                 int nbrOfAttachments, DWORD totalsize )
@@ -1686,7 +1609,7 @@ int send_email( size_t msgBodySize,
     Buf     header;
     Buf     tmpBuf;
     int     n_of_try;
-    int     retcode=0;
+    int     retcode;
     int     k;
     int     yEnc_This;
     LPTSTR  pp;
@@ -1695,37 +1618,38 @@ int send_email( size_t msgBodySize,
     BLDHDRS bldHdrs;
     int     userAuthenticated;
 
-    if ( !SMTPHost[0] || !Recipients.Length() )
+    retcode=0;
+    if ( !CommonData.SMTPHost[0] || !CommonData.Recipients.Length() )
         return(0);
 
-    bldHdrs.messageBuffer         = &messageBuffer;
-    bldHdrs.header                = &header;
-    bldHdrs.varHeaders            = &varHeaders;
-    bldHdrs.multipartHdrs         = &multipartHdrs;
-    bldHdrs.buildSMTP             = TRUE;
-    bldHdrs.lpszFirstReceivedData = &lpszFirstReceivedData;
-    bldHdrs.lpszOtherHeader       = &lpszOtherHeader;
-    bldHdrs.attachment_boundary   = attachment_boundary;
-    bldHdrs.multipartID           = multipartID;
-    bldHdrs.wanted_hostname       = my_hostname_wanted;
-    bldHdrs.server_name           = SMTPHost;
-    bldHdrs.nbrOfAttachments      = nbrOfAttachments;
-    bldHdrs.addBccHeader          = FALSE;
+    bldHdrs.messageBuffer          = &messageBuffer;
+    bldHdrs.header                 = &header;
+    bldHdrs.varHeaders             = &varHeaders;
+    bldHdrs.multipartHdrs          = &multipartHdrs;
+    bldHdrs.buildSMTP              = TRUE;
+    bldHdrs.lpszFirstReceivedData  = &lpszFirstReceivedData;
+    bldHdrs.lpszOtherHeader        = &lpszOtherHeader;
+    bldHdrs.attachment_boundary    = attachment_boundary;
+    bldHdrs.multipartID            = multipartID;
+    bldHdrs.wanted_hostname        = CommonData.my_hostname_wanted;
+    bldHdrs.server_name            = CommonData.SMTPHost;
+    bldHdrs.nbrOfAttachments       = nbrOfAttachments;
+    bldHdrs.addBccHeader           = FALSE;
 
-    maxMessageSize      = 0;
+    CommonData.maxMessageSize      = 0;
 
-    commandPipelining   =
-    plainAuthSupported  =
-    loginAuthSupported  = FALSE;
+    CommonData.commandPipelining   =
+    CommonData.plainAuthSupported  =
+    CommonData.loginAuthSupported  = FALSE;
 
-    userAuthenticated   = FALSE;
+    userAuthenticated = FALSE;
 #if BLAT_LITE
 #else
-    binaryMimeSupported = 0;
+    CommonData.binaryMimeSupported = 0;
 #endif
 
 #if INCLUDE_POP3
-    xtnd_xmit_supported = FALSE;
+    CommonData.xtnd_xmit_supported = FALSE;
 #endif
 
 #if defined(_UNICODE) || defined(UNICODE)
@@ -1733,66 +1657,66 @@ int send_email( size_t msgBodySize,
     int tmpUTF;
 
     tmpBuf.Clear();
-    tmpBuf2 = AUTHLogin;
+    tmpBuf2 = CommonData.AUTHLogin;
     tmpUTF = NATIVE_16BIT_UTF;
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
     if ( tmpUTF )
-        AUTHLogin = tmpBuf;
+        CommonData.AUTHLogin = tmpBuf;
 
     tmpBuf.Clear();
-    tmpBuf2 = AUTHPassword;
+    tmpBuf2 = CommonData.AUTHPassword;
     tmpUTF = NATIVE_16BIT_UTF;
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
     if ( tmpUTF )
-        AUTHPassword = tmpBuf;
+        CommonData.AUTHPassword = tmpBuf;
 
   #if INCLUDE_POP3
     tmpBuf.Clear();
-    tmpBuf2 = POP3Login;
+    tmpBuf2 = CommonData.POP3Login;
     tmpUTF = NATIVE_16BIT_UTF;
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
     if ( tmpUTF )
-        POP3Login = tmpBuf;
+        CommonData.POP3Login = tmpBuf;
 
     tmpBuf.Clear();
-    tmpBuf2 = POP3Password;
+    tmpBuf2 = CommonData.POP3Password;
     tmpUTF = NATIVE_16BIT_UTF;
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
     if ( tmpUTF )
-        POP3Password = tmpBuf;
+        CommonData.POP3Password = tmpBuf;
   #endif
 
   #if INCLUDE_IMAP
     tmpBuf.Clear();
-    tmpBuf2 = IMAPLogin;
+    tmpBuf2 = CommonData.IMAPLogin;
     tmpUTF = NATIVE_16BIT_UTF;
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
     if ( tmpUTF )
-        IMAPLogin = tmpBuf;
+        CommonData.IMAPLogin = tmpBuf;
 
     tmpBuf.Clear();
-    tmpBuf2 = IMAPPassword;
+    tmpBuf2 = CommonData.IMAPPassword;
     tmpUTF = NATIVE_16BIT_UTF;
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
     if ( tmpUTF )
-        IMAPPassword = tmpBuf;
+        CommonData.IMAPPassword = tmpBuf;
   #endif
 
     tmpBuf2.Free();
 #endif
 
-    retcode = prefetch_smtp_info( my_hostname_wanted );
-//    printMsg( __T(" ... prefetch_smtp_info() returned %d\n"), retcode );
+    retcode = prefetch_smtp_info( CommonData, CommonData.my_hostname_wanted );
+//    printMsg( CommonData, __T(" ... prefetch_smtp_info() returned %d\n"), retcode );
     if ( retcode )
         return retcode;
 
 #if INCLUDE_POP3
-    if ( xtnd_xmit_supported ) {
+    if ( CommonData.xtnd_xmit_supported ) {
         bldHdrs.addBccHeader = TRUE;
   #if SUPPORT_MULTIPART
-        maxMessageSize = 0;
-        multipartSize  = 0;
-        disableMPS     = TRUE;
+        CommonData.maxMessageSize = 0;
+        CommonData.multipartSize  = 0;
+        CommonData.disableMPS     = TRUE;
   #endif
     }
 #endif
@@ -1800,32 +1724,32 @@ int send_email( size_t msgBodySize,
     serverOpen = 1;
 
 #if SUPPORT_YENC
-    yEnc_This = yEnc;
-    if ( !eightBitMimeSupported && !binaryMimeSupported )
+    yEnc_This = CommonData.yEnc;
+    if ( !CommonData.eightBitMimeSupported && !CommonData.binaryMimeSupported )
 #endif
         yEnc_This = FALSE;
 
 #if SUPPORT_MULTIPART
     DWORD msgSize = (DWORD)(-1);
 
-    if ( maxMessageSize ) {
-        if ( multipartSize && !disableMPS ) {
-            if ( maxMessageSize < multipartSize )
-                msgSize = (DWORD)maxMessageSize;
+    if ( CommonData.maxMessageSize ) {
+        if ( CommonData.multipartSize && !CommonData.disableMPS ) {
+            if ( CommonData.maxMessageSize < CommonData.multipartSize )
+                msgSize = CommonData.maxMessageSize;
             else
-                msgSize = (DWORD)multipartSize;
+                msgSize = CommonData.multipartSize;
         } else
-            msgSize = (DWORD)maxMessageSize;
+            msgSize = CommonData.maxMessageSize;
     } else
-        if ( multipartSize && !disableMPS  )
-            msgSize = (DWORD)multipartSize;
+        if ( CommonData.multipartSize && !CommonData.disableMPS  )
+            msgSize = CommonData.multipartSize;
 
-    getMaxMsgSize( TRUE, msgSize );
+    getMaxMsgSize( CommonData, TRUE, msgSize );
 
-    if ( disableMPS && (totalsize > msgSize) ) {
-        server_warning( __T("Message is too big to send.  Please try a smaller message.\n") );
-        finish_server_message();
-        close_server_socket();
+    if ( CommonData.disableMPS && (totalsize > msgSize) ) {
+        server_warning( CommonData, __T("Message is too big to send.  Please try a smaller message.\n") );
+        finish_server_message(CommonData);
+        close_server_socket( CommonData );
         serverOpen = 0;
         return 14;
     }
@@ -1844,12 +1768,12 @@ int send_email( size_t msgBodySize,
         DWORD    startOffset;
 
         if ( totalParts > 1 )
-            printMsg( __T("Sending %lu parts for this message.\n"), totalParts );
+            printMsg( CommonData, __T("Sending %lu parts for this message.\n"), totalParts );
 
         prevAttachType = -1;
         partsCount = 0;
         for ( attachNbr = 0; attachNbr < nbrOfAttachments; attachNbr++ ) {
-            getAttachmentInfo( attachNbr, attachName, attachSize, attachType );
+            getAttachmentInfo( CommonData, attachNbr, attachName, attachSize, attachType );
             partsCount = (int)(attachSize / msgSize);
             if ( attachSize % msgSize )
                 partsCount++;
@@ -1867,11 +1791,11 @@ int send_email( size_t msgBodySize,
         // mixed encoding types properly.
 
         if ( partsCount > 1 ) {
-            formattedContent = TRUE;
+            CommonData.formattedContent = TRUE;
             if ( !yEnc_This ) {
-                mime     = FALSE;
-                base64   = FALSE;
-                uuencode = TRUE;
+                CommonData.mime     = FALSE;
+                CommonData.base64   = FALSE;
+                CommonData.uuencode = TRUE;
             }
         }
 
@@ -1879,27 +1803,27 @@ int send_email( size_t msgBodySize,
             if ( retcode )
                 break;
 
-            if ( attachNbr && delayBetweenMsgs ) {
+            if ( attachNbr && CommonData.delayBetweenMsgs ) {
                 if ( serverOpen ) {
-                    close_server_socket();
+                    close_server_socket( CommonData );
                     serverOpen = 0;
                     userAuthenticated = FALSE;
                 }
-                printMsg( __T("*** Delay %d seconds...\n"), delayBetweenMsgs );
-                Sleep( delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
+                printMsg( CommonData, __T("*** Delay %d seconds...\n"), CommonData.delayBetweenMsgs );
+                Sleep( CommonData.delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
             }
 
-            n_of_try = noftry();
+            n_of_try = noftry(CommonData);
             for ( k = 1; (k <= n_of_try) || (n_of_try == -1); k++ ) {
                 retcode = 0;
                 if ( !serverOpen )
-                    retcode = say_hello( my_hostname_wanted );
+                    retcode = say_hello( CommonData, CommonData.my_hostname_wanted );
 
                 if ( retcode == 0 ) {
                     serverOpen = 1;
                     if ( !userAuthenticated ) {
-//                        printMsg( __T(" ... Attempting to authenticate to the server.\n") );
-                        retcode = authenticate_smtp_user( AUTHLogin.Get(), AUTHPassword.Get() );
+//                        printMsg( CommonData, __T(" ... Attempting to authenticate to the server.\n") );
+                        retcode = authenticate_smtp_user( CommonData, CommonData.AUTHLogin.Get(), CommonData.AUTHPassword.Get() );
                         if ( retcode == 0 )
                             userAuthenticated = TRUE;
                     }
@@ -1909,14 +1833,14 @@ int send_email( size_t msgBodySize,
                     break;
             }
 
-            getAttachmentInfo( attachNbr, attachName, attachSize, attachType );
+            getAttachmentInfo( CommonData, attachNbr, attachName, attachSize, attachType );
             partsCount = (int)(attachSize / msgSize);
             if ( attachSize % msgSize )
                 partsCount++;
 
             header.Clear();
             startOffset = 0;
-            boundaryPosted = FALSE;
+            CommonData.boundaryPosted = FALSE;
             for ( thisPart = 0; thisPart < partsCount; ) {
                 DWORD length;
 
@@ -1929,8 +1853,8 @@ int send_email( size_t msgBodySize,
                 bldHdrs.attachName = attachName;
                 bldHdrs.attachSize = attachSize;
 
-                build_headers( bldHdrs );
-                retcode= add_message_body( messageBuffer, msgBodySize, multipartHdrs, TRUE,
+                build_headers( CommonData, bldHdrs );
+                retcode= add_message_body( CommonData, messageBuffer, msgBodySize, multipartHdrs, TRUE,
                                            attachment_boundary, startOffset, thisPart, attachNbr );
                 if ( retcode )
                     return retcode;
@@ -1941,23 +1865,23 @@ int send_email( size_t msgBodySize,
                 if ( length > (attachSize - startOffset) )
                     length = attachSize - startOffset;
 
-                retcode = add_one_attachment( messageBuffer, TRUE, attachment_boundary,
+                retcode = add_one_attachment( CommonData, messageBuffer, TRUE, attachment_boundary,
                                               startOffset, length, thisPart, partsCount,
                                               attachNbr, &prevAttachType );
                 if ( thisPart == partsCount )
-                    add_msg_boundary( messageBuffer, TRUE, attachment_boundary );
+                    add_msg_boundary( CommonData, messageBuffer, TRUE, attachment_boundary );
 
                 multipartHdrs.Clear();
                 if ( retcode )
                     return retcode;
 
                 namesFound = 0;
-                parse_email_addresses (Recipients.Get(), tmpBuf);
+                parse_email_addresses (CommonData, CommonData.Recipients.Get(), tmpBuf);
                 pp = tmpBuf.Get();
                 if ( !pp || (*pp == __T('\0')) ) {
-                    server_error( __T("No email address was found for recipients.\n") \
-                                  __T("Have you set the 'To:' field correctly?\n") );
-                    finish_server_message();
+                    server_error( CommonData, __T("No email address was found for recipients.\n") \
+                                              __T("Have you set the 'To:' field correctly?\n") );
+                    finish_server_message(CommonData);
                     return(-2);
                 }
                 for ( ; *pp != __T('\0'); namesFound++ )
@@ -1967,13 +1891,13 @@ int send_email( size_t msgBodySize,
                 for ( namesProcessed = 0; namesProcessed < namesFound; ) {
                     Buf holdingBuf;
 
-                    if ( namesProcessed && delayBetweenMsgs ) {
-                        printMsg( __T("*** Delay %d seconds...\n"), delayBetweenMsgs );
-                        Sleep( delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
+                    if ( namesProcessed && CommonData.delayBetweenMsgs ) {
+                        printMsg( CommonData, __T("*** Delay %d seconds...\n"), CommonData.delayBetweenMsgs );
+                        Sleep( CommonData.delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
                     }
 
-                    if ( maxNames <= 0 )
-                        holdingBuf.Add( Recipients );
+                    if ( CommonData.maxNames <= 0 )
+                        holdingBuf.Add( CommonData.Recipients );
                     else {
                         int x;
 
@@ -1981,7 +1905,7 @@ int send_email( size_t msgBodySize,
                         for ( x = 0; x < namesProcessed; x++ )
                             pp += _tcslen( pp ) + 1;
 
-                        for ( x = 0; (x < maxNames) && *pp; x++ ) {
+                        for ( x = 0; (x < CommonData.maxNames) && *pp; x++ ) {
                             if ( x )
                                 holdingBuf.Add( __T(',') );
 
@@ -1991,24 +1915,24 @@ int send_email( size_t msgBodySize,
                     }
 
                     // send the message to the SMTP server!
-                    n_of_try = noftry();
+                    n_of_try = noftry(CommonData);
                     for ( k = 1; (k <= n_of_try) || (n_of_try == -1); k++ ) {
                         if ( n_of_try > 1 )
-                            printMsg( __T("Try number %d of %d.\n"), k, n_of_try);
+                            printMsg(CommonData, __T("Try number %d of %d.\n"), k, n_of_try);
 
                         if ( k > 1 ) Sleep(15000);
 
                         if ( 0 == retcode )
-                            retcode = prepare_smtp_message( holdingBuf.Get(), (DWORD)messageBuffer.Length() );
+                            retcode = prepare_smtp_message( CommonData, holdingBuf.Get(), (DWORD)messageBuffer.Length() );
 
                         if ( 0 == retcode ) {
                             if ( partsCount > 1 )
-                                printMsg( __T("Sending part %d of %d\n"), thisPart, partsCount );
+                                printMsg( CommonData, __T("Sending part %d of %d\n"), thisPart, partsCount );
 
 #ifdef BLATDLL_TC_WCX
-                            retcode = send_edit_data( messageBuffer.Get(), 250, NULL, totalsize - msgBodySize );
+                            retcode = send_edit_data( CommonData, messageBuffer.Get(), 250, NULL, totalsize - msgBodySize );
 #else
-                            retcode = send_edit_data( messageBuffer.Get(), 250, NULL );
+                            retcode = send_edit_data( CommonData, messageBuffer.Get(), 250, NULL );
 #endif
                             if ( 0 == retcode ) {
                                 n_of_try = 1;
@@ -2025,10 +1949,10 @@ int send_email( size_t msgBodySize,
                     }
 
                     if ( k > n_of_try ) {
-                        if ( maxNames <= 0 )
+                        if ( CommonData.maxNames <= 0 )
                             namesProcessed = namesFound;
                         else
-                            namesProcessed += maxNames;
+                            namesProcessed += CommonData.maxNames;
                     }
                     holdingBuf.Free();
                 }
@@ -2036,18 +1960,18 @@ int send_email( size_t msgBodySize,
                 tmpBuf.Free();
             }
         }
-        finish_server_message();
-        close_server_socket();
+        finish_server_message(CommonData);
+        close_server_socket( CommonData );
         serverOpen = 0;
     } else
 #else
     multipartID = multipartID;
 
-    if ( maxMessageSize ) {
-        if ( disableMPS && (totalsize > maxMessageSize) ) {
-            server_warning( __T("Message is too big to send.  Please try a smaller message.\n") );
-            finish_server_message();
-            close_server_socket();
+    if ( CommonData.maxMessageSize ) {
+        if ( CommonData.disableMPS && (totalsize > CommonData.maxMessageSize) ) {
+            server_warning( CommonData, __T("Message is too big to send.  Please try a smaller message.\n") );
+            finish_server_message(CommonData);
+            close_server_socket( CommonData );
             serverOpen = 0;
             return 14;
         }
@@ -2055,7 +1979,7 @@ int send_email( size_t msgBodySize,
 #endif
     {
         // send a single message.
-        boundaryPosted = FALSE;
+        CommonData.boundaryPosted = FALSE;
 
         bldHdrs.part             = 0;
         bldHdrs.totalparts       = 0;
@@ -2064,53 +1988,53 @@ int send_email( size_t msgBodySize,
         bldHdrs.attachSize       = 0;
         bldHdrs.attachName       = NULL;
 
-//        printMsg( __T(" ... calling build_headers()\n") );
-        build_headers( bldHdrs );
-//        printMsg( __T(" ... calling add_message_body(), body size = %lu\n"), msgBodySize );
-        retcode = add_message_body( messageBuffer, msgBodySize, multipartHdrs, TRUE,
+//        printMsg( CommonData, __T(" ... calling build_headers()\n") );
+        build_headers( CommonData, bldHdrs );
+//        printMsg( CommonData, __T(" ... calling add_message_body(), body size = %lu\n"), msgBodySize );
+        retcode = add_message_body( CommonData, messageBuffer, msgBodySize, multipartHdrs, TRUE,
                                     attachment_boundary, 0, 0, 0 );
-//        printMsg( __T(" ... add_message_body() returned %d\n"), retcode );
+//        printMsg( CommonData, __T(" ... add_message_body() returned %d\n"), retcode );
         if ( retcode )
             return retcode;
 
         if ( nbrOfAttachments ) {
-//            printMsg( __T(" ... adding %d attachments\n"), nbrOfAttachments );
-            retcode = add_attachments( messageBuffer, TRUE, attachment_boundary, nbrOfAttachments );
-            add_msg_boundary( messageBuffer, TRUE, attachment_boundary );
+//            printMsg( CommonData, __T(" ... adding %d attachments\n"), nbrOfAttachments );
+            retcode = add_attachments( CommonData, messageBuffer, TRUE, attachment_boundary, nbrOfAttachments );
+            add_msg_boundary( CommonData, messageBuffer, TRUE, attachment_boundary );
 
-//            printMsg( __T(" ... add_attachments() returned %d\n"), retcode );
+//            printMsg( CommonData, __T(" ... add_attachments() returned %d\n"), retcode );
             if ( retcode )
                 return retcode;
         }
 
         namesFound = 0;
-//        printMsg( __T(" ... parsing email addresses(), %s\n"), Recipients.Get() );
-        parse_email_addresses (Recipients.Get(), tmpBuf);
+//        printMsg( CommonData, __T(" ... parsing email addresses(), %s\n"), CommonData.Recipients.Get() );
+        parse_email_addresses (CommonData, CommonData.Recipients.Get(), tmpBuf);
         pp = tmpBuf.Get();
         if ( pp ) {
             for ( ; *pp != __T('\0'); namesFound++ )
                 pp += _tcslen( pp ) + 1;
         }
 
-//        printMsg( __T(" ... number of names found = %d\n"), namesFound );
-//        printMsg( __T(" ... delay between messages = %d seconds\n"), delayBetweenMsgs );
+//        printMsg( CommonData, __T(" ... number of names found = %d\n"), namesFound );
+//        printMsg( CommonData, __T(" ... delay between messages = %d seconds\n"), CommonData.delayBetweenMsgs );
         // send the message to the SMTP server!
         for ( namesProcessed = 0; namesProcessed < namesFound; ) {
             Buf holdingBuf;
 
-            if ( namesProcessed && delayBetweenMsgs ) {
+            if ( namesProcessed && CommonData.delayBetweenMsgs ) {
                 if ( serverOpen ) {
-                    close_server_socket();
+                    close_server_socket( CommonData );
                     serverOpen = 0;
                     userAuthenticated = FALSE;
                 }
-                printMsg( __T("*** Delay %d seconds...\n"), delayBetweenMsgs );
-                Sleep( delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
+                printMsg( CommonData, __T("*** Delay %d seconds...\n"), CommonData.delayBetweenMsgs );
+                Sleep( CommonData.delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
             }
 
             holdingBuf.Clear();
-            if ( maxNames <= 0 )
-                holdingBuf.Add( Recipients );
+            if ( CommonData.maxNames <= 0 )
+                holdingBuf.Add( CommonData.Recipients );
             else {
                 int x;
 
@@ -2118,7 +2042,7 @@ int send_email( size_t msgBodySize,
                 for ( x = 0; x < namesProcessed; x++ )
                     pp += _tcslen( pp ) + 1;
 
-                for ( x = 0; (x < maxNames) && *pp; x++ ) {
+                for ( x = 0; (x < CommonData.maxNames) && *pp; x++ ) {
                     if ( x )
                         holdingBuf.Add( __T(',') );
 
@@ -2127,57 +2051,57 @@ int send_email( size_t msgBodySize,
                 }
             }
 
-            n_of_try = noftry();
-//            printMsg( __T(" ... number of try attempts is %d\n"), n_of_try );
-//            printMsg( __T(" ... server connection is%s open\n"), serverOpen ? __T("") : __T(" not") );
+            n_of_try = noftry(CommonData);
+//            printMsg( CommonData, __T(" ... number of try attempts is %d\n"), n_of_try );
+//            printMsg( CommonData, __T(" ... server connection is%s open\n"), serverOpen ? __T("") : __T(" not") );
             for ( k = 1; (k <= n_of_try) || (n_of_try == -1); k++ ) {
                 int anticipatedNameCount;
 
-                if ( maxNames <= 0 )
+                if ( CommonData.maxNames <= 0 )
                     anticipatedNameCount = namesFound;
                 else
-                    anticipatedNameCount = namesProcessed + maxNames;
+                    anticipatedNameCount = namesProcessed + CommonData.maxNames;
 
                 if ( n_of_try > 1 )
-                    printMsg( __T("Try number %d of %d.\n"), k, n_of_try);
+                    printMsg(CommonData, __T("Try number %d of %d.\n"), k, n_of_try);
 
                 if ( k > 1 ) Sleep(15000);
 
                 retcode = 0;
                 if ( !serverOpen )
-                    retcode = say_hello( my_hostname_wanted );
+                    retcode = say_hello( CommonData, CommonData.my_hostname_wanted );
 
                 if ( 0 == retcode ) {
                     serverOpen = 1;
                     if ( !userAuthenticated ) {
-//                        printMsg( __T(" ... Attempting to authenticate to server.\n") );
-                        retcode = authenticate_smtp_user( AUTHLogin.Get(), AUTHPassword.Get() );
+//                        printMsg( CommonData, __T(" ... Attempting to authenticate to server.\n") );
+                        retcode = authenticate_smtp_user( CommonData, CommonData.AUTHLogin.Get(), CommonData.AUTHPassword.Get() );
                         if ( 0 == retcode )
                             userAuthenticated = TRUE;
                     }
                 }
 
                 if ( 0 == retcode )
-                    retcode = prepare_smtp_message( holdingBuf.Get(), (DWORD)messageBuffer.Length() );
+                    retcode = prepare_smtp_message( CommonData, holdingBuf.Get(), (DWORD)messageBuffer.Length() );
 
                 if ( 0 == retcode ) {
 #if INCLUDE_POP3
-                    if ( xtnd_xmit_supported )
+                    if ( CommonData.xtnd_xmit_supported )
   #ifdef BLATDLL_TC_WCX
-                        retcode = send_edit_data( messageBuffer.Get(), NULL, totalsize - msgBodySize );
+                        retcode = send_edit_data( CommonData, messageBuffer.Get(), NULL, totalsize - msgBodySize );
   #else
-                        retcode = send_edit_data( messageBuffer.Get(), NULL );
+                        retcode = send_edit_data( CommonData, messageBuffer.Get(), NULL );
   #endif
                     else
 #endif
 #ifdef BLATDLL_TC_WCX
-                        retcode = send_edit_data( messageBuffer.Get(), 250, NULL, totalsize - msgBodySize );
+                        retcode = send_edit_data( CommonData, messageBuffer.Get(), 250, NULL, totalsize - msgBodySize );
 #else
-                        retcode = send_edit_data( messageBuffer.Get(), 250, NULL );
+                        retcode = send_edit_data( CommonData, messageBuffer.Get(), 250, NULL );
 #endif
                     if ( 0 == retcode ) {
                         if ( anticipatedNameCount >= namesFound )
-                            finish_server_message();
+                            finish_server_message(CommonData);
 
                         n_of_try = 1;
                         k = 2;
@@ -2189,23 +2113,23 @@ int send_email( size_t msgBodySize,
                     k = 2;
                 }
                 if ( anticipatedNameCount >= namesFound ) {
-                    close_server_socket();
+                    close_server_socket( CommonData );
                     serverOpen = 0;
                 }
             }
 
             if ( k > n_of_try ) {
-                if ( maxNames <= 0 )
+                if ( CommonData.maxNames <= 0 )
                     namesProcessed = namesFound;
                 else
-                    namesProcessed += maxNames;
+                    namesProcessed += CommonData.maxNames;
             }
             holdingBuf.Free();
         }
     }
 
 #if SUPPORT_SALUTATIONS
-    salutation.Free();
+    CommonData.salutation.Free();
 #endif
 
     tmpBuf.Free();

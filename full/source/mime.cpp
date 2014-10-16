@@ -9,19 +9,15 @@
 #include <stdio.h>
 
 #include "blat.h"
-
-#if BLAT_LITE
-#else
-extern _TCHAR eightBitMimeSupported;
-extern _TCHAR eightBitMimeRequested;
-extern _TCHAR binaryMimeSupported;
-//extern _TCHAR binaryMimeRequested;
-#endif
+#include "common_data.h"
 
 // MIME Quoted-Printable Content-Transfer-Encoding
 
-int CheckIfNeedQuotedPrintable(LPTSTR pszStr, int inHeader)
+int CheckIfNeedQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHeader)
 {
+#if BLAT_LITE
+    CommonData = CommonData;
+#endif
     /* get the length of a line created that way */
     int i;
 
@@ -54,15 +50,15 @@ int CheckIfNeedQuotedPrintable(LPTSTR pszStr, int inHeader)
                      (pszStr[i+1] == __T('\n')) ) {
 #if BLAT_LITE
 #else
-                    if ( binaryMimeSupported < 2 )
+                    if ( CommonData.binaryMimeSupported < 2 )
 #endif
                         return (TRUE);
                 }
             } else
 #if BLAT_LITE
 #else
-            if ( binaryMimeSupported /* && binaryMimeRequested */ ) {
-                if ( !pszStr[i] || ((binaryMimeSupported < 2) && (pszStr[i] == __T('='))) ) {
+            if ( CommonData.binaryMimeSupported /* && CommonData.binaryMimeRequested */ ) {
+                if ( !pszStr[i] || ((CommonData.binaryMimeSupported < 2) && (pszStr[i] == __T('='))) ) {
                     return (TRUE);
                 }
             } else
@@ -91,7 +87,7 @@ int CheckIfNeedQuotedPrintable(LPTSTR pszStr, int inHeader)
             if ( ((_TUCHAR)pszStr[i] > __T('\x7F'))
 #if BLAT_LITE
 #else
-                  && (!eightBitMimeSupported || !eightBitMimeRequested)
+                  && (!CommonData.eightBitMimeSupported || !CommonData.eightBitMimeRequested)
 #endif
                ) {
                 return (TRUE);
@@ -102,12 +98,15 @@ int CheckIfNeedQuotedPrintable(LPTSTR pszStr, int inHeader)
     return(FALSE);
 }
 
-int GetLengthQuotedPrintable(LPTSTR pszStr, int inHeader)
+int GetLengthQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHeader)
 {
     /* get the length of a line created that way */
     int i;
     int iLen;
 
+#if BLAT_LITE
+    CommonData = CommonData;
+#endif
     iLen = 0;
     if ( inHeader ) {  // 8bit MIME does apply to header information.
         for ( i = 0; pszStr[i]; i++ ) {
@@ -150,7 +149,7 @@ int GetLengthQuotedPrintable(LPTSTR pszStr, int inHeader)
                      (pszStr[i+1] == __T('\n')) ) {
 #if BLAT_LITE
 #else
-                    if ( binaryMimeSupported == 2 )
+                    if ( CommonData.binaryMimeSupported == 2 )
                         iLen++;
                     else
 #endif
@@ -160,8 +159,8 @@ int GetLengthQuotedPrintable(LPTSTR pszStr, int inHeader)
             } else
 #if BLAT_LITE
 #else
-            if ( binaryMimeSupported /* && binaryMimeRequested */ ) {
-                if ( !pszStr[i] || ((binaryMimeSupported < 2) && (pszStr[i] == __T('='))) ) {
+            if ( CommonData.binaryMimeSupported /* && CommonData.binaryMimeRequested */ ) {
+                if ( !pszStr[i] || ((CommonData.binaryMimeSupported < 2) && (pszStr[i] == __T('='))) ) {
                     iLen += 3;
                 } else
                     iLen++;
@@ -190,7 +189,7 @@ int GetLengthQuotedPrintable(LPTSTR pszStr, int inHeader)
             if ( (pszStr[i] > __T('\x7F') )
 #if BLAT_LITE
 #else
-                  && (!eightBitMimeSupported || !eightBitMimeRequested)
+                  && (!CommonData.eightBitMimeSupported || !CommonData.eightBitMimeRequested)
 #endif
                ) {
                 iLen += 3;
@@ -203,13 +202,16 @@ int GetLengthQuotedPrintable(LPTSTR pszStr, int inHeader)
     return(iLen);
 }
 
-void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
+void ConvertToQuotedPrintable(COMMON_DATA & CommonData, Buf & source, Buf & out, int inHeader)
 {
     size_t length;
     int    CurrPos;
     LPTSTR pszStr;
     _TCHAR tmpstr[4];
 
+#if BLAT_LITE
+    CommonData = CommonData;
+#endif
     pszStr = source.Get();
     length = source.Length();
 
@@ -270,7 +272,7 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
                      (*pszStr == __T('\n')) ) {
 #if BLAT_LITE
 #else
-                    if ( binaryMimeSupported == 2 ) {
+                    if ( CommonData.binaryMimeSupported == 2 ) {
                         out.Add( ThisChar );
                         CurrPos++;
                     } else
@@ -287,8 +289,8 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
             } else
 #if BLAT_LITE
 #else
-            if ( binaryMimeSupported /* && binaryMimeRequested */ ) {
-                if ( !ThisChar || ((binaryMimeSupported < 2) && (ThisChar == __T('='))) ) {
+            if ( CommonData.binaryMimeSupported /* && CommonData.binaryMimeRequested */ ) {
+                if ( !ThisChar || ((CommonData.binaryMimeSupported < 2) && (ThisChar == __T('='))) ) {
                     _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar & 0xFF );
                     out.Add( tmpstr );
                     CurrPos += 3;
@@ -322,7 +324,7 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
             if ( ((ThisChar < 0) || (ThisChar > 127))
 #if BLAT_LITE
 #else
-                 && (!eightBitMimeSupported || !eightBitMimeRequested)
+                 && (!CommonData.eightBitMimeSupported || !CommonData.eightBitMimeRequested)
 #endif
                ) {
                 _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar & 0xFF );

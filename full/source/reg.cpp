@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "blat.h"
+#include "common_data.h"
 
 
 #ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
@@ -26,40 +27,20 @@ extern void (*pMyPrintDLL)(LPTSTR);
 
 extern void base64_encode(_TUCHAR * in, size_t length, LPTSTR out, int inclCrLf);
 extern int  base64_decode(_TUCHAR * in, LPTSTR out);
-extern void printMsg( LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
+extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
 
-extern _TCHAR       SMTPHost[];
-extern _TCHAR       SMTPPort[];
 extern LPTSTR       defaultSMTPPort;
 
 #if INCLUDE_NNTP
-extern _TCHAR       NNTPHost[];
-extern _TCHAR       NNTPPort[];
 extern LPTSTR       defaultNNTPPort;
 #endif
 
 #if INCLUDE_POP3
-extern _TCHAR       POP3Host[];
-extern _TCHAR       POP3Port[];
 extern LPTSTR       defaultPOP3Port;
 #endif
 #if INCLUDE_IMAP
-extern _TCHAR       IMAPHost[];
-extern _TCHAR       IMAPPort[];
 extern LPTSTR       defaultIMAPPort;
 #endif
-
-extern Buf          AUTHLogin;
-extern Buf          AUTHPassword;
-extern Buf          POP3Login;
-extern Buf          POP3Password;
-extern Buf          IMAPLogin;
-extern Buf          IMAPPassword;
-extern _TCHAR       Try[];
-extern Buf          Sender;
-extern _TCHAR       quiet;
-
-_TCHAR              Profile[TRY_SIZE+1];
 
 static const _TCHAR SoftwareRegKey[]     = __T("SOFTWARE");
 
@@ -232,7 +213,7 @@ static void encodeThis( _TUCHAR * in, LPTSTR out, int inclCrLf )
 #define decodeThis(s,o)      base64_decode((_TUCHAR *)(s), (o))
 
 // create registry entries for this program
-static int CreateRegEntry( HKEY rootKeyLevel )
+static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
 {
     HKEY   hKey1;
     DWORD  dwDisposition;
@@ -242,9 +223,9 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
 #if defined(_WIN64)
     _stprintf(strRegisterKey, __T("%s%s%s"), SoftwareRegKey, Wow6432NodeKey, MainRegKey);
-    if ( Profile[0] != __T('\0') ) {
+    if ( CommonData.Profile[0] != __T('\0') ) {
         _tcscat(strRegisterKey, __T("\\"));
-        _tcscat(strRegisterKey, Profile);
+        _tcscat(strRegisterKey, CommonData.Profile);
     }
 
     /* try to create the .INI file key */
@@ -258,9 +239,9 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 #endif
     {
         _stprintf(strRegisterKey, __T("%s%s"), SoftwareRegKey, MainRegKey);
-        if ( Profile[0] != __T('\0') ) {
+        if ( CommonData.Profile[0] != __T('\0') ) {
             _tcscat(strRegisterKey, __T("\\"));
-            _tcscat(strRegisterKey, Profile);
+            _tcscat(strRegisterKey, CommonData.Profile);
         }
 
         /* try to create the .INI file key */
@@ -272,7 +253,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
     /* if we failed, note it, and leave */
     if ( lRetCode != ERROR_SUCCESS ) {
-        if ( !quiet ) {
+        if ( !CommonData.quiet ) {
             if ( (lRetCode == ERROR_CANTWRITE) || (lRetCode == ERROR_ACCESS_DENIED) )
                 pMyPrintDLL( __T("Write access to the registry was denied.\n") );
             else
@@ -282,174 +263,174 @@ static int CreateRegEntry( HKEY rootKeyLevel )
         return(10);
     }
 
-    if ( SMTPHost[0] ) {
-        if ( !_tcscmp(SMTPHost, __T("-")) ) {
-            SMTPHost[0] = __T('\0');
-            SMTPPort[0] = __T('\0');
+    if ( CommonData.SMTPHost[0] ) {
+        if ( !_tcscmp(CommonData.SMTPHost, __T("-")) ) {
+            CommonData.SMTPHost[0] = __T('\0');
+            CommonData.SMTPPort[0] = __T('\0');
         }
 
         /* try to set a section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeySMTPHost, 0, REG_SZ, (LPBYTE)SMTPHost, (DWORD)((_tcslen(SMTPHost)+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeySMTPHost, 0, REG_SZ, (LPBYTE)CommonData.SMTPHost, (DWORD)((_tcslen(CommonData.SMTPHost)+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting SMTP server value in the registry\n"));
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting SMTP server value in the registry\n"));
             return(11);
         }
 
         /* try to set another section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeySMTPPort, 0, REG_SZ, (LPBYTE)SMTPPort, (DWORD)((_tcslen(SMTPPort)+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeySMTPPort, 0, REG_SZ, (LPBYTE)CommonData.SMTPPort, (DWORD)((_tcslen(CommonData.SMTPPort)+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
             return(11);
         }
 
         /* try to set another section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeyTry, 0, REG_SZ, (LPBYTE)Try, (DWORD)((_tcslen(Try)+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeyTry, 0, REG_SZ, (LPBYTE)CommonData.Try, (DWORD)((_tcslen(CommonData.Try)+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting number of try value in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting number of try value in the registry\n") );
             return(11);
         }
 
         /* try to set another section value */
-        encodeThis( (_TUCHAR *)AUTHLogin.Get(), tmpstr, FALSE );
+        encodeThis( (_TUCHAR *)CommonData.AUTHLogin.Get(), tmpstr, FALSE );
         lRetCode = RegSetValueEx( hKey1, RegKeyLogin, 0, REG_SZ, (LPBYTE)tmpstr, (DWORD)((_tcslen(tmpstr)+1)*sizeof(_TCHAR)) );
 
         /* try to set another section value */
-        encodeThis( (_TUCHAR *)AUTHPassword.Get(), tmpstr, FALSE );
+        encodeThis( (_TUCHAR *)CommonData.AUTHPassword.Get(), tmpstr, FALSE );
         lRetCode = RegSetValueEx( hKey1, RegKeyPassword, 0, REG_SZ, (LPBYTE)tmpstr, (DWORD)((_tcslen(tmpstr)+1)*sizeof(_TCHAR)) );
 
         /* try to set another section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeySender, 0, REG_SZ, (LPBYTE)Sender.Get(), (DWORD)((_tcslen(Sender.Get())+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeySender, 0, REG_SZ, (LPBYTE)CommonData.Sender.Get(), (DWORD)((_tcslen(CommonData.Sender.Get())+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting sender address value in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting sender address value in the registry\n") );
             return(11);
         }
     }
 
 #if INCLUDE_NNTP
-    if ( NNTPHost[0] ) {
-        if ( !_tcscmp(NNTPHost, __T("-")) ) {
-            NNTPHost[0] = __T('\0');
-            NNTPPort[0] = __T('\0');
+    if ( CommonData.NNTPHost[0] ) {
+        if ( !_tcscmp(CommonData.NNTPHost, __T("-")) ) {
+            CommonData.NNTPHost[0] = __T('\0');
+            CommonData.NNTPPort[0] = __T('\0');
         }
 
         /* try to set a section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeyNNTPHost, 0, REG_SZ, (LPBYTE)NNTPHost, (DWORD)((_tcslen(NNTPHost)+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeyNNTPHost, 0, REG_SZ, (LPBYTE)CommonData.NNTPHost, (DWORD)((_tcslen(CommonData.NNTPHost)+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting NNTP server value in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting NNTP server value in the registry\n") );
             return(11);
         }
 
         /* try to set another section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeyNNTPPort, 0, REG_SZ, (LPBYTE)NNTPPort, (DWORD)((_tcslen(NNTPPort)+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeyNNTPPort, 0, REG_SZ, (LPBYTE)CommonData.NNTPPort, (DWORD)((_tcslen(CommonData.NNTPPort)+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
             return(11);
         }
 
         /* try to set another section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeyTry, 0, REG_SZ, (LPBYTE)Try, (DWORD)((_tcslen(Try)+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeyTry, 0, REG_SZ, (LPBYTE)CommonData.Try, (DWORD)((_tcslen(CommonData.Try)+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting number of try value in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting number of try value in the registry\n") );
             return(11);
         }
 
         /* try to set another section value */
-        encodeThis( (_TUCHAR *)AUTHLogin.Get(), tmpstr, FALSE );
+        encodeThis( (_TUCHAR *)CommonData.AUTHLogin.Get(), tmpstr, FALSE );
         lRetCode = RegSetValueEx( hKey1, RegKeyLogin, 0, REG_SZ, (LPBYTE)tmpstr, (DWORD)((_tcslen(tmpstr)+1)*sizeof(_TCHAR)) );
 
         /* try to set another section value */
-        encodeThis( (_TUCHAR *)AUTHPassword.Get(), tmpstr, FALSE );
+        encodeThis( (_TUCHAR *)CommonData.AUTHPassword.Get(), tmpstr, FALSE );
         lRetCode = RegSetValueEx( hKey1, RegKeyPassword, 0, REG_SZ, (LPBYTE)tmpstr, (DWORD)((_tcslen(tmpstr)+1)*sizeof(_TCHAR)) );
 
         /* try to set another section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeySender, 0, REG_SZ, (LPBYTE)Sender.Get(), (DWORD)((_tcslen(Sender.Get())+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeySender, 0, REG_SZ, (LPBYTE)CommonData.Sender.Get(), (DWORD)((_tcslen(CommonData.Sender.Get())+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting sender address value in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting sender address value in the registry\n") );
             return(11);
         }
     }
 #endif
 
 #if INCLUDE_POP3
-    if ( POP3Host[0] ) {
-        if ( !_tcscmp(POP3Host, __T("-")) ) {
-            POP3Host[0] = __T('\0');
-            POP3Port[0] = __T('\0');
+    if ( CommonData.POP3Host[0] ) {
+        if ( !_tcscmp(CommonData.POP3Host, __T("-")) ) {
+            CommonData.POP3Host[0] = __T('\0');
+            CommonData.POP3Port[0] = __T('\0');
         }
 
         /* try to set a section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeyPOP3Host, 0, REG_SZ, (LPBYTE)POP3Host, (DWORD)((_tcslen(POP3Host)+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeyPOP3Host, 0, REG_SZ, (LPBYTE)CommonData.POP3Host, (DWORD)((_tcslen(CommonData.POP3Host)+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting POP3 server value in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting POP3 server value in the registry\n") );
             return(11);
         }
 
         /* try to set another section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeyPOP3Port, 0, REG_SZ, (LPBYTE)POP3Port, (DWORD)((_tcslen(POP3Port)+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeyPOP3Port, 0, REG_SZ, (LPBYTE)CommonData.POP3Port, (DWORD)((_tcslen(CommonData.POP3Port)+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
             return(11);
         }
 
-        encodeThis( (_TUCHAR *)POP3Login.Get(), tmpstr, FALSE );
+        encodeThis( (_TUCHAR *)CommonData.POP3Login.Get(), tmpstr, FALSE );
         (void)RegSetValueEx( hKey1, RegKeyPOP3Login, 0, REG_SZ, (LPBYTE)tmpstr, (DWORD)((_tcslen(tmpstr)+1)*sizeof(_TCHAR)) );
 
         /* try to set another section value */
-        encodeThis( (_TUCHAR *)POP3Password.Get(), tmpstr, FALSE );
+        encodeThis( (_TUCHAR *)CommonData.POP3Password.Get(), tmpstr, FALSE );
         (void)RegSetValueEx( hKey1, RegKeyPOP3Password, 0, REG_SZ, (LPBYTE)tmpstr, (DWORD)((_tcslen(tmpstr)+1)*sizeof(_TCHAR)) );
     }
 #endif
 
 #if INCLUDE_IMAP
-    if ( IMAPHost[0] ) {
-        if ( !_tcscmp(IMAPHost, __T("-")) ) {
-            IMAPHost[0] = __T('\0');
-            IMAPPort[0] = __T('\0');
+    if ( CommonData.IMAPHost[0] ) {
+        if ( !_tcscmp(CommonData.IMAPHost, __T("-")) ) {
+            CommonData.IMAPHost[0] = __T('\0');
+            CommonData.IMAPPort[0] = __T('\0');
         }
 
         /* try to set a section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeyIMAPHost, 0, REG_SZ, (LPBYTE)IMAPHost, (DWORD)((_tcslen(IMAPHost)+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeyIMAPHost, 0, REG_SZ, (LPBYTE)CommonData.IMAPHost, (DWORD)((_tcslen(CommonData.IMAPHost)+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting IMAP server value in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting IMAP server value in the registry\n") );
             return(11);
         }
 
         /* try to set another section value */
-        lRetCode = RegSetValueEx( hKey1, RegKeyIMAPPort, 0, REG_SZ, (LPBYTE)IMAPPort, (DWORD)((_tcslen(IMAPPort)+1)*sizeof(_TCHAR)) );
+        lRetCode = RegSetValueEx( hKey1, RegKeyIMAPPort, 0, REG_SZ, (LPBYTE)CommonData.IMAPPort, (DWORD)((_tcslen(CommonData.IMAPPort)+1)*sizeof(_TCHAR)) );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
             return(11);
         }
 
-        encodeThis( (_TUCHAR *)IMAPLogin.Get(), tmpstr, FALSE );
+        encodeThis( (_TUCHAR *)CommonData.IMAPLogin.Get(), tmpstr, FALSE );
         (void)RegSetValueEx( hKey1, RegKeyIMAPLogin, 0, REG_SZ, (LPBYTE)tmpstr, (DWORD)((_tcslen(tmpstr)+1)*sizeof(_TCHAR)) );
 
         /* try to set another section value */
-        encodeThis( (_TUCHAR *)IMAPPassword.Get(), tmpstr, FALSE );
+        encodeThis( (_TUCHAR *)CommonData.IMAPPassword.Get(), tmpstr, FALSE );
         (void)RegSetValueEx( hKey1, RegKeyIMAPPassword, 0, REG_SZ, (LPBYTE)tmpstr, (DWORD)((_tcslen(tmpstr)+1)*sizeof(_TCHAR)) );
     }
 #endif
@@ -458,16 +439,16 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 }
 
 // create registry entries for this program
-int CreateRegEntry( int useHKCU )
+int CreateRegEntry( COMMON_DATA & CommonData, int useHKCU )
 {
     int retval;
 
     retval = 1;     // assume useHKCU set, so the 2nd if() works.
     if ( !useHKCU )
-        retval = CreateRegEntry( HKEY_LOCAL_MACHINE );
+        retval = CreateRegEntry( CommonData, HKEY_LOCAL_MACHINE );
 
     if ( retval )
-        retval = CreateRegEntry( HKEY_CURRENT_USER );
+        retval = CreateRegEntry( CommonData, HKEY_CURRENT_USER );
 
     return retval;
 }
@@ -475,33 +456,33 @@ int CreateRegEntry( int useHKCU )
 /**************************************************************
  **************************************************************/
 
-void ShowRegHelp( void )
+void ShowRegHelp( COMMON_DATA & CommonData )
 {
-    printMsg( __T("BLAT PROFILE EDITOR\n") );
-    printMsg( __T("To modify SMTP: blat -install SMTPHost Sender [Try [Port [Profile [Login name\n") );
-    printMsg( __T("                     [Password]]]]]\n") );
-    printMsg( __T("            or: blat -installSMTP SMTPHost Sender [Try [Port [Profile\n") );
-    printMsg( __T("                     [Login name [Password]]]]]\n") );
+    printMsg( CommonData, __T("BLAT PROFILE EDITOR\n") );
+    printMsg( CommonData, __T("To modify SMTP: blat -install SMTPHost Sender [Try [Port [Profile [Login name\n") );
+    printMsg( CommonData, __T("                     [Password]]]]]\n") );
+    printMsg( CommonData, __T("            or: blat -installSMTP SMTPHost Sender [Try [Port [Profile\n") );
+    printMsg( CommonData, __T("                     [Login name [Password]]]]]\n") );
 #if INCLUDE_NNTP
-    printMsg( __T("To modify NNTP: blat -installNNTP NNTPHost Sender [Try [Port [Profile\n") );
-    printMsg( __T("                     [Login name [Password]]]]]\n") );
+    printMsg( CommonData, __T("To modify NNTP: blat -installNNTP NNTPHost Sender [Try [Port [Profile\n") );
+    printMsg( CommonData, __T("                     [Login name [Password]]]]]\n") );
 #endif
 #if INCLUDE_POP3
-    printMsg( __T("To modify POP3: blat -installPOP3 POP3Host - - [Port [Profile\n") );
-    printMsg( __T("                     [Login name [Password]]]]\n") );
+    printMsg( CommonData, __T("To modify POP3: blat -installPOP3 POP3Host - - [Port [Profile\n") );
+    printMsg( CommonData, __T("                     [Login name [Password]]]]\n") );
 #endif
 #if INCLUDE_IMAP
-    printMsg( __T("To modify IMAP: blat -installIMAP IMAPHost - - [Port [Profile\n") );
-    printMsg( __T("                     [Login name [Password]]]]\n") );
+    printMsg( CommonData, __T("To modify IMAP: blat -installIMAP IMAPHost - - [Port [Profile\n") );
+    printMsg( CommonData, __T("                     [Login name [Password]]]]\n") );
 #endif
-    printMsg( __T("To delete:      blat -profile -delete Profile\n") );
-    printMsg( __T("Profiles are listed as in the -install option:\n") );
-    printMsg( __T("Host Sender Try Port Profile login_name password\n") );
-    printMsg( __T("\n") );
+    printMsg( CommonData, __T("To delete:      blat -profile -delete Profile\n") );
+    printMsg( CommonData, __T("Profiles are listed as in the -install option:\n") );
+    printMsg( CommonData, __T("Host Sender Try Port Profile login_name password\n") );
+    printMsg( CommonData, __T("\n") );
 }
 
 
-static int DeleteRegTree( HKEY rootKeyLevel, LPTSTR pstrProfile )
+static int DeleteRegTree( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile )
 {
     HKEY     hKey1=NULL;
     DWORD    dwBytesRead;
@@ -514,10 +495,10 @@ static int DeleteRegTree( HKEY rootKeyLevel, LPTSTR pstrProfile )
     lRetCode = RegOpenKeyEx( rootKeyLevel, pstrProfile, 0, KEY_ALL_ACCESS, &hKey1 );
     dwIndex = 0;
     for ( ; lRetCode == 0; ) {
-        dwBytesRead = (sizeof(Profile)/sizeof(Profile[0]));
+        dwBytesRead = (sizeof(CommonData.Profile)/sizeof(CommonData.Profile[0]));
         lRetCode = RegEnumKeyEx(  hKey1,     // handle of key to enumerate
                                   dwIndex++, // index of subkey to enumerate
-                                  Profile,   // address of buffer for subkey name
+                                  CommonData.Profile,   // address of buffer for subkey name
                                   &dwBytesRead,    // address for size of subkey buffer
                                   NULL,      // reserved
                                   NULL,      // address of buffer for class string
@@ -531,15 +512,15 @@ static int DeleteRegTree( HKEY rootKeyLevel, LPTSTR pstrProfile )
         }
 
         if ( lRetCode == 0 ) {
-            newProfile = new _TCHAR[_tcslen(pstrProfile)+_tcslen(Profile)+2];
-            _stprintf(newProfile, __T("%s\\%s"),pstrProfile,Profile);
-            lRetCode = DeleteRegTree( rootKeyLevel, newProfile );
+            newProfile = new _TCHAR[_tcslen(pstrProfile)+_tcslen(CommonData.Profile)+2];
+            _stprintf(newProfile, __T("%s\\%s"),pstrProfile,CommonData.Profile);
+            lRetCode = DeleteRegTree( CommonData, rootKeyLevel, newProfile );
             delete [] newProfile;
         }
         if ( lRetCode == 0 ) {
-            lRetCode = RegDeleteKey( hKey1, Profile );
+            lRetCode = RegDeleteKey( hKey1, CommonData.Profile );
             if ( lRetCode != ERROR_SUCCESS ) {
-                if ( !quiet ) {
+                if ( !CommonData.quiet ) {
                     pMyPrintDLL( __T("Error in deleting profile ") );
                     pMyPrintDLL( pstrProfile);
                     pMyPrintDLL( __T(" in the registry\n") );
@@ -555,7 +536,7 @@ static int DeleteRegTree( HKEY rootKeyLevel, LPTSTR pstrProfile )
 }
 
 // Delete registry entries for this program
-int DeleteRegEntry( LPTSTR pstrProfile, int useHKCU )
+int DeleteRegEntry( COMMON_DATA & CommonData, LPTSTR pstrProfile, int useHKCU )
 {
     HKEY   rootKeyLevel;
     HKEY   hKey1=NULL;
@@ -584,16 +565,16 @@ int DeleteRegEntry( LPTSTR pstrProfile, int useHKCU )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet )  pMyPrintDLL( __T("Error in finding blat default profile in the registry\n") );
+            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in finding blat default profile in the registry\n") );
             return(10);
         }
 
         dwIndex = 0;
         for ( ; lRetCode == 0; ) {
-            dwBytesRead = (sizeof(Profile)/sizeof(Profile[0]));
+            dwBytesRead = (sizeof(CommonData.Profile)/sizeof(CommonData.Profile[0]));
             lRetCode = RegEnumValue(  hKey1,     // handle of value to enumerate
                                       dwIndex++, // index of subkey to enumerate
-                                      Profile,   // address of buffer for subkey name
+                                      CommonData.Profile,   // address of buffer for subkey name
                                       &dwBytesRead,    // address for size of subkey buffer
                                       NULL,      // reserved
                                       NULL,      // address of buffer for key type
@@ -606,9 +587,9 @@ int DeleteRegEntry( LPTSTR pstrProfile, int useHKCU )
             }
 
             if ( lRetCode == 0 ) {
-                lRetCode = RegDeleteValue( hKey1, Profile );
+                lRetCode = RegDeleteValue( hKey1, CommonData.Profile );
                 if ( lRetCode != ERROR_SUCCESS ) {
-                    if ( !quiet ) {
+                    if ( !CommonData.quiet ) {
                         pMyPrintDLL( __T("Error in deleting profile ") );
                         pMyPrintDLL( pstrProfile);
                         pMyPrintDLL( __T(" in the registry\n") );
@@ -622,7 +603,7 @@ int DeleteRegEntry( LPTSTR pstrProfile, int useHKCU )
         RegCloseKey(hKey1);
     } else
     if ( !_tcscmp(pstrProfile, __T("<all>")) ) {
-        DeleteRegTree( rootKeyLevel, strRegisterKey );
+        DeleteRegTree( CommonData, rootKeyLevel, strRegisterKey );
 
         // Attempt to delete the main Blat key.
         lRetCode = RegOpenKeyEx ( rootKeyLevel, strRegisterKey, 0, KEY_ALL_ACCESS, &hKey1 );
@@ -643,11 +624,11 @@ int DeleteRegEntry( LPTSTR pstrProfile, int useHKCU )
         _tcscat(strRegisterKey, __T("\\") );
         _tcscat(strRegisterKey, pstrProfile);
 
-        lRetCode = DeleteRegTree( rootKeyLevel, strRegisterKey );
+        lRetCode = DeleteRegTree( CommonData, rootKeyLevel, strRegisterKey );
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet ) {
+            if ( !CommonData.quiet ) {
                 pMyPrintDLL( __T("Error in deleting profile ") );
                 pMyPrintDLL( pstrProfile);
                 pMyPrintDLL( __T(" in the registry\n") );
@@ -662,7 +643,7 @@ int DeleteRegEntry( LPTSTR pstrProfile, int useHKCU )
         }
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !quiet ) {
+            if ( !CommonData.quiet ) {
                 pMyPrintDLL( __T("Error in finding blat profile ") );
                 pMyPrintDLL( pstrProfile);
                 pMyPrintDLL( __T(" in the registry\n") );
@@ -679,7 +660,7 @@ int DeleteRegEntry( LPTSTR pstrProfile, int useHKCU )
  **************************************************************/
 
 // get the registry entries for this program
-static int GetRegEntryKeyed( HKEY rootKeyLevel, LPTSTR pstrProfile )
+static int GetRegEntryKeyed( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile )
 {
     HKEY   hKey1=NULL;
     DWORD  dwType;
@@ -721,9 +702,9 @@ static int GetRegEntryKeyed( HKEY rootKeyLevel, LPTSTR pstrProfile )
     register_key.Free();
 
     if ( lRetCode != ERROR_SUCCESS ) {
-//       printMsg( __T("Failed to open registry key for Blat\n") );
+//       printMsg( CommonData, __T("Failed to open registry key for Blat\n") );
         if ( pstrProfile && *pstrProfile )
-            return GetRegEntryKeyed( rootKeyLevel, NULL );
+            return GetRegEntryKeyed( CommonData, rootKeyLevel, NULL );
 
         return(12);
     }
@@ -734,37 +715,37 @@ static int GetRegEntryKeyed( HKEY rootKeyLevel, LPTSTR pstrProfile )
     // read the value of the SMTP server entry
     lRetCode = RegQueryValueEx( hKey1, RegKeySender, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );    //lint !e545
     if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) )
-        Sender = tmpstr;
+        CommonData.Sender = tmpstr;
     else
-        Sender.Clear();
+        CommonData.Sender.Clear();
 
     dwBytesRead = TRY_SIZE;
     // read the value of the number of try entry
     lRetCode = RegQueryValueEx( hKey1, RegKeyTry, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );    //lint !e545
     // if we failed, assign a default value
     if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) )
-        _tcscpy( Try, tmpstr );
+        _tcscpy( CommonData.Try, tmpstr );
     else
-        _tcscpy(Try, __T("1") );
+        _tcscpy(CommonData.Try, __T("1") );
 
     dwBytesRead = (sizeof(tmpstr)/sizeof(tmpstr[0])) - 1;
     // read the value of the SMTP server entry
     lRetCode = RegQueryValueEx( hKey1, RegKeyLogin, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
     if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) ) {
-        AUTHLogin.Clear();
-        AUTHLogin.Alloc(dwBytesRead*4);
-        decodeThis( tmpstr, AUTHLogin.Get() );
-        AUTHLogin.SetLength();
+        CommonData.AUTHLogin.Clear();
+        CommonData.AUTHLogin.Alloc(dwBytesRead*4);
+        decodeThis( tmpstr, CommonData.AUTHLogin.Get() );
+        CommonData.AUTHLogin.SetLength();
     }
 
     dwBytesRead = (sizeof(tmpstr)/sizeof(tmpstr[0])) - 1;
     // read the value of the SMTP server entry
     lRetCode = RegQueryValueEx( hKey1, RegKeyPassword, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
     if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) ) {
-        AUTHPassword.Clear();
-        AUTHPassword.Alloc(dwBytesRead*4);
-        decodeThis( tmpstr, AUTHPassword.Get() );
-        AUTHPassword.SetLength();
+        CommonData.AUTHPassword.Clear();
+        CommonData.AUTHPassword.Alloc(dwBytesRead*4);
+        decodeThis( tmpstr, CommonData.AUTHPassword.Get() );
+        CommonData.AUTHPassword.SetLength();
     }
 
     dwBytesRead = SERVER_SIZE;
@@ -772,19 +753,19 @@ static int GetRegEntryKeyed( HKEY rootKeyLevel, LPTSTR pstrProfile )
     lRetCode = RegQueryValueEx( hKey1, RegKeySMTPHost, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
     // if we got it, then get the smtp port.
     if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) ) {
-        _tcscpy( SMTPHost, tmpstr );
+        _tcscpy( CommonData.SMTPHost, tmpstr );
 
         dwBytesRead = SERVER_SIZE;
         // read the value of the SMTP port entry
         lRetCode = RegQueryValueEx( hKey1, RegKeySMTPPort, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
         // if we got it, then convert it back to Unicode
         if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) )
-            _tcscpy( SMTPPort, tmpstr );
+            _tcscpy( CommonData.SMTPPort, tmpstr );
         else
-            _tcscpy( SMTPPort, defaultSMTPPort );
+            _tcscpy( CommonData.SMTPPort, defaultSMTPPort );
     } else {
-        SMTPHost[0] = __T('\0');
-        SMTPPort[0] = __T('\0');
+        CommonData.SMTPHost[0] = __T('\0');
+        CommonData.SMTPPort[0] = __T('\0');
     }
 
 #if INCLUDE_NNTP
@@ -793,19 +774,19 @@ static int GetRegEntryKeyed( HKEY rootKeyLevel, LPTSTR pstrProfile )
     lRetCode = RegQueryValueEx( hKey1, RegKeyNNTPHost, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
     // if we got it, then get the nntp port.
     if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) ) {
-        _tcscpy( NNTPHost, tmpstr );
+        _tcscpy( CommonData.NNTPHost, tmpstr );
 
         dwBytesRead = SERVER_SIZE;
         // read the value of the NNTP port entry
         lRetCode = RegQueryValueEx( hKey1, RegKeyNNTPPort, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
         // if we got it,
         if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) )
-            _tcscpy( NNTPPort, tmpstr );
+            _tcscpy( CommonData.NNTPPort, tmpstr );
         else
-            _tcscpy( NNTPPort, defaultNNTPPort );
+            _tcscpy( CommonData.NNTPPort, defaultNNTPPort );
     } else {
-        NNTPHost[0] = __T('\0');
-        NNTPPort[0] = __T('\0');
+        CommonData.NNTPHost[0] = __T('\0');
+        CommonData.NNTPPort[0] = __T('\0');
     }
 #endif
 
@@ -815,43 +796,43 @@ static int GetRegEntryKeyed( HKEY rootKeyLevel, LPTSTR pstrProfile )
     lRetCode = RegQueryValueEx( hKey1, RegKeyPOP3Host, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
     // if we got it, then get the POP3 port.
     if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) ) {
-        _tcscpy( POP3Host, tmpstr );
+        _tcscpy( CommonData.POP3Host, tmpstr );
 
         dwBytesRead = SERVER_SIZE;
         // read the value of the POP3 port entry
         lRetCode = RegQueryValueEx( hKey1, RegKeyPOP3Port, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
         // if we got it,
         if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) )
-            _tcscpy( POP3Port, tmpstr );
+            _tcscpy( CommonData.POP3Port, tmpstr );
         else
-            _tcscpy( POP3Port, defaultPOP3Port );
+            _tcscpy( CommonData.POP3Port, defaultPOP3Port );
 
         dwBytesRead = (sizeof(tmpstr)/sizeof(tmpstr[0])) - 1;
         // read the value of the POP3 login id
         lRetCode = RegQueryValueEx( hKey1, RegKeyPOP3Login, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
         // if we got it,
         if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) ) {
-            POP3Login.Clear();
-            POP3Login.Alloc(dwBytesRead*4);
-            decodeThis( tmpstr, POP3Login.Get() );
-            POP3Login.SetLength();
+            CommonData.POP3Login.Clear();
+            CommonData.POP3Login.Alloc(dwBytesRead*4);
+            decodeThis( tmpstr, CommonData.POP3Login.Get() );
+            CommonData.POP3Login.SetLength();
         } else
-            POP3Login = AUTHLogin;
+            CommonData.POP3Login = CommonData.AUTHLogin;
 
         dwBytesRead = (sizeof(tmpstr)/sizeof(tmpstr[0])) - 1;
         // read the value of the POP3 password
         lRetCode = RegQueryValueEx( hKey1, RegKeyPOP3Password, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
         // if we got it,
         if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) ) {
-            POP3Password.Clear();
-            POP3Password.Alloc(dwBytesRead*4);
-            decodeThis( tmpstr, POP3Password.Get() );
-            POP3Password.SetLength();
+            CommonData.POP3Password.Clear();
+            CommonData.POP3Password.Alloc(dwBytesRead*4);
+            decodeThis( tmpstr, CommonData.POP3Password.Get() );
+            CommonData.POP3Password.SetLength();
         } else
-            POP3Password = AUTHPassword;
+            CommonData.POP3Password = CommonData.AUTHPassword;
     } else {
-        POP3Host[0] = __T('\0');
-        POP3Port[0] = __T('\0');
+        CommonData.POP3Host[0] = __T('\0');
+        CommonData.POP3Port[0] = __T('\0');
     }
 #endif
 
@@ -861,43 +842,43 @@ static int GetRegEntryKeyed( HKEY rootKeyLevel, LPTSTR pstrProfile )
     lRetCode = RegQueryValueEx( hKey1, RegKeyIMAPHost, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
     // if we got it, then get the IMAP port.
     if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) ) {
-        _tcscpy( IMAPHost, tmpstr );
+        _tcscpy( CommonData.IMAPHost, tmpstr );
 
         dwBytesRead = SERVER_SIZE;
         // read the value of the IMAP port entry
         lRetCode = RegQueryValueEx( hKey1, RegKeyIMAPPort, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
         // if we got it,
         if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) )
-            _tcscpy( IMAPPort, tmpstr );
+            _tcscpy( CommonData.IMAPPort, tmpstr );
         else
-            _tcscpy( IMAPPort, defaultIMAPPort );
+            _tcscpy( CommonData.IMAPPort, defaultIMAPPort );
 
         dwBytesRead = (sizeof(tmpstr)/sizeof(tmpstr[0])) - 1;
         // read the value of the IMAP login id
         lRetCode = RegQueryValueEx( hKey1, RegKeyIMAPLogin, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
         // if we got it,
         if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) ) {
-            IMAPLogin.Clear();
-            IMAPLogin.Alloc(dwBytesRead*4);
-            decodeThis( tmpstr, IMAPLogin.Get() );
-            IMAPLogin.SetLength();
+            CommonData.IMAPLogin.Clear();
+            CommonData.IMAPLogin.Alloc(dwBytesRead*4);
+            decodeThis( tmpstr, CommonData.IMAPLogin.Get() );
+            CommonData.IMAPLogin.SetLength();
        } else
-            IMAPLogin = AUTHLogin;
+            CommonData.IMAPLogin = CommonData.AUTHLogin;
 
         dwBytesRead = (sizeof(tmpstr)/sizeof(tmpstr[0])) - 1;
         // read the value of the IMAP password
         lRetCode = RegQueryValueEx( hKey1, RegKeyIMAPPassword, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );
         // if we got it,
         if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) ) {
-            IMAPPassword.Clear();
-            IMAPPassword.Alloc(dwBytesRead*4);
-            decodeThis( tmpstr, IMAPPassword.Get() );
-            IMAPPassword.SetLength();
+            CommonData.IMAPPassword.Clear();
+            CommonData.IMAPPassword.Alloc(dwBytesRead*4);
+            decodeThis( tmpstr, CommonData.IMAPPassword.Get() );
+            CommonData.IMAPPassword.SetLength();
        } else
-            IMAPPassword = AUTHPassword;
+            CommonData.IMAPPassword = CommonData.AUTHPassword;
     } else {
-        IMAPHost[0] = __T('\0');
-        IMAPPort[0] = __T('\0');
+        CommonData.IMAPHost[0] = __T('\0');
+        CommonData.IMAPPort[0] = __T('\0');
     }
 #endif
 
@@ -907,22 +888,22 @@ static int GetRegEntryKeyed( HKEY rootKeyLevel, LPTSTR pstrProfile )
     // if the host is not specified, or if the sender is not specified,
     // leave the routine with error 12.
     retval = 12;
-    if ( Sender.Get()[0] ) {
-        if ( SMTPHost[0] )
+    if ( CommonData.Sender.Get()[0] ) {
+        if ( CommonData.SMTPHost[0] )
             retval = 0;
 
 #if INCLUDE_POP3
-        if ( POP3Host[0] )
+        if ( CommonData.POP3Host[0] )
             retval = 0;
 #endif
 
 #if INCLUDE_IMAP
-        if ( IMAPHost[0] )
+        if ( CommonData.IMAPHost[0] )
             retval = 0;
 #endif
 
 #if INCLUDE_NNTP
-        if ( NNTPHost[0] )
+        if ( CommonData.NNTPHost[0] )
             retval = 0;
 #endif
     }
@@ -931,65 +912,65 @@ static int GetRegEntryKeyed( HKEY rootKeyLevel, LPTSTR pstrProfile )
 }
 
 
-int GetRegEntry( LPTSTR pstrProfile )
+int GetRegEntry( COMMON_DATA & CommonData, LPTSTR pstrProfile )
 {
     int lRetVal;
 
-    lRetVal = GetRegEntryKeyed( HKEY_CURRENT_USER, pstrProfile );
+    lRetVal = GetRegEntryKeyed( CommonData, HKEY_CURRENT_USER, pstrProfile );
     if ( lRetVal )
-        lRetVal = GetRegEntryKeyed( HKEY_LOCAL_MACHINE, pstrProfile );
+        lRetVal = GetRegEntryKeyed( CommonData, HKEY_LOCAL_MACHINE, pstrProfile );
 
     return lRetVal;
 }
 
-static void DisplayThisProfile( HKEY rootKeyLevel, LPTSTR pstrProfile )
+static void DisplayThisProfile( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile )
 {
     LPTSTR tmpstr;
 
-    GetRegEntryKeyed( rootKeyLevel, pstrProfile );
+    GetRegEntryKeyed( CommonData, rootKeyLevel, pstrProfile );
 
     tmpstr = __T("");
-    if ( AUTHLogin.Get()[0] || AUTHPassword.Get()[0] )
+    if ( CommonData.AUTHLogin.Get()[0] || CommonData.AUTHPassword.Get()[0] )
         tmpstr = __T(" ***** *****");
 
-    if ( SMTPHost[0] ) {
-        //printMsg(__T("SMTP: %s %s %s %s %s %s %s\n"),SMTPHost,Sender.Get(),Try,SMTPPort,Profile,AUTHLogin.Get(),AUTHPassword.Get());
-        printMsg(__T("%s: %s \"%s\" %s %s %s%s\n"),
-                 __T("SMTP"), SMTPHost, Sender.Get(), Try, SMTPPort, Profile, tmpstr);
+    if ( CommonData.SMTPHost[0] ) {
+        //printMsg(CommonData, __T("SMTP: %s %s %s %s %s %s %s\n"),CommonData.SMTPHost,CommonData.Sender.Get(),CommonData.Try,CommonData.SMTPPort,CommonData.Profile,CommonData.AUTHLogin.Get(),CommonData.AUTHPassword.Get());
+        printMsg(CommonData, __T("%s: %s \"%s\" %s %s %s%s\n"),
+                 __T("SMTP"), CommonData.SMTPHost, CommonData.Sender.Get(), CommonData.Try, CommonData.SMTPPort, CommonData.Profile, tmpstr);
     }
 
 #if INCLUDE_NNTP
-    if ( NNTPHost[0] ) {
-        //printMsg(__T("NNTP: %s %s %s %s %s %s %s\n"),NNTPHost,Sender.Get(),Try,NNTPPort,Profile,AUTHLogin.Get(),AUTHPassword.Get());
-        printMsg(__T("%s: %s \"%s\" %s %s %s%s\n"),
-                 __T("NNTP"), NNTPHost, Sender.Get(), Try, NNTPPort, Profile, tmpstr);
+    if ( CommonData.NNTPHost[0] ) {
+        //printMsg(CommonData, __T("NNTP: %s %s %s %s %s %s %s\n"),CommonData.NNTPHost,CommonData.Sender.Get(),CommonData.Try,CommonData.NNTPPort,CommonData.Profile,CommonData.AUTHLogin.Get(),CommonData.AUTHPassword.Get());
+        printMsg(CommonData, __T("%s: %s \"%s\" %s %s %s%s\n"),
+                 __T("NNTP"), CommonData.NNTPHost, CommonData.Sender.Get(), CommonData.Try, CommonData.NNTPPort, CommonData.Profile, tmpstr);
     }
 #endif
 #if INCLUDE_POP3
     tmpstr = __T("");
-    if ( POP3Login.Get()[0] || POP3Password.Get()[0] )
+    if ( CommonData.POP3Login.Get()[0] || CommonData.POP3Password.Get()[0] )
         tmpstr = __T(" ***** *****");
 
-    if ( POP3Host[0] ) {
-        //printMsg(__T("POP3: %s - - %s %s %s %s\n"),POP3Host,POP3Port,Profile,POP3Login.Get(),POP3Password.Get());
-        printMsg(__T("%s: %s - - %s %s%s\n"),
-                 __T("POP3"), POP3Host, POP3Port, Profile, tmpstr);
+    if ( CommonData.POP3Host[0] ) {
+        //printMsg(CommonData, __T("POP3: %s - - %s %s %s %s\n"),CommonData.POP3Host,CommonData.POP3Port,CommonData.Profile,CommonData.POP3Login.Get(),CommonData.POP3Password.Get());
+        printMsg(CommonData, __T("%s: %s - - %s %s%s\n"),
+                 __T("POP3"), CommonData.POP3Host, CommonData.POP3Port, CommonData.Profile, tmpstr);
     }
 #endif
 #if INCLUDE_IMAP
     tmpstr = __T("");
-    if ( IMAPLogin.Get()[0] || IMAPPassword.Get()[0] )
+    if ( CommonData.IMAPLogin.Get()[0] || CommonData.IMAPPassword.Get()[0] )
         tmpstr = __T(" ***** *****");
 
-    if ( IMAPHost[0] ) {
-        //printMsg(__T("IMAP: %s - - %s %s %s %s\n"),IMAPHost,IMAPPort,Profile,IMAPLogin.Get(),IMAPPassword.Get());
-        printMsg(__T("%s: %s - - %s %s%s\n"),
-                 __T("IMAP"), IMAPHost, IMAPPort, Profile, tmpstr);
+    if ( CommonData.IMAPHost[0] ) {
+        //printMsg(CommonData, __T("IMAP: %s - - %s %s %s %s\n"),CommonData.IMAPHost,CommonData.IMAPPort,CommonData.Profile,CommonData.IMAPLogin.Get(),CommonData.IMAPPassword.Get());
+        printMsg(CommonData, __T("%s: %s - - %s %s%s\n"),
+                 __T("IMAP"), CommonData.IMAPHost, CommonData.IMAPPort, CommonData.Profile, tmpstr);
     }
 #endif
 }
 
-static void DumpProfiles( HKEY rootKeyLevel, LPTSTR pstrProfile )
+static void DumpProfiles( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile )
 {
     HKEY     hKey1=NULL;
     DWORD    dwBytesRead;
@@ -1018,21 +999,21 @@ static void DumpProfiles( HKEY rootKeyLevel, LPTSTR pstrProfile )
                                );
     }
     if ( lRetCode != ERROR_SUCCESS ) {
-        printMsg( __T("Failed to open registry key for Blat using default.\n") );
+        printMsg( CommonData, __T("Failed to open registry key for Blat using default.\n") );
     } else {
-        quiet      = FALSE;
-        Profile[0] = __T('\0');
+        CommonData.quiet      = FALSE;
+        CommonData.Profile[0] = __T('\0');
 
         if ( !_tcscmp(pstrProfile, __T("<default>")) || !_tcscmp(pstrProfile, __T("<all>")) ) {
-            DisplayThisProfile( rootKeyLevel, __T("") );
+            DisplayThisProfile( CommonData, rootKeyLevel, __T("") );
         }
 
         dwIndex = 0;
         do {
-            dwBytesRead = (sizeof(Profile)/sizeof(Profile[0]));
+            dwBytesRead = (sizeof(CommonData.Profile)/sizeof(CommonData.Profile[0]));
             lRetCode = RegEnumKeyEx(  hKey1,     // handle of key to enumerate
                                       dwIndex++, // index of subkey to enumerate
-                                      Profile,   // address of buffer for subkey name
+                                      CommonData.Profile,   // address of buffer for subkey name
                                       &dwBytesRead,    // address for size of subkey buffer
                                       NULL,      // reserved
                                       NULL,      // address of buffer for class string
@@ -1041,8 +1022,8 @@ static void DumpProfiles( HKEY rootKeyLevel, LPTSTR pstrProfile )
                                       // address for time key last written to);
                                    );
             if ( lRetCode == 0 ) {
-                if ( !_tcscmp(pstrProfile,Profile) || !_tcscmp(pstrProfile, __T("<all>")) ) {
-                    DisplayThisProfile( rootKeyLevel, Profile );
+                if ( !_tcscmp(pstrProfile,CommonData.Profile) || !_tcscmp(pstrProfile, __T("<all>")) ) {
+                    DisplayThisProfile( CommonData, rootKeyLevel, CommonData.Profile );
                 }
             }
         } while ( lRetCode == 0 );
@@ -1052,7 +1033,7 @@ static void DumpProfiles( HKEY rootKeyLevel, LPTSTR pstrProfile )
 }
 
 // List all profiles
-void ListProfiles( LPTSTR pstrProfile )
+void ListProfiles( COMMON_DATA & CommonData, LPTSTR pstrProfile )
 {
     HKEY     hKey1=NULL;
     LONG     lRetCode;
@@ -1079,11 +1060,11 @@ void ListProfiles( LPTSTR pstrProfile )
     }
     if ( lRetCode == ERROR_SUCCESS ) {
         RegCloseKey(hKey1);
-        printMsg( __T("Profile(s) for current user --\n") );
-        DumpProfiles( HKEY_CURRENT_USER, pstrProfile );
-        printMsg( __T("\n") );
+        printMsg( CommonData, __T("Profile(s) for current user --\n") );
+        DumpProfiles( CommonData, HKEY_CURRENT_USER, pstrProfile );
+        printMsg( CommonData, __T("\n") );
     }
 
-    printMsg(__T("Profile(s) for all users of this computer --\n") );
-    DumpProfiles( HKEY_LOCAL_MACHINE, pstrProfile );
+    printMsg( CommonData, __T("Profile(s) for all users of this computer --\n") );
+    DumpProfiles( CommonData, HKEY_LOCAL_MACHINE, pstrProfile );
 }

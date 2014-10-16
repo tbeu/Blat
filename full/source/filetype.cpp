@@ -10,17 +10,10 @@
 #include <string.h>
 
 #include "blat.h"
-
-#if BLAT_LITE
-#else
-extern _TCHAR       uuencode;
-extern _TCHAR       base64;
-extern _TCHAR       yEnc;
-#endif
-extern _TCHAR       mime;
+#include "common_data.h"
 
 
-extern void fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewrap );
+extern void fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString, int headerLen, int linewrap );
 
 static struct {
     LPTSTR extension;
@@ -53,7 +46,7 @@ LPTSTR getShortFileName (LPTSTR fileName)
     return sFileName;
 }
 
-void getContentType (Buf & sDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName)
+void getContentType (COMMON_DATA & CommonData, Buf & sDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName)
 {
     // Toby Korn (tkorn@snl.com)
     // SetFileType examines the file name sFileName for known file extensions and sets
@@ -106,7 +99,7 @@ void getContentType (Buf & sDestBuffer, LPTSTR foundType, LPTSTR defaultType, LP
         }
     }
 
-    fixupFileName( sFileName, shortNameBuf, 7, TRUE );
+    fixupFileName( CommonData, sFileName, shortNameBuf, 7, TRUE );
     sDestBuffer    = __T("Content-Type: ");
     sDestBuffer.Add( tmpStr );
     sDestBuffer.Add( __T(";\r\n name=\"") );

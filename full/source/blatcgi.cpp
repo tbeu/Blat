@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "blat.h"
+#include "common_data.h"
 #include "buf.h"
 #include "winfile.h"
 

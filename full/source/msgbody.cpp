@@ -10,86 +10,39 @@
 #include <string.h>
 
 #include "blat.h"
+#include "common_data.h"
 #include "winfile.h"
 
 #ifndef _MAX_PATH
     #define _MAX_PATH 260
 #endif
 
-extern LPTSTR getCharsetString( void );
+extern LPTSTR getCharsetString( COMMON_DATA & CommonData );
 extern void   incrementBoundary( _TCHAR boundary[] );
 extern void   decrementBoundary( _TCHAR boundary[] );
 extern LPTSTR getShortFileName (LPTSTR fileName);
-extern void   fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewrap );
-extern int    CheckIfNeedQuotedPrintable(LPTSTR pszStr, int inHeader);
-extern void   ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader);
+extern void   fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString, int headerLen, int linewrap );
+extern int    CheckIfNeedQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHeader);
+extern void   ConvertToQuotedPrintable(COMMON_DATA & CommonData, Buf & source, Buf & out, int inHeader);
 extern void   base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
 extern void   convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
 #if BLAT_LITE
 #else
-extern void   douuencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart);
+extern void   douuencode(COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filename, int part, int lastpart);
 extern void   convertUnicode( Buf & sourceText, int * utf, LPTSTR charset, int utfRequested );
 #endif
-extern void   printMsg(LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
-extern void   fixup(LPTSTR string, Buf * tempstring2, int headerLen, int linewrap );
+extern void   printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
+extern void   fixup(COMMON_DATA & CommonData, LPTSTR string, Buf * tempstring2, int headerLen, int linewrap );
 
 #if SMART_CONTENT_TYPE
-extern void   getContentType(Buf & sDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName);
+extern void   getContentType(COMMON_DATA & CommonData, Buf & sDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName);
 #endif
 #if SUPPORT_SALUTATIONS
-extern void   parse_email_addresses( LPTSTR email_addresses, Buf & parsed_addys );
+extern void   parse_email_addresses( COMMON_DATA & CommonData, LPTSTR email_addresses, Buf & parsed_addys );
 #endif
 
-#if SUPPORT_POSTSCRIPTS
-extern Buf    postscript;
-#endif
-#if SUPPORT_TAGLINES
-extern Buf    tagline;
-#endif
-#if SUPPORT_SIGNATURES
-extern Buf    signature;
-#endif
-#if BLAT_LITE
-#else
-extern _TCHAR eightBitMimeSupported;
-extern _TCHAR eightBitMimeRequested;
-
-extern int    utf;
-extern _TCHAR base64;
-extern _TCHAR uuencode;
-extern _TCHAR yEnc;
-#endif
-#if INCLUDE_NNTP
-extern Buf    groups;
-#endif
-#if SUPPORT_SALUTATIONS
-extern Buf    salutation;
-#endif
-
-extern Buf    Recipients;
-extern Buf    subject;
-extern _TCHAR bodyFilename[];
-extern _TCHAR ConsoleDone;
-extern _TCHAR formattedContent;
-extern _TCHAR mime;
-extern _TCHAR loginname[];    // RFC 821 MAIL From. <loginname>. There are some inconsistencies in usage
-extern _TCHAR textmode[];
-extern int    attach;
-extern _TCHAR haveEmbedded;
-extern _TCHAR haveAttachments;
-extern Buf    alternateText;
-extern _TCHAR bodyconvert;
-extern Buf    TempConsole;
-extern _TCHAR charset[];      // Added 25 Apr 2001 Tim Charron (default ISO-8859-1)
-extern LPTSTR defaultCharset;
-
-extern LPTSTR stdinFileName;
-
-_TCHAR boundaryPosted;
-_TCHAR needBoundary;
-
-
-int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdrs, int buildSMTP,
+int add_message_body ( COMMON_DATA & CommonData,
+                       Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdrs, int buildSMTP,
                        LPTSTR attachment_boundary, DWORD startOffset, int part,
                        int attachNbr )
 {
@@ -108,17 +61,17 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
     tmpstr.Alloc( 0x2000 );
     tmpstr.Clear();
     if ( !startOffset && !attachNbr ) {
-        if ( part /* || alternateText.Length() */ ) {
+        if ( part /* || CommonData.alternateText.Length() */ ) {
             if ( memcmp( (messageBuffer.GetTail()-3), "\n\r\n", 3*sizeof(_TCHAR) ) != 0 )
                 messageBuffer.Add( __T("\r\n") );
 
             messageBuffer.Add( multipartHdrs );
             if ( multipartHdrs.Length() &&
                  !_tcsstr( messageBuffer.Get(), __T("This is a multi-part message in MIME format.") ) )
-                needBoundary = FALSE;
+                CommonData.needBoundary = FALSE;
         }
 
-        if ( formattedContent )
+        if ( CommonData.formattedContent )
             if ( memcmp( (messageBuffer.GetTail()-3), __T("\n\r\n"), 3*sizeof(_TCHAR) ) != 0 )
                 messageBuffer.Add( __T("\r\n") );
 
@@ -126,36 +79,36 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
 
 #if BLAT_LITE
 #else
-            if ( lstrcmpi(charset, __T("UTF-7")) == 0 )
+            if ( lstrcmpi(CommonData.charset, __T("UTF-7")) == 0 )
                 utfRequested = 7;
             else
-            if ( (eightBitMimeSupported && eightBitMimeRequested) || (lstrcmpi(charset, __T("UTF-8")) == 0) )
+            if ( (CommonData.eightBitMimeSupported && CommonData.eightBitMimeRequested) || (lstrcmpi(CommonData.charset, __T("UTF-8")) == 0) )
                 utfRequested = 8;
             else
 #endif
                 utfRequested = 7;
 
 #if SUPPORT_YENC
-            yEnc_This = yEnc;
-            if ( buildSMTP && !eightBitMimeSupported )
+            yEnc_This = CommonData.yEnc;
+            if ( buildSMTP && !CommonData.eightBitMimeSupported )
 #endif
                 yEnc_This = FALSE;
 
             if ( !buildSMTP &&
 #if BLAT_LITE
 #else
-                 !base64 && !uuencode &&
+                 !CommonData.base64 && !CommonData.uuencode &&
 #endif
                  !yEnc_This ) {
-                if ( CheckIfNeedQuotedPrintable(TempConsole.Get(), FALSE) ) {
-                    mime = TRUE;
+                if ( CheckIfNeedQuotedPrintable(CommonData, CommonData.TempConsole.Get(), FALSE) ) {
+                    CommonData.mime = TRUE;
                 }
             }
 
-            if ( needBoundary ) {
+            if ( CommonData.needBoundary ) {
 #if BLAT_LITE
 #else
-                if ( alternateText.Length() ) {
+                if ( CommonData.alternateText.Length() ) {
                     LPTSTR pp;
                     LPTSTR pp1;
                     int needQP = FALSE;
@@ -163,11 +116,11 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
 
                     _TCHAR altTextCharset[8];
                     altTextCharset[0] = 0;
-                    localUTF = utf;
-                    convertUnicode( alternateText, &localUTF, altTextCharset, utfRequested );
+                    localUTF = CommonData.utf;
+                    convertUnicode( CommonData.alternateText, &localUTF, altTextCharset, utfRequested );
 
-                    if ( haveEmbedded || haveAttachments ) {
-                        if ( haveEmbedded && haveAttachments ) {
+                    if ( CommonData.haveEmbedded || CommonData.haveAttachments ) {
+                        if ( CommonData.haveEmbedded && CommonData.haveAttachments ) {
                             messageBuffer.Add( __T("--") BOUNDARY_MARKER );
                             messageBuffer.Add( attachment_boundary );
                             messageBuffer.Add( __T("Content-Type:") );
@@ -190,15 +143,15 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
 
                     messageBuffer.Add( __T("--") BOUNDARY_MARKER );
                     messageBuffer.Add( attachment_boundary );
-                    if ( CheckIfNeedQuotedPrintable(alternateText.Get(), TRUE) ) {
+                    if ( CheckIfNeedQuotedPrintable(CommonData, CommonData.alternateText.Get(), TRUE) ) {
                         needQP = TRUE;
                         messageBuffer.Add( __T("Content-Transfer-Encoding: quoted-printable\r\n") );
                     } else
                         messageBuffer.Add( __T("Content-Transfer-Encoding: 7BIT\r\n") );
 
-                    if (bodyconvert) {
+                    if (CommonData.bodyconvert) {
                         fileBuffer.Clear();
-                        pp = alternateText.Get();
+                        pp = CommonData.alternateText.Get();
                         for ( ; ; ) {
                             if ( !*pp )
                                 break;
@@ -214,20 +167,20 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
                         if ( *pp )
                             fileBuffer.Add( pp );
 
-                        alternateText = fileBuffer;
+                        CommonData.alternateText = fileBuffer;
                         fileBuffer.Clear();
                     }
 
-                    if ( formattedContent ) {
-                        if ( memcmp( (alternateText.GetTail()-2), __T("\r\n"), 2*sizeof(_TCHAR) ) != 0 )
-                            alternateText.Add( __T("\r\n\r\n") );
+                    if ( CommonData.formattedContent ) {
+                        if ( memcmp( (CommonData.alternateText.GetTail()-2), __T("\r\n"), 2*sizeof(_TCHAR) ) != 0 )
+                            CommonData.alternateText.Add( __T("\r\n\r\n") );
                         else
-                        if ( memcmp( (alternateText.GetTail()-3), __T("\n\r\n"), 3*sizeof(_TCHAR) ) != 0 )
-                            alternateText.Add( __T("\r\n") );
+                        if ( memcmp( (CommonData.alternateText.GetTail()-3), __T("\n\r\n"), 3*sizeof(_TCHAR) ) != 0 )
+                            CommonData.alternateText.Add( __T("\r\n") );
                     }
 
                     fileBuffer.Clear();
-                    pp = alternateText.Get();
+                    pp = CommonData.alternateText.Get();
                     for ( ; ; ) {
                         pp1 = _tcschr( pp, __T('\n') );
                         if ( !pp1 )
@@ -258,7 +211,7 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
                         pp = pp1 + 1;
                     }
                     fileBuffer.Add( pp );
-                    alternateText = fileBuffer;
+                    CommonData.alternateText = fileBuffer;
                     fileBuffer.Clear();
 
                     messageBuffer.Add( __T("Content-Type: text/plain;\r\n") );
@@ -269,27 +222,27 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
                     if ( altTextCharset[0] )
                         messageBuffer.Add( altTextCharset );
                     else
-                        messageBuffer.Add( getCharsetString() );
+                        messageBuffer.Add( getCharsetString(CommonData) );
                     messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
-                    boundaryPosted = TRUE;
+                    CommonData.boundaryPosted = TRUE;
                     if ( needQP )
-                        ConvertToQuotedPrintable( alternateText, messageBuffer, FALSE );
+                        ConvertToQuotedPrintable( CommonData, CommonData.alternateText, messageBuffer, FALSE );
                     else
-                        messageBuffer.Add( alternateText );
+                        messageBuffer.Add( CommonData.alternateText );
                 }
 #endif
-                if ( mime ) {
+                if ( CommonData.mime ) {
                     // Indicate MIME version and type
-                    if ( attach || alternateText.Length() ) {
+                    if ( CommonData.attach || CommonData.alternateText.Length() ) {
 #if SMART_CONTENT_TYPE
                         _TCHAR foundType  [0x200];
 
                         _tcscpy( foundType, __T("text/") );
-                        _tcscat( foundType, textmode );
+                        _tcscat( foundType, CommonData.textmode );
 #endif
-                        if ( !alternateText.Length() ) {
-                            if ( haveEmbedded ) {
-                                if ( haveAttachments ) {
+                        if ( !CommonData.alternateText.Length() ) {
+                            if ( CommonData.haveEmbedded ) {
+                                if ( CommonData.haveAttachments ) {
                                     messageBuffer.Add( __T("--") BOUNDARY_MARKER );
                                     messageBuffer.Add( attachment_boundary );
                                     messageBuffer.Add( __T("Content-Type:") );
@@ -306,88 +259,97 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
                         messageBuffer.Add( attachment_boundary );
                         messageBuffer.Add( __T("Content-Transfer-Encoding: quoted-printable\r\n") );
 #if SMART_CONTENT_TYPE
-                        if ( !ConsoleDone && !_tcscmp( textmode, __T("plain") ) )
-                            getContentType( tmpstr, foundType, foundType, getShortFileName(bodyFilename) );
+                        if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode, __T("plain") ) )
+                            getContentType( CommonData, tmpstr, foundType, foundType, getShortFileName(CommonData.bodyFilename) );
 
                         messageBuffer.Add( __T("Content-Type: ") );
                         messageBuffer.Add( foundType );
 #else
                         messageBuffer.Add( __T("Content-Type: text/") );
-                        messageBuffer.Add( textmode );
+                        messageBuffer.Add( CommonData.textmode );
 #endif
                         messageBuffer.Add( __T(";\r\n charset=\"") );
-                        messageBuffer.Add( getCharsetString() );
+                        messageBuffer.Add( getCharsetString(CommonData) );
                         messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
-                        boundaryPosted = TRUE;
+                        CommonData.boundaryPosted = TRUE;
                     }
                 } else {
 #if BLAT_LITE
 #else
-                    if ( base64 ) {
+                    if ( CommonData.base64 ) {
                         // Indicate MIME version and type
                         messageBuffer.Add( __T("--") BOUNDARY_MARKER );
                         messageBuffer.Add( attachment_boundary );
 
                         tmpstr.Alloc( _MAX_PATH * 4 );
+
+                        messageBuffer.Add( __T("Content-Type: application/octet-stream;\r\n") );
                         tmpstr.Clear();
-                        if ( _tcscmp(bodyFilename, __T("-")) == 0 )
-                            fixup( stdinFileName, &tmpstr, 11, TRUE );
-                        else {
-                            fixupFileName( bodyFilename, tmpstr, 11, TRUE );
-                        }
+                        if ( _tcscmp(CommonData.bodyFilename, __T("-")) == 0 )
+                            fixup( CommonData, stdinFileName, &tmpstr, 7, TRUE );
+                        else
+                            fixupFileName( CommonData, CommonData.bodyFilename, tmpstr, 7, TRUE );
 
                         tmpstr.SetLength();
+                        messageBuffer.Add( __T(" name=\"") );
 
-                        messageBuffer.Add( __T("Content-Type: application/octet-stream;\r\n name=\"") );
                         messageBuffer.Add( tmpstr );
-                        messageBuffer.Add( __T("\"\r\nContent-Disposition: ATTACHMENT;\r\n filename=\"") );
+                        messageBuffer.Add( __T("\"\r\nContent-Disposition: ATTACHMENT;\r\n") );
+                        tmpstr.Clear();
+                        if ( _tcscmp(CommonData.bodyFilename, __T("-")) == 0 )
+                            fixup( CommonData, stdinFileName, &tmpstr, 11, TRUE );
+                        else
+                            fixupFileName( CommonData, CommonData.bodyFilename, tmpstr, 11, TRUE );
+
+                        tmpstr.SetLength();
+                        messageBuffer.Add( __T(" filename=\"") );
                         messageBuffer.Add( tmpstr );
                         messageBuffer.Add( __T("\"\r\nContent-Transfer-Encoding: BASE64\r\n\r\n") );
-                        boundaryPosted = TRUE;
+                        CommonData.boundaryPosted = TRUE;
                     } else
 #endif
                     {
-                        if ( attach ) {
+                        if ( CommonData.attach ) {
                             messageBuffer.Add( __T("--") BOUNDARY_MARKER );
                             messageBuffer.Add( attachment_boundary );
 #if BLAT_LITE
                             messageBuffer.Add( __T("Content-Description: Mail message body\r\n") );
                             messageBuffer.Add( __T("Content-Transfer-Encoding: 7BIT\r\n") );
                             messageBuffer.Add( __T("Content-Type: text/") );
-                            messageBuffer.Add( textmode );
+                            messageBuffer.Add( CommonData.textmode );
                             messageBuffer.Add( __T(";\r\n charset=\"") );
-                            messageBuffer.Add( getCharsetString() );
+                            messageBuffer.Add( getCharsetString(CommonData) );
                             messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
-                            boundaryPosted = TRUE;
+                            CommonData.boundaryPosted = TRUE;
 #else
-                            if ( !uuencode && !yEnc_This && buildSMTP ) {
+                            if ( !CommonData.uuencode && !yEnc_This && buildSMTP ) {
   #if SMART_CONTENT_TYPE
                                 _TCHAR foundType  [0x200];
 
                                 _tcscpy( foundType, __T("text/") );
-                                _tcscat( foundType, textmode );
+                                _tcscat( foundType, CommonData.textmode );
   #endif
                                 messageBuffer.Add( __T("Content-Description: Mail message body\r\n") );
 
-                                if ( eightBitMimeSupported && (eightBitMimeRequested || yEnc_This) ) {
+                                if ( CommonData.eightBitMimeSupported && (CommonData.eightBitMimeRequested || yEnc_This) ) {
                                     messageBuffer.Add( __T("Content-Transfer-Encoding: 8BIT\r\n") );
                                 } else {
                                     messageBuffer.Add( __T("Content-Transfer-Encoding: 7BIT\r\n") );
                                 }
   #if SMART_CONTENT_TYPE
-                                if ( !ConsoleDone && !_tcscmp( textmode, __T("plain") ) )
-                                    getContentType( tmpstr, foundType, foundType, getShortFileName(bodyFilename) );
+                                if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode, __T("plain") ) )
+                                    getContentType( CommonData, tmpstr, foundType, foundType, getShortFileName(CommonData.bodyFilename) );
 
                                 messageBuffer.Add( __T("Content-Type: ") );
                                 messageBuffer.Add( foundType );
   #else
                                 messageBuffer.Add( __T("Content-Type: text/") );
-                                messageBuffer.Add( textmode );
+                                messageBuffer.Add( CommonData.textmode );
   #endif
                                 messageBuffer.Add( __T(";\r\n charset=\"") );
-                                messageBuffer.Add( getCharsetString() );
+                                messageBuffer.Add( getCharsetString(CommonData) );
                                 messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
-                                boundaryPosted = TRUE;
+                                CommonData.boundaryPosted = TRUE;
                             }
 #endif
                         }
@@ -402,13 +364,13 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
 
             fileBuffer.Clear();
 #if SUPPORT_SALUTATIONS
-            if ( salutation.Length() ) {
-                pString = salutation.Get();
+            if ( CommonData.salutation.Length() ) {
+                pString = CommonData.salutation.Get();
   #if defined(_UNICODE) || defined(UNICODE)
                 if ( *pString == 0xFEFF )
                     pString++;
   #endif
-                if ( _tcscmp(textmode, __T("html")) == 0 ) {
+                if ( _tcscmp(CommonData.textmode, __T("html")) == 0 ) {
                     fileBuffer.Add( __T("<p>") );
                     fileBuffer.Add( pString );
                     fileBuffer.Add( __T("</p>") );
@@ -419,7 +381,7 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
             }
 #endif
             // Add the whole console message/file
-            pString = TempConsole.Get();
+            pString = CommonData.TempConsole.Get();
 #if defined(_UNICODE) || defined(UNICODE)
             if ( *pString == 0xFEFF ) {
                 pString++;
@@ -429,19 +391,19 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
             fileBuffer.Add( pString, msgBodySize );
 
 #if SUPPORT_SIGNATURES
-            if ( signature.Length() ) {
-                pString = signature.Get();
+            if ( CommonData.signature.Length() ) {
+                pString = CommonData.signature.Get();
   #if defined(_UNICODE) || defined(UNICODE)
                 if ( *pString == 0xFEFF )
                     pString++;
   #endif
-                if ( _tcscmp(textmode, __T("html")) == 0 ) {
+                if ( _tcscmp(CommonData.textmode, __T("html")) == 0 ) {
                     fileBuffer.Add( __T("<p>\r\n-- <br>\r\n") );
                     fileBuffer.Add( pString );
                     fileBuffer.Add( __T("</p>") );
 
                 } else {
-                    if ( formattedContent ) {
+                    if ( CommonData.formattedContent ) {
                         if ( memcmp( (fileBuffer.GetTail()-2), __T("\r\n"), 2*sizeof(_TCHAR) ) != 0 )
                             fileBuffer.Add( __T("\r\n\r\n") );
                         else
@@ -454,15 +416,15 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
             }
 #endif
 #if SUPPORT_TAGLINES
-            if ( tagline.Length() ) {
+            if ( CommonData.tagline.Length() ) {
                 int x;
 
-                pString = tagline.Get();
+                pString = CommonData.tagline.Get();
   #if defined(_UNICODE) || defined(UNICODE)
                 if ( *pString == 0xFEFF )
                     pString++;
   #endif
-                for ( x = (int)tagline.Length(); x; ) {
+                for ( x = (int)CommonData.tagline.Length(); x; ) {
                     x--;
                     if ( pString[x] == __T('\0') )
                         break;
@@ -471,13 +433,13 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
                         pString[x+1] = __T('\n');
                     }
                 }
-                if ( _tcscmp(textmode, __T("html")) == 0 ) {
+                if ( _tcscmp(CommonData.textmode, __T("html")) == 0 ) {
                     fileBuffer.Add( __T("<p>") );
                     fileBuffer.Add( pString );
                     fileBuffer.Add( __T("</p>") );
 
                 } else {
-                    if ( formattedContent ) {
+                    if ( CommonData.formattedContent ) {
                         if ( memcmp( (fileBuffer.GetTail()-2), __T("\r\n"), 2*sizeof(_TCHAR) ) != 0 )
                             fileBuffer.Add( __T("\r\n\r\n") );
                         else
@@ -489,19 +451,19 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
             }
 #endif
 #if SUPPORT_POSTSCRIPTS
-            if ( postscript.Length() ) {
-                pString = postscript.Get();
+            if ( CommonData.postscript.Length() ) {
+                pString = CommonData.postscript.Get();
   #if defined(_UNICODE) || defined(UNICODE)
                 if ( *pString == 0xFEFF )
                     pString++;
   #endif
-                if ( _tcscmp(textmode, __T("html")) == 0 ) {
+                if ( _tcscmp(CommonData.textmode, __T("html")) == 0 ) {
                     fileBuffer.Add( __T("<p>") );
                     fileBuffer.Add( pString );
                     fileBuffer.Add( __T("</p>") );
 
                 } else {
-                    if ( formattedContent ) {
+                    if ( CommonData.formattedContent ) {
                         if ( memcmp( (fileBuffer.GetTail()-2), __T("\r\n"), 2*sizeof(_TCHAR) ) != 0 )
                             fileBuffer.Add( __T("\r\n\r\n") );
                         else
@@ -521,7 +483,7 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
 
                 pUChar = fileBuffer.Get();
                 for ( x = 0; *pUChar != __T('\0'); pUChar++ ) {
-                    if ( (*pUChar > 0x00FF) || ((memcmp(charset, __T("UTF-"),4*sizeof(_TCHAR)) == 0) && (*pUChar > 0x007F)) ) {
+                    if ( (*pUChar > 0x00FF) || ((memcmp(CommonData.charset, __T("UTF-"),4*sizeof(_TCHAR)) == 0) && (*pUChar > 0x007F)) ) {
                         tempUTF = NATIVE_16BIT_UTF;
                         convertPackedUnicodeToUTF( fileBuffer, holdingPen, &tempUTF, NULL, utfRequested );
                         if ( tempUTF )
@@ -538,31 +500,31 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
             // or BASE64 encoding of main file.
             // or UUencoding of main file
             // or nothing special...
-            if ( mime )
-                ConvertToQuotedPrintable( fileBuffer, messageBuffer, FALSE );
+            if ( CommonData.mime )
+                ConvertToQuotedPrintable( CommonData, fileBuffer, messageBuffer, FALSE );
             else
 #if BLAT_LITE
 #else
-            if ( base64 )
+            if ( CommonData.base64 )
                 base64_encode( fileBuffer, messageBuffer, TRUE, TRUE );
             else
-            if ( !attach && uuencode ) {
-                if ( _tcscmp(bodyFilename, __T("-")) == 0 )
-                    douuencode( fileBuffer, messageBuffer, stdinFileName, 1, 1 );
+            if ( !CommonData.attach && CommonData.uuencode ) {
+                if ( _tcscmp(CommonData.bodyFilename, __T("-")) == 0 )
+                    douuencode( CommonData, fileBuffer, messageBuffer, stdinFileName, 1, 1 );
                 else
-                    douuencode( fileBuffer, messageBuffer, getShortFileName(bodyFilename), 1, 1 );
+                    douuencode( CommonData, fileBuffer, messageBuffer, getShortFileName(CommonData.bodyFilename), 1, 1 );
             }
             else
 #endif
                 messageBuffer.Add( fileBuffer );
 
-            if ( formattedContent )
+            if ( CommonData.formattedContent )
                 if ( memcmp( (messageBuffer.GetTail()-3), __T("\n\r\n"), 3*sizeof(_TCHAR) ) != 0 )
                     messageBuffer.Add( __T("\r\n") );
 #if BLAT_LITE
 #else
-            if ( alternateText.Length() ) {
-                if ( haveEmbedded || haveAttachments ) {
+            if ( CommonData.alternateText.Length() ) {
+                if ( CommonData.haveEmbedded || CommonData.haveAttachments ) {
                     if ( *(messageBuffer.GetTail()-3) != __T('\n') )
                         messageBuffer.Add( __T("\r\n") );
 
@@ -577,17 +539,17 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
 
         // make some noise about what we are doing
         tmpstr = __T("Sending ");
-        tmpstr.Add( bodyFilename );
+        tmpstr.Add( CommonData.bodyFilename );
         tmpstr.Add( __T(" to ") );
 
         if ( buildSMTP ) {
-            if ( Recipients.Length() ) {
+            if ( CommonData.Recipients.Length() ) {
 #if SUPPORT_SALUTATIONS
                 int    x;
                 Buf    parsed_addys;
                 LPTSTR pa;
 
-                parse_email_addresses( Recipients.Get(), parsed_addys );
+                parse_email_addresses( CommonData, CommonData.Recipients.Get(), parsed_addys );
                 pa = parsed_addys.Get();
                 if ( pa ) {
                     for ( x = 0; pa[x]; ) {
@@ -601,7 +563,7 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
                 }
                 parsed_addys.Free();
 #else
-                tmpstr.Add( Recipients );
+                tmpstr.Add( CommonData.Recipients );
 #endif
             }
             else
@@ -609,19 +571,19 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
         }
 #if INCLUDE_NNTP
         else
-            if ( groups.Length() )
-                tmpstr.Add( groups );
+            if ( CommonData.groups.Length() )
+                tmpstr.Add( CommonData.groups );
             else
                 tmpstr.Add( __T("<unspecified>") );
 #endif
 
         if ( tmpstr.Length() > 1019 )
-            printMsg( __T("%.*s...\n"), 1019, tmpstr.Get() );
+            printMsg( CommonData, __T("%.*s...\n"), 1019, tmpstr.Get() );
         else
-            printMsg( __T("%s\n"), tmpstr.Get() );
+            printMsg( CommonData, __T("%s\n"), tmpstr.Get() );
 
-        if ( subject.Length() ) printMsg( __T("Subject: %s\n"), subject.Get());
-        if ( _tcslen(loginname) ) printMsg( __T("Login name is %s\n"), loginname);
+        if ( CommonData.subject.Length() ) printMsg(CommonData, __T("Subject: %s\n"), CommonData.subject.Get());
+        if ( _tcslen(CommonData.loginname) ) printMsg(CommonData, __T("Login name is %s\n"), CommonData.loginname);
     }
 
     fileBuffer.Free();
@@ -630,22 +592,22 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
 }
 
 
-void add_msg_boundary ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary )
+void add_msg_boundary ( COMMON_DATA & CommonData, Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary )
 {
 #if SUPPORT_YENC
     int yEnc_This;
 
-    yEnc_This = yEnc;
-    if ( buildSMTP && !eightBitMimeSupported )
+    yEnc_This = CommonData.yEnc;
+    if ( buildSMTP && !CommonData.eightBitMimeSupported )
         yEnc_This = FALSE;
 #else
     buildSMTP = buildSMTP;  // remove compiler warnings
 #endif
 
 #if BLAT_LITE
-    if ( boundaryPosted ) {
+    if ( CommonData.boundaryPosted ) {
 #else
-    if ( boundaryPosted && !uuencode ) {
+    if ( CommonData.boundaryPosted && !CommonData.uuencode ) {
   #if SUPPORT_YENC
         if ( !yEnc_This )
   #endif

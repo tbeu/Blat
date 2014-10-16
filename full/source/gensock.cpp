@@ -26,10 +26,9 @@
 
 #include "blat.h"
 #include "gensock.h"
+#include "connections.h"
+#include "common_data.h"
 #include "punycode.h"
-#if SUPPORT_GSSAPI
-#include "gssfuncs.h" // Please read the comments here for information about how to use GssSession
-#endif
 
 #define MAX_PRINTF_LENGTH   1000
 #define MAX_HOSTNAME_LENGTH 1025
@@ -43,32 +42,20 @@
 
     #define SOCKET_BUFFER_SIZE  64240   // 1460 * 44
 
-    extern HANDLE   dll_module_handle;
-
-    #define GET_CURRENT_TASK    dll_module_handle
-    #define TASK_HANDLE_TYPE    HANDLE
+    #define GET_CURRENT_TASK    CommonData.dll_module_handle
 
 /* This is for WIN16 */
 #else
     #define SOCKET_BUFFER_SIZE  32120   // 1460 * 22
 
-    HINSTANCE dll_module_handle;
     #define GET_CURRENT_TASK    GetCurrentTask()
-    #define TASK_HANDLE_TYPE    HTASK
 #endif
 
-int  init_winsock (void);
-void deinit_winsock (void);
+int  init_winsock (COMMON_DATA & CommonData);
+void deinit_winsock (COMMON_DATA & CommonData);
 
-int  globaltimeout = 30;
-
-#if INCLUDE_SUPERDEBUG
-extern _TCHAR superDebug;
-extern _TCHAR quiet;
-#endif
-
-extern int  noftry();
-extern void printMsg(LPTSTR p, ... );
+extern int  noftry(COMMON_DATA & CommonData);
+extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );
 
 #if INCLUDE_SUPERDEBUG
 
@@ -133,53 +120,17 @@ static LPTSTR errorName(int WinSockErrorCode )
 //
 //
 
-void complain (LPTSTR message)
+void complain (COMMON_DATA & CommonData, LPTSTR message)
 {
 #ifdef _DEBUG
+    CommonData = CommonData;
+
     OutputDebugString (message);
 #else
 //  MessageBox (NULL, message, __T("GENSOCK.DLL Error"), MB_OK|MB_ICONHAND);
-    printMsg( __T("%s\n"), message );
+    printMsg( CommonData, __T("%s\n"), message );
 #endif
 }
-
-//
-// ---------------------------------------------------------------------------
-// container for a buffered SOCK_STREAM.
-
-class connection {
-private:
-    SOCKET              the_socket;
-    char *              pInBuffer;
-    char *              pOutBuffer;
-    unsigned int        in_index;
-    unsigned int        out_index;
-    unsigned int        in_buffer_total;
-    unsigned int        out_buffer_total;
-    unsigned int        last_winsock_error;
-    int                 buffer_size;
-    TASK_HANDLE_TYPE    owner_task;
-    fd_set              fds;
-    struct timeval      timeout;
-
-public:
-
-    connection (void);
-    ~connection (void);
-
-    int                 get_connected (LPTSTR hostname, LPTSTR service);
-    SOCKET              get_socket(void) { return(the_socket);}
-    TASK_HANDLE_TYPE    get_owner_task(void) { return(owner_task);}
-    int                 get_buffer(int wait);
-    int                 close (void);
-    int                 getachar (int wait, LPTSTR ch);
-    int                 put_data (LPTSTR pData, unsigned long length);
-#if defined(_UNICODE) || defined(UNICODE)
-    int                 put_data (char * pData, unsigned long length);
-#endif
-    int                 put_data_buffered (LPTSTR pData, unsigned long length);
-    int                 put_data_flush (void);
-};
 
 connection::connection (void)
 {
@@ -319,7 +270,7 @@ static void convertHostnameUsingPunycode( LPWSTR _Thostname, char * punycodeName
 //
 
 int
-     connection::get_connected (LPTSTR _Thostname, LPTSTR _Tservice)
+     connection::get_connected (COMMON_DATA & CommonData, LPTSTR _Thostname, LPTSTR _Tservice)
 {
     struct hostent FAR * hostentry;
     struct servent FAR * serventry;
@@ -432,11 +383,11 @@ int
     } else {
         if ( (hostentry = gethostbyname(hostname)) == NULL ) {
 #if INCLUDE_SUPERDEBUG
-            if ( superDebug ) {
-                _TCHAR savedQuiet = quiet;
-                quiet = FALSE;
-                printMsg( __T("superDebug: Cannot resolve hostname <%s> to ip address.\n"), _Thostname );
-                quiet = savedQuiet;
+            if ( CommonData.superDebug ) {
+                _TCHAR savedQuiet = CommonData.quiet;
+                CommonData.quiet = FALSE;
+                printMsg( CommonData, __T("superDebug: Cannot resolve hostname <%s> to ip address.\n"), _Thostname );
+                CommonData.quiet = savedQuiet;
             }
 #endif
             return(ERR_CANT_RESOLVE_HOSTNAME);
@@ -444,24 +395,24 @@ int
         ip_list_ptr = hostentry->h_addr_list;
         sa_in.sin_addr.s_addr = *(ULONG far *)hostentry->h_addr;
 #if INCLUDE_SUPERDEBUG
-        if ( superDebug ) {
+        if ( CommonData.superDebug ) {
             Buf      _tprtline;
             unsigned tx;
-            _TCHAR   savedQuiet = quiet;
+            _TCHAR   savedQuiet = CommonData.quiet;
 
-            quiet = FALSE;
-            printMsg( __T("superDebug: Hostname <%s> resolved to ip address %hhu.%hhu.%hhu.%hhu\n"),
-                      _Thostname, sa_in.sin_addr.S_un.S_un_b.s_b1,
-                                  sa_in.sin_addr.S_un.S_un_b.s_b2,
-                                  sa_in.sin_addr.S_un.S_un_b.s_b3,
-                                  sa_in.sin_addr.S_un.S_un_b.s_b4 );
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDebug: Hostname <%s> resolved to ip address %hhu.%hhu.%hhu.%hhu\n"),
+                                  _Thostname, sa_in.sin_addr.S_un.S_un_b.s_b1,
+                                              sa_in.sin_addr.S_un.S_un_b.s_b2,
+                                              sa_in.sin_addr.S_un.S_un_b.s_b3,
+                                              sa_in.sin_addr.S_un.S_un_b.s_b4 );
             _tprtline.Clear();
             for ( tx = 0; hostentry->h_name[tx]; tx++ )
                 _tprtline.Add( hostentry->h_name[tx] );
             _tprtline.Add( __T('\0') );
-            printMsg( __T("superDebug: Official hostname is %s\n"), _tprtline.Get() );
+            printMsg( CommonData, __T("superDebug: Official hostname is %s\n"), _tprtline.Get() );
             _tprtline.Free();
-            quiet = savedQuiet;
+            CommonData.quiet = savedQuiet;
         }
 #endif
     }
@@ -474,15 +425,15 @@ int
         sa_in.sin_addr.s_addr = *(u_long FAR *)*ip_list_ptr;
 
 #if INCLUDE_SUPERDEBUG
-        if ( superDebug ) {
-            _TCHAR savedQuiet = quiet;
-            quiet = FALSE;
-            printMsg( __T("superDebug: Attempting to connect to ip address %hhu.%hhu.%hhu.%hhu\n"),
-                      sa_in.sin_addr.S_un.S_un_b.s_b1,
-                      sa_in.sin_addr.S_un.S_un_b.s_b2,
-                      sa_in.sin_addr.S_un.S_un_b.s_b3,
-                      sa_in.sin_addr.S_un.S_un_b.s_b4 );
-            quiet = savedQuiet;
+        if ( CommonData.superDebug ) {
+            _TCHAR savedQuiet = CommonData.quiet;
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDebug: Attempting to connect to ip address %hhu.%hhu.%hhu.%hhu\n"),
+                                  sa_in.sin_addr.S_un.S_un_b.s_b1,
+                                  sa_in.sin_addr.S_un.S_un_b.s_b2,
+                                  sa_in.sin_addr.S_un.S_un_b.s_b3,
+                                  sa_in.sin_addr.S_un.S_un_b.s_b4 );
+            CommonData.quiet = savedQuiet;
         }
 #endif
         // --------------------------------------------------
@@ -505,19 +456,19 @@ int
 
         // get a connection
 
-        for ( tryCount = noftry(); tryCount; ) {
+        for ( tryCount = noftry(CommonData); tryCount; ) {
             retval = connect (the_socket,
                               (struct sockaddr *)&sa_in,
                               sizeof(struct sockaddr_in));
             if ( retval != SOCKET_ERROR )
                 break;
 #if INCLUDE_SUPERDEBUG
-            if ( superDebug ) {
-                _TCHAR savedQuiet = quiet;
-                quiet = FALSE;
-                printMsg( __T("superDebug: ::connect() returned error %d, retry count remaining is %d\n"),
-                          WSAGetLastError(), tryCount - 1 );
-                quiet = savedQuiet;
+            if ( CommonData.superDebug ) {
+                _TCHAR savedQuiet = CommonData.quiet;
+                CommonData.quiet = FALSE;
+                printMsg( CommonData, __T("superDebug: ::connect() returned error %d, retry count remaining is %d\n"),
+                                      WSAGetLastError(), tryCount - 1 );
+                CommonData.quiet = savedQuiet;
             }
 #endif
             if ( --tryCount )
@@ -528,12 +479,12 @@ int
             break;
 
 #if INCLUDE_SUPERDEBUG
-        if ( superDebug ) {
-            _TCHAR savedQuiet = quiet;
-            quiet = FALSE;
-            printMsg( __T("superDebug: Connection returned error %d\n"),
-                      WSAGetLastError() );
-            quiet = savedQuiet;
+        if ( CommonData.superDebug ) {
+            _TCHAR savedQuiet = CommonData.quiet;
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDebug: Connection returned error %d\n"),
+                                  WSAGetLastError() );
+            CommonData.quiet = savedQuiet;
         }
 #endif
     }
@@ -553,7 +504,7 @@ int
 #else
             _stprintf(message, __T("unexpected error %d from winsock"), err_code);
 #endif
-            complain(message);
+            complain(CommonData, message);
 
         case WSAETIMEDOUT:
             return(ERR_CANT_CONNECT);
@@ -571,7 +522,7 @@ int
     FD_SET  (the_socket, &fds);
 
     // normal timeout, can be changed by the wait option.
-    timeout.tv_sec = globaltimeout;
+    timeout.tv_sec = CommonData.globaltimeout;
     timeout.tv_usec = 0;
 
     maxMsgSize = SOCKET_BUFFER_SIZE;
@@ -588,7 +539,7 @@ int
 
 #if INCLUDE_SUPERDEBUG
 
-void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
+void debugOutputThisData( COMMON_DATA & CommonData, char * pData, unsigned long length, LPTSTR msg )
 {
     _TCHAR        _tprtline[MAX_PRINTF_LENGTH + 2];
     unsigned      tx;
@@ -604,13 +555,13 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
     BYTE          c;
 
 
-    if ( superDebug ) {
-        savedQuiet = quiet;
+    if ( CommonData.superDebug ) {
+        savedQuiet = CommonData.quiet;
 
-        quiet = FALSE;
-        printMsg( msg, length );
+        CommonData.quiet = FALSE;
+        printMsg( CommonData, msg, length );
 
-        if ( superDebug == 2 ) {
+        if ( CommonData.superDebug == 2 ) {
             x    = length;
             pStr = (BYTE *)pData;
 
@@ -632,9 +583,9 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
                 for ( tx = 0; p[tx]; tx++ )
                     _tprtline[tx] = p[tx];
                 _tprtline[tx] = __T('\0');
-                printMsg( __T("%s"), _tprtline );
+                printMsg( CommonData, __T("%s"), _tprtline );
                 if ( p[strlen((char *)p) - 1] != '\n' )
-                    printMsg( __T("\n") );
+                    printMsg( CommonData, __T("\n") );
 
                 delete [] p;
             }
@@ -645,9 +596,9 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
                 for ( tx = 0; p[tx]; tx++ )
                     _tprtline[tx] = p[tx];
                 _tprtline[tx] = __T('\0');
-                printMsg( __T("%s"), _tprtline );
+                printMsg( CommonData, __T("%s"), _tprtline );
                 if ( p[x - 1] != '\n' )
-                    printMsg( __T("\n") );
+                    printMsg( CommonData, __T("\n") );
                 delete [] p;
             }
         } else {
@@ -662,7 +613,7 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
                     for ( tx = 0; buf[tx]; tx++ )
                         _tprtline[tx] = buf[tx];
                     _tprtline[tx] = __T('\0');
-                    printMsg( __T("superDebug: %05lX %s\n"), offset, _tprtline );
+                    printMsg( CommonData, __T("superDebug: %05lX %s\n"), offset, _tprtline );
                     memset( buf, ' ', 66 );
                     x = 0;
                     offset += 16;
@@ -679,9 +630,9 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
             for ( tx = 0; buf[tx]; tx++ )
                 _tprtline[tx] = buf[tx];
             _tprtline[tx] = __T('\0');
-            printMsg( __T("superDebug: %05lX %s\n"), offset, _tprtline );
+            printMsg( CommonData, __T("superDebug: %05lX %s\n"), offset, _tprtline );
         }
-        quiet = savedQuiet;
+        CommonData.quiet = savedQuiet;
     }
 }
 #endif
@@ -693,7 +644,7 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
 // if there's no data waiting to be read.
 
 int
-     connection::get_buffer(int wait)
+     connection::get_buffer(COMMON_DATA & CommonData, int wait)
 {
     int retval;
     int bytes_read = 0;
@@ -708,7 +659,7 @@ int
     if ( wait ) {
         timeout.tv_sec = 0;
     } else {
-        timeout.tv_sec = globaltimeout;
+        timeout.tv_sec = CommonData.globaltimeout;
     }
 
     if ( (retval = select (0, &fds, NULL, NULL, &timeout))
@@ -729,7 +680,7 @@ int
                    __T("connection::get_buffer() unexpected error from select: %d"),
                    error_code );
 #endif
-        complain (what_error);
+        complain (CommonData, what_error);
         // return( wait ? WAIT_A_BIT : ERR_READING_SOCKET );
     }
 
@@ -777,13 +728,13 @@ int
                        __T("connection::get_buffer() unexpected error: %d"),
                        ws_error);
 #endif
-            complain ( what_error );
+            complain ( CommonData, what_error );
             // return( wait ? WAIT_A_BIT : ERR_READING_SOCKET );
         }
     }
 #if INCLUDE_SUPERDEBUG
     else {
-        debugOutputThisData( pInBuffer, (unsigned long)bytes_read, __T("superDebug: Received %lu bytes:\n") );
+        debugOutputThisData( CommonData, pInBuffer, (unsigned long)bytes_read, __T("superDebug: Received %lu bytes:\n") );
     }
 #endif
 
@@ -802,12 +753,12 @@ int
     Buf msg;
     Buf msg1;
 
-    if (pGss) {
+    if (CommonData.pGss) {
         try {
-            if (pGss->IsReadyToEncrypt()) {
+            if (CommonData.pGss->IsReadyToEncrypt()) {
                 msg1.Clear();
                 msg1.Add(pInBuffer,in_buffer_total);
-                msg = pGss->Decrypt(msg1);//Copy pInBuffer and decrypt it
+                msg = CommonData.pGss->Decrypt(msg1);//Copy pInBuffer and decrypt it
   #if defined(_UNICODE) || defined(UNICODE)
                 {
                     size_t len = msg.Length();
@@ -824,8 +775,8 @@ int
   #endif
                 in_buffer_total = (int)msg.Length();
   #if INCLUDE_SUPERDEBUG
-                if ( superDebug ) {
-                    printMsg( __T("superDebug: Decrypted\n") );
+                if ( CommonData.superDebug ) {
+                    printMsg( CommonData, __T("superDebug: Decrypted\n") );
                 }
   #endif
             }
@@ -833,8 +784,8 @@ int
         catch (GssSession::GssException& e) {
             _TCHAR szMsg[4096];
             _stprintf(szMsg, __T("Cannot decrypt message: %s"),e.message());
-            complain(szMsg);
-            pGss = NULL;
+            complain(CommonData, szMsg);
+            CommonData.pGss = NULL;
             msg1.Free();
             msg.Free();
             return (ERR_READING_SOCKET);
@@ -854,12 +805,12 @@ int
 //
 
 int
-     connection::getachar(int wait, LPTSTR ch)
+     connection::getachar(COMMON_DATA & CommonData, int wait, LPTSTR ch)
 {
     int retval;
 
     if ( in_index >= in_buffer_total ) {
-        retval = get_buffer(wait);
+        retval = get_buffer(CommonData, wait);
         if ( retval )
             return(retval);
     }
@@ -874,7 +825,7 @@ int
 // an int, not an unsigned long.
 
 int
-     connection::put_data (char * pData, unsigned long length)
+     connection::put_data (COMMON_DATA & CommonData, char * pData, unsigned long length)
 {
     int num_sent;
     int retval;
@@ -886,12 +837,12 @@ int
     Buf msg;
     Buf msg1;
 
-    if (pGss) {
+    if (CommonData.pGss) {
         try {
-            if (pGss->IsReadyToEncrypt()) {
+            if (CommonData.pGss->IsReadyToEncrypt()) {
                 msg1.Clear();
                 msg1.Add(pData,length);
-                msg = pGss->Encrypt(msg1); //copy pData and encrypt it
+                msg = CommonData.pGss->Encrypt(CommonData, msg1); //copy pData and encrypt it
   #if defined(_UNICODE) || defined(UNICODE)
                 LPTSTR pEncryptedData = msg.Get(); // point at the encrypted buffer
 
@@ -906,9 +857,9 @@ int
   #endif
                 length = (int)msg.Length();
   #if INCLUDE_SUPERDEBUG
-                if ( superDebug ) {
-                    printMsg( __T("superDebug: Encrypted via GSSAUTH_P_%s\n"),
-                              (pGss->GetProtectionLevel() == GSSAUTH_P_PRIVACY) ? __T("PRIVACY") : __T("INTEGRITY") );
+                if ( CommonData.superDebug ) {
+                    printMsg( CommonData, __T("superDebug: Encrypted via GSSAUTH_P_%s\n"),
+                                          (CommonData.pGss->GetProtectionLevel() == GSSAUTH_P_PRIVACY) ? __T("PRIVACY") : __T("INTEGRITY") );
                 }
   #endif
             }
@@ -916,8 +867,8 @@ int
         catch (GssSession::GssException& e) {
             _TCHAR szMsg[4096];
             _stprintf(szMsg, __T("Cannot encrypt message: %s"), e.message() );
-            complain(szMsg);
-            pGss = NULL;
+            complain(CommonData, szMsg);
+            CommonData.pGss = NULL;
             msg1.Free();
             msg.Free();
             return (ERR_SENDING_DATA);
@@ -930,10 +881,10 @@ int
     FD_ZERO (&fds);
     FD_SET  (the_socket, &fds);
 
-    timeout.tv_sec = globaltimeout;
+    timeout.tv_sec = CommonData.globaltimeout;
 
 #if INCLUDE_SUPERDEBUG
-    debugOutputThisData( pData, length, __T("superDebug: Attempting to send %lu bytes:\n") );
+    debugOutputThisData( CommonData, pData, length, __T("superDebug: Attempting to send %lu bytes:\n") );
 #endif
 
     while ( length > 0 ) {
@@ -951,7 +902,7 @@ int
                        __T("connection::put_pData() unexpected error from select: %d"),
                        error_code );
 #endif
-            complain ( what_error );
+            complain ( CommonData, what_error );
         }
 
         num_sent = send( the_socket,
@@ -983,7 +934,7 @@ int
                            __T("connection::put_pData() unexpected error from send(): %d"),
                            ws_error );
 #endif
-                complain (what_error);
+                complain (CommonData, what_error);
                 return(ERR_SENDING_DATA);
             }
         } else {
@@ -1000,7 +951,7 @@ int
 #if defined(_UNICODE) || defined(UNICODE)
 
 int
-     connection::put_data (LPTSTR pData, unsigned long length)
+     connection::put_data (COMMON_DATA & CommonData, LPTSTR pData, unsigned long length)
 {
     char * pCharData;
     int    retval;
@@ -1012,7 +963,7 @@ int
         for ( ix = 0; ix < length; ix++ ) {
             pCharData[ix] = (char)(pData[ix] & 0xFF);
         }
-        retval = put_data( pCharData, length );
+        retval = put_data( CommonData, pCharData, length );
         delete [] pCharData;
     }
     return( retval );
@@ -1025,7 +976,7 @@ int
 //
 
 int
-     connection::put_data_buffered (LPTSTR pData, unsigned long length)
+     connection::put_data_buffered (COMMON_DATA & CommonData, LPTSTR pData, unsigned long length)
 {
 //    unsigned int sorta_sent = 0;
     int retval;
@@ -1054,7 +1005,7 @@ int
             }
 
             // send this buffer...
-            retval = put_data (pOutBuffer, (unsigned long)buffer_size);
+            retval = put_data (CommonData, pOutBuffer, (unsigned long)buffer_size);
             if ( retval )
                 return(retval);
 
@@ -1068,11 +1019,11 @@ int
 }
 
 int
-     connection::put_data_flush (void)
+     connection::put_data_flush (COMMON_DATA & CommonData)
 {
     int retval;
 
-    retval = put_data (pOutBuffer, out_index);
+    retval = put_data (CommonData, pOutBuffer, out_index);
     if ( retval )
         return(retval);
 
@@ -1094,27 +1045,6 @@ int
     return(0);
 }
 
-
-//
-//---------------------------------------------------------------------------
-// we keep lists of connections in this class
-
-class connection_list {
-private:
-    connection *      data;
-    connection_list * next;
-
-public:
-    connection_list   (void);
-    ~connection_list  (void);
-    void push         (connection & conn);
-
-    // should really use pointer-to-memberfun for these
-    connection * find (SOCKET sock);
-    int how_many_are_mine (void);
-
-    void remove       (socktag sock);
-};
 
 connection_list::connection_list (void)
 {
@@ -1145,7 +1075,7 @@ void
 }
 
 int
-     connection_list::how_many_are_mine(void)
+     connection_list::how_many_are_mine(COMMON_DATA & CommonData)
 {
     TASK_HANDLE_TYPE  current_task = GET_CURRENT_TASK;
     connection_list * iter = this;
@@ -1196,19 +1126,13 @@ void
     next->remove(sock);
 }
 
-//
-// ---------------------------------------------------------------------------
-// global variables (shared by all DLL users)
-
-connection_list global_socket_list;
-int network_initialized;
-
 // ---------------------------------------------------------------------------
 // C/DLL interface
 //
 
 int
-     gensock_connect (LPTSTR hostname,
+     gensock_connect (struct _COMMON_DATA & CommonData,
+                      LPTSTR hostname,
                       LPTSTR service,
                       socktag FAR * pst)
 {
@@ -1222,18 +1146,18 @@ int
     // if this task hasn't opened any sockets yet, then
     // call WSAStartup()
 
-    if ( global_socket_list.how_many_are_mine() < 1 ) {
-        retval = init_winsock();
+    if ( CommonData.global_socket_list.how_many_are_mine(CommonData) < 1 ) {
+        retval = init_winsock(CommonData);
         if ( retval )
             return(retval);
     }
 
-    global_socket_list.push(*conn);
+    CommonData.global_socket_list.push(*conn);
 
-    retval = conn->get_connected (hostname, service);
+    retval = conn->get_connected (CommonData, hostname, service);
     if ( retval ) {
-        if ( gensock_close(conn) )
-            global_socket_list.remove(conn);
+        if ( gensock_close(CommonData, conn) )
+            CommonData.global_socket_list.remove(conn);
         *pst = 0;
         return(retval);
     }
@@ -1247,14 +1171,14 @@ int
 //
 
 int
-     gensock_getchar (socktag st, int wait, LPTSTR ch)
+     gensock_getchar (struct _COMMON_DATA & CommonData, socktag st, int wait, LPTSTR ch)
 {
     connection * conn = (connection *) st;
 
     if ( !conn )
         return(ERR_NOT_A_SOCKET);
 
-    return (conn->getachar(wait, ch));
+    return (conn->getachar(CommonData, wait, ch));
 }
 
 
@@ -1263,14 +1187,14 @@ int
 //
 
 int
-     gensock_put_data (socktag st, LPTSTR pData, unsigned long length)
+     gensock_put_data (struct _COMMON_DATA & CommonData, socktag st, LPTSTR pData, unsigned long length)
 {
     connection * conn = (connection *) st;
 
     if ( !conn )
         return(ERR_NOT_A_SOCKET);
 
-    return(conn->put_data(pData, length));
+    return(conn->put_data(CommonData, pData, length));
 }
 
 //---------------------------------------------------------------------------
@@ -1278,14 +1202,14 @@ int
 //
 
 int
-     gensock_put_data_buffered (socktag st, LPTSTR data, unsigned long length)
+     gensock_put_data_buffered (struct _COMMON_DATA & CommonData, socktag st, LPTSTR data, unsigned long length)
 {
     connection * conn = (connection *) st;
 
     if ( !conn )
         return(ERR_NOT_A_SOCKET);
 
-    return(conn->put_data_buffered (data, length));
+    return(conn->put_data_buffered (CommonData, data, length));
 }
 
 //---------------------------------------------------------------------------
@@ -1293,21 +1217,21 @@ int
 //
 
 int
-     gensock_put_data_flush (socktag st)
+     gensock_put_data_flush (struct _COMMON_DATA & CommonData, socktag st)
 {
     connection * conn = (connection *) st;
 
     if ( !conn )
         return(ERR_NOT_A_SOCKET);
 
-    return(conn->put_data_flush());
+    return(conn->put_data_flush(CommonData));
 }
 
 //
 // ---------------------------------------------------------------------------
 //
 char *
-     gensock_getdomainfromhostnameA (char * pName)
+     gensock_getdomainfromhostnameA (struct _COMMON_DATA & CommonData, char * pName)
 {
     char * domainPtr;
 
@@ -1324,10 +1248,10 @@ char *
             int retval = WSAGetLastError();
 
             if (retval == WSANOTINITIALISED) {
-                retval = init_winsock();
+                retval = init_winsock(CommonData);
                 if ( !retval ) {
-                    domainPtr = gensock_getdomainfromhostnameA(pName);
-                    deinit_winsock();
+                    domainPtr = gensock_getdomainfromhostnameA(CommonData, pName);
+                    deinit_winsock(CommonData);
                 }
             }
             break;
@@ -1337,7 +1261,7 @@ char *
         if (!domainPtr)
             break;
 
-        domainPtr = gensock_getdomainfromhostnameA( ++domainPtr );
+        domainPtr = gensock_getdomainfromhostnameA( CommonData, ++domainPtr );
         if (!domainPtr)
             domainPtr = pName;
 
@@ -1348,7 +1272,7 @@ char *
 
 #if defined(_UNICODE) || defined(UNICODE)
 LPTSTR
-     gensock_getdomainfromhostnameW (LPTSTR pName)
+     gensock_getdomainfromhostnameW (struct _COMMON_DATA & CommonData, LPTSTR pName)
 {
     unsigned x;
     char   * pDomainName;
@@ -1359,7 +1283,7 @@ LPTSTR
     _tcslwr( pName );
     convertHostnameUsingPunycode( pName, hostname );
     pTDomainName = NULL;
-    pDomainName = gensock_getdomainfromhostnameA( hostname );
+    pDomainName = gensock_getdomainfromhostnameA( CommonData, hostname );
     if ( pDomainName ) {
         pTDomainName = _Thostname;
         for ( x = 0; x < (MAX_HOSTNAME_LENGTH-1); x++ ) {
@@ -1475,7 +1399,7 @@ int
 //
 
 int
-     gensock_close (socktag st)
+     gensock_close (COMMON_DATA & CommonData, socktag st)
 {
     connection * conn;
     int retval;
@@ -1489,10 +1413,10 @@ int
     if ( retval )
         return(retval);
 
-    global_socket_list.remove((connection *)st);
+    CommonData.global_socket_list.remove((connection *)st);
 
-    if ( global_socket_list.how_many_are_mine() < 1 ) {
-        deinit_winsock();
+    if ( CommonData.global_socket_list.how_many_are_mine(CommonData) < 1 ) {
+        deinit_winsock(CommonData);
     }
 
     return(0);
@@ -1503,20 +1427,20 @@ int
 //
 
 int
-     init_winsock(void)
+     init_winsock(struct _COMMON_DATA & CommonData)
 {
     int retval;
     WSADATA winsock_data;
     WORD version_required = 0x0101;              /* Version 1.1 */
 
-    network_initialized = 0;
+    CommonData.network_initialized = 0;
     retval = WSAStartup (version_required, &winsock_data);
 #if INCLUDE_SUPERDEBUG
-    if ( superDebug ) {
-        _TCHAR savedQuiet = quiet;
-        quiet = FALSE;
-        printMsg( __T("superDebug: init_winsock(), WSAStartup() returned %i (%s)\n"), retval, errorName(retval) );
-        quiet = savedQuiet;
+    if ( CommonData.superDebug ) {
+        _TCHAR savedQuiet = CommonData.quiet;
+        CommonData.quiet = FALSE;
+        printMsg( CommonData, __T("superDebug: init_winsock(), WSAStartup() returned %i (%s)\n"), retval, errorName(retval) );
+        CommonData.quiet = savedQuiet;
     }
 #endif
     switch ( retval ) {
@@ -1538,13 +1462,13 @@ int
     case WSAEPROCLIM:           /* Limit on the number of tasks supported by the Windows Sockets implementation has been reached. */
         return(ERR_CANT_GET_SOCKET);
     }
-    network_initialized = 1;
+    CommonData.network_initialized = 1;
     return(0);
 }
 
 void
-     deinit_winsock(void)
+     deinit_winsock(struct _COMMON_DATA & CommonData)
 {
-    network_initialized = 0;
+    CommonData.network_initialized = 0;
     WSACleanup();
 }

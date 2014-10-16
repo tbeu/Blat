@@ -131,40 +131,39 @@
     #define _TCHAR_PRINTF_FORMAT    __T("hh")
 #endif
 
-#pragma pack(1)
+/*
+How to check the Microsoft compiler version, from stackoverflow.com
 
-typedef struct _BLDHDRS {
-    Buf  * messageBuffer;
-    Buf  * header;
-    Buf  * varHeaders;
-    Buf  * multipartHdrs;
-    int    buildSMTP;
-    Buf  * lpszFirstReceivedData;
-    Buf  * lpszOtherHeader;
-    LPTSTR attachment_boundary;
-    LPTSTR multipartID;
-    LPTSTR wanted_hostname;
-    LPTSTR server_name;
-    int    part;
-    int    totalparts;  // if multipart, this is part x of y, else is 0.
-    int    attachNbr;
-    int    nbrOfAttachments;
-    LPTSTR attachName;
-    DWORD  attachSize;
-    int    addBccHeader;
-} BLDHDRS;
+http://stackoverflow.com/questions/70013/how-to-detect-if-im-compiling-code-under-visual-studio-8
 
+Some values for the more recent versions of the compiler are:
 
-typedef struct BLATOPTIONS {
-    LPTSTR optionString;    // What string defines this option
-    LPTSTR szCgiEntry;      // This is the CGI option name
-    int    preprocess;      // Does this option need to be preprocessed?
-    int    additionArgC;    // Minimum number of arguments for this option
-    int (* initFunction)( int argc, LPTSTR* argv, int this_arg, int startargv );
-    LPTSTR usageText;
-} _BLATOPTIONS;
+MSVC++ 11.0 _MSC_VER = 1700 (Visual Studio 2011)
+MSVC++ 10.0 _MSC_VER = 1600 (Visual Studio 2010)
+MSVC++ 9.0  _MSC_VER = 1500 (Visual Studio 2008)
+MSVC++ 8.0  _MSC_VER = 1400 (Visual Studio 2005)
+MSVC++ 7.1  _MSC_VER = 1310 (Visual Studio 2003)
+MSVC++ 7.0  _MSC_VER = 1300
+MSVC++ 6.0  _MSC_VER = 1200
+MSVC++ 5.0  _MSC_VER = 1100
+ */
 
-#pragma pack()
+#if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER >= 1400)
+#define fileCreateAttribute     __T("w, ccs=UTF-8")
+#define fileAppendAttribute     __T("a, ccs=UTF-8")
+#else
+#define fileCreateAttribute     __T("w")
+#define fileAppendAttribute     __T("a")
+#endif
+
+#define stdinFileName           __T("stdin.txt")
+#define defaultCharset          __T("ISO-8859-1")
+
+#if defined(WIN32) || defined(WIN64)    /* This is for NT */
+    #define TASK_HANDLE_TYPE    HANDLE
+#else                                   /* This is for WIN16 */
+    #define TASK_HANDLE_TYPE    HTASK
+#endif
 
 #if !defined(_tstol)
  #define _tstol      _ttol      // fix for older VC

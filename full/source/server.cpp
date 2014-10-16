@@ -11,28 +11,12 @@
 #include <string.h>
 
 #include "blat.h"
+#include "common_data.h"
 
 /* generic socket DLL support */
 #include "gensock.h"
 
-extern HMODULE gensock_lib;
-
-extern void printMsg( LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
-
-HANDLE  dll_module_handle = 0;
-HMODULE gensock_lib = 0;
-
-socktag ServerSocket = 0;
-
-extern _TCHAR   Try[];
-extern _TCHAR   debug;
-extern _TCHAR   chunkingSupported;
-#if INCLUDE_POP3
-extern _TCHAR   xtnd_xmit_supported;
-#endif
-
-#define MY_HOSTNAME_SIZE    1024
-_TCHAR my_hostname[MY_HOSTNAME_SIZE];
+extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
 
 #ifdef BLATDLL_TC_WCX
 #ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
@@ -41,36 +25,36 @@ extern tProcessDataProc  pProcessDataProc;
 #endif
 #endif
 
-void gensock_error (LPTSTR function, int retval, LPTSTR hostname)
+void gensock_error (COMMON_DATA & CommonData, LPTSTR function, int retval, LPTSTR hostname)
 {
     switch ( retval ) {
-    case ERR_CANT_MALLOC          : printMsg(__T("Error: Malloc failed (possibly out of memory).\n")); break;
-    case ERR_SENDING_DATA         : printMsg(__T("Error: Error sending data.\n")); break;
-    case ERR_INITIALIZING         : printMsg(__T("Error: Error initializing gensock.dll.\n")); break;
-    case ERR_VER_NOT_SUPPORTED    : printMsg(__T("Error: Version not supported.\n")); break;
-    case ERR_EINVAL               : printMsg(__T("Error: The winsock version specified by gensock is not supported by this winsock.dll.\n")); break;
-    case ERR_SYS_NOT_READY        : printMsg(__T("Error: Network not ready.\n")); break;
-    case ERR_CANT_RESOLVE_HOSTNAME: printMsg(__T("Error: Can't resolve hostname (%s).\n"), hostname); break;
-    case ERR_CANT_GET_SOCKET      : printMsg(__T("Error: Can't create a socket (too many simultaneous links?)\n")); break;
-    case ERR_READING_SOCKET       : printMsg(__T("Error: Error reading socket.\n")); break;
-    case ERR_NOT_A_SOCKET         : printMsg(__T("Error: Not a socket.\n")); break;
-    case ERR_BUSY                 : printMsg(__T("Error: Busy.\n")); break;
-    case ERR_CLOSING              : printMsg(__T("Error: Error closing socket.\n")); break;
-    case WAIT_A_BIT               : printMsg(__T("Error: Wait a bit (possible timeout).\n")); break;
-    case ERR_CANT_RESOLVE_SERVICE : printMsg(__T("Error: Can't resolve service.\n")); break;
-    case ERR_CANT_CONNECT         : printMsg(__T("Error: Can't connect to server (timed out if winsock.dll error 10060)\n")); break;
-    case ERR_NOT_CONNECTED        : printMsg(__T("Error: Connection to server was dropped.\n")); break;
-    case ERR_CONNECTION_REFUSED   : printMsg(__T("Error: Server refused connection.\n")); break;
-    default:                        printMsg(__T("error %d in function '%s'\n"), retval, function);
+    case ERR_CANT_MALLOC          : printMsg(CommonData, __T("Error: Malloc failed (possibly out of memory).\n")); break;
+    case ERR_SENDING_DATA         : printMsg(CommonData, __T("Error: Error sending data.\n")); break;
+    case ERR_INITIALIZING         : printMsg(CommonData, __T("Error: Error initializing gensock.dll.\n")); break;
+    case ERR_VER_NOT_SUPPORTED    : printMsg(CommonData, __T("Error: Version not supported.\n")); break;
+    case ERR_EINVAL               : printMsg(CommonData, __T("Error: The winsock version specified by gensock is not supported by this winsock.dll.\n")); break;
+    case ERR_SYS_NOT_READY        : printMsg(CommonData, __T("Error: Network not ready.\n")); break;
+    case ERR_CANT_RESOLVE_HOSTNAME: printMsg(CommonData, __T("Error: Can't resolve hostname (%s).\n"), hostname); break;
+    case ERR_CANT_GET_SOCKET      : printMsg(CommonData, __T("Error: Can't create a socket (too many simultaneous links?)\n")); break;
+    case ERR_READING_SOCKET       : printMsg(CommonData, __T("Error: Error reading socket.\n")); break;
+    case ERR_NOT_A_SOCKET         : printMsg(CommonData, __T("Error: Not a socket.\n")); break;
+    case ERR_BUSY                 : printMsg(CommonData, __T("Error: Busy.\n")); break;
+    case ERR_CLOSING              : printMsg(CommonData, __T("Error: Error closing socket.\n")); break;
+    case WAIT_A_BIT               : printMsg(CommonData, __T("Error: Wait a bit (possible timeout).\n")); break;
+    case ERR_CANT_RESOLVE_SERVICE : printMsg(CommonData, __T("Error: Can't resolve service.\n")); break;
+    case ERR_CANT_CONNECT         : printMsg(CommonData, __T("Error: Can't connect to server (timed out if winsock.dll error 10060)\n")); break;
+    case ERR_NOT_CONNECTED        : printMsg(CommonData, __T("Error: Connection to server was dropped.\n")); break;
+    case ERR_CONNECTION_REFUSED   : printMsg(CommonData, __T("Error: Server refused connection.\n")); break;
+    default:                        printMsg(CommonData, __T("error %d in function '%s'\n"), retval, function);
     }
 }
 
-int open_server_socket( LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR portName )
+int open_server_socket( COMMON_DATA & CommonData, LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR portName )
 {
     int    retval;
     LPTSTR ptr;
 
-    dll_module_handle = GetModuleHandle (NULL);
+    CommonData.dll_module_handle = GetModuleHandle (NULL);
 
     ptr = _tcschr(host, __T(':'));
     if ( ptr ) {
@@ -78,20 +62,20 @@ int open_server_socket( LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR
         _tcscpy(userPort, ptr+1);
     }
 
-    retval = gensock_connect((LPTSTR) host,
+    retval = gensock_connect(CommonData, (LPTSTR) host,
                              (LPTSTR)((*userPort == 0) ? portName : userPort),
-                             &ServerSocket);
+                             &CommonData.ServerSocket);
     if ( retval ) {
         if ( retval == ERR_CANT_RESOLVE_SERVICE ) {
-            retval = gensock_connect((LPTSTR)host,
+            retval = gensock_connect(CommonData, (LPTSTR)host,
                                      (LPTSTR)((*userPort == 0) ? defaultPort : userPort),
-                                     &ServerSocket);
+                                     &CommonData.ServerSocket);
             if ( retval ) {
-                gensock_error (__T("gensock_connect"), retval, host);
+                gensock_error (CommonData, __T("gensock_connect"), retval, host);
                 return(-1);
             }
         } else { // error other than can't resolve service
-            gensock_error (__T("gensock_connect"), retval, host);
+            gensock_error (CommonData, __T("gensock_connect"), retval, host);
             return(-1);
         }
     }
@@ -99,11 +83,11 @@ int open_server_socket( LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR
     // we wait to do this until here because WINSOCK is
     // guaranteed to be already initialized at this point.
 
-    if ( !my_hostname[0] ) {
+    if ( !CommonData.my_hostname[0] ) {
         // get the local hostname (needed by SMTP)
-        retval = gensock_gethostname(my_hostname, MY_HOSTNAME_SIZE);
+        retval = gensock_gethostname(CommonData.my_hostname, MY_HOSTNAME_SIZE);
         if ( retval ) {
-            gensock_error (__T("gensock_gethostname"), retval, host);
+            gensock_error (CommonData, __T("gensock_gethostname"), retval, host);
             return(-1);
         }
     }
@@ -112,22 +96,22 @@ int open_server_socket( LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR
 }
 
 
-int close_server_socket( void )
+int close_server_socket( COMMON_DATA & CommonData )
 {
     int retval;
 
-    if ( ServerSocket ) {
-        retval = gensock_close(ServerSocket);
-        ServerSocket = 0;
+    if ( CommonData.ServerSocket ) {
+        retval = gensock_close(CommonData, CommonData.ServerSocket);
+        CommonData.ServerSocket = 0;
 
         if ( retval ) {
-            gensock_error (__T("gensock_close"), retval, __T(""));
+            gensock_error (CommonData, __T("gensock_close"), retval, __T(""));
             return(-1);
         }
 
-        if ( gensock_lib ) {
-            FreeLibrary( gensock_lib );
-            gensock_lib = 0;
+        if ( CommonData.gensock_lib ) {
+            FreeLibrary( CommonData.gensock_lib );
+            CommonData.gensock_lib = 0;
         }
     }
 
@@ -157,7 +141,7 @@ int close_server_socket( void )
 // validateResp pulls double duty.  If NULL, then the server response is not checked.
 // If set to a pointer, then any enhanced status codes that are received get stored there.
 
-int get_server_response( Buf * responseStr, int * validateResp  )
+int get_server_response( COMMON_DATA & CommonData, Buf * responseStr, int * validateResp  )
 {
     _TCHAR ch;
     _TCHAR in_data [MAXOUTLINE];
@@ -184,9 +168,9 @@ int get_server_response( Buf * responseStr, int * validateResp  )
         in_data[3] = __T('\0'); // Avoid a random "nnn-" being here and confusing the multiline detection below...
         ch = __T('.');          // Must reinitialize to avoid '\n' being here in the event of a multi-line response
         while ( ch != __T('\n') ) {
-            retval = gensock_getchar(ServerSocket, 0, &ch);
+            retval = gensock_getchar(CommonData, CommonData.ServerSocket, 0, &ch);
             if ( retval ) {
-                gensock_error (__T("gensock_getchar"), retval, __T(""));
+                gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
                 return(-1);
             }
@@ -206,9 +190,9 @@ int get_server_response( Buf * responseStr, int * validateResp  )
                  _istdigit(in_data[2]) &&
                  (in_data[3] == __T(' ')) || (in_data[3] == __T('-')) ) {
                 received.Add( in_data );
-                if ( debug ) printMsg(__T("<<<getline<<< %s\n"), in_data );
+                if ( CommonData.debug ) printMsg( CommonData, __T("<<<getline<<< %s\n"), in_data );
             } else {
-                if ( debug ) printMsg(__T("Invalid server response received: %s\n"), in_data );
+                if ( CommonData.debug ) printMsg( CommonData, __T("Invalid server response received: %s\n"), in_data );
                 in_data[3] = __T('\0');
             }
 
@@ -222,17 +206,17 @@ int get_server_response( Buf * responseStr, int * validateResp  )
                 break;
         } else {
             received.Add( in_data );
-            if ( debug ) printMsg(__T("< <getline< < %s\n"), in_data );
+            if ( CommonData.debug ) printMsg( CommonData, __T("< <getline< < %s\n"), in_data );
         }
 
         /* append following lines, if there are some waiting to be received... */
         /* This is a polling call, and will return if no data is waiting.*/
-        for ( x = 0; x < globaltimeout*4; x++ ) {
-            retval = gensock_getchar(ServerSocket, 1, &ch);
+        for ( x = 0; x < CommonData.globaltimeout*4; x++ ) {
+            retval = gensock_getchar(CommonData, CommonData.ServerSocket, 1, &ch);
             if ( retval != WAIT_A_BIT )
                 break;
 
-            // if ( debug ) printMsg(__T("\tgoing to sleep for a quarter of a second...zzzzz\n") );
+            // if ( CommonData.debug ) printMsg( CommonData, __T("\tgoing to sleep for a quarter of a second...zzzzz\n") );
             Sleep( 250 );
         }
 
@@ -286,13 +270,13 @@ int get_server_response( Buf * responseStr, int * validateResp  )
 
 // Added 2003-11-07, Joseph Calzaretta
 //   overloading get_server_response so it CAN output to LPTSTR instead of Buf*
-int get_server_response( LPTSTR responseStr )
+int get_server_response( COMMON_DATA & CommonData, LPTSTR responseStr )
 {
     int enhancedStatusCode;
     int ret;
     Buf buf;
 
-    ret = get_server_response( &buf, &enhancedStatusCode );
+    ret = get_server_response( CommonData, &buf, &enhancedStatusCode );
     if ( responseStr )
         _tcscpy(responseStr, buf.Get());
 
@@ -303,7 +287,7 @@ int get_server_response( LPTSTR responseStr )
 
 #if INCLUDE_POP3
 
-int get_pop3_server_response( Buf * responseStr )
+int get_pop3_server_response( COMMON_DATA & CommonData, Buf * responseStr )
 {
     _TCHAR ch;
     _TCHAR in_data [MAXOUTLINE];
@@ -323,9 +307,9 @@ int get_pop3_server_response( Buf * responseStr )
     do {
         ch = __T('.');      // Must reinitialize to avoid '\n' being here in the event of a multi-line response
         while ( ch != __T('\n') ) {
-            retval = gensock_getchar(ServerSocket, 0, &ch);
+            retval = gensock_getchar(CommonData, CommonData.ServerSocket, 0, &ch);
             if ( retval ) {
-                gensock_error (__T("gensock_getchar"), retval, __T(""));
+                gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
                 return(-1);
             }
@@ -340,7 +324,7 @@ int get_pop3_server_response( Buf * responseStr )
 
         *index = __T('\0');  // terminate the string we received.
         received.Add( in_data );
-        if ( debug ) printMsg(__T("<<<getline<<< %s\n"), in_data );
+        if ( CommonData.debug ) printMsg( CommonData, __T("<<<getline<<< %s\n"), in_data );
         if ( (memcmp( in_data, __T("+OK"),  3*sizeof(_TCHAR) ) == 0) ||
              (memcmp( in_data, __T("-ERR"), 4*sizeof(_TCHAR) ) == 0) ) {
             break;
@@ -348,12 +332,12 @@ int get_pop3_server_response( Buf * responseStr )
 
         /* append following lines, if there are some waiting to be received... */
         /* This is a polling call, and will return if no data is waiting.*/
-        for ( x = 0; x < globaltimeout*4; x++ ) {
-            retval = gensock_getchar(ServerSocket, 1, &ch);
+        for ( x = 0; x < CommonData.globaltimeout*4; x++ ) {
+            retval = gensock_getchar(CommonData, CommonData.ServerSocket, 1, &ch);
             if ( retval != WAIT_A_BIT )
                 break;
 
-            // if ( debug ) printMsg(__T("\tgoing to sleep for a quarter of a second...zzzzz\n") );
+            // if ( CommonData.debug ) printMsg( CommonData, __T("\tgoing to sleep for a quarter of a second...zzzzz\n") );
             Sleep( 250 );
         }
 
@@ -398,7 +382,7 @@ int get_pop3_server_response( Buf * responseStr )
 
 #if INCLUDE_IMAP
 
-int get_imap_untagged_server_response( Buf * responseStr  )
+int get_imap_untagged_server_response( COMMON_DATA & CommonData, Buf * responseStr  )
 {
     _TCHAR ch;
     _TCHAR in_data [MAXOUTLINE];
@@ -417,12 +401,12 @@ int get_imap_untagged_server_response( Buf * responseStr  )
     do {
         ch = __T('\0'); // Must reinitialize to avoid '\n' being here in the event of a multi-line response
 /*
-        printMsg(__T("in_data = %p, index = %p\n"), in_data, index );
+        printMsg( CommonData, __T("in_data = %p, index = %p\n"), in_data, index );
  */
         while ( ch != __T('\n') ) {
-            retval = gensock_getchar(ServerSocket, 0, &ch);
+            retval = gensock_getchar(CommonData, CommonData.ServerSocket, 0, &ch);
             if ( retval ) {
-                gensock_error (__T("gensock_getchar"), retval, __T(""));
+                gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
                 return(-1);
             }
@@ -447,22 +431,22 @@ int get_imap_untagged_server_response( Buf * responseStr  )
                 _stprintf(str, __T(" %02") _TCHAR_PRINTF_FORMAT __T("X"), in_data[x] );
                 textMsg.Add(str);
             }
-            printMsg(__T("%s\n"), textMsg.Get() );
+            printMsg( CommonData, __T("%s\n"), textMsg.Get() );
         }
  */
         received.Add( in_data );
-        if ( debug ) printMsg(__T("<<<getline<<< %s\n"), in_data );
+        if ( CommonData.debug ) printMsg( CommonData, __T("<<<getline<<< %s\n"), in_data );
         if ( in_data[0] )
             break;
 
         /* append following lines, if there are some waiting to be received... */
         /* This is a polling call, and will return if no data is waiting.*/
-        for ( x = 0; x < globaltimeout*4; x++ ) {
-            retval = gensock_getchar(ServerSocket, 1, &ch);
+        for ( x = 0; x < CommonData.globaltimeout*4; x++ ) {
+            retval = gensock_getchar(CommonData, CommonData.ServerSocket, 1, &ch);
             if ( retval != WAIT_A_BIT )
                 break;
 
-            // if ( debug ) printMsg(__T("\tgoing to sleep for a quarter of a second...zzzzz\n") );
+            // if ( CommonData.debug ) printMsg( CommonData, __T("\tgoing to sleep for a quarter of a second...zzzzz\n") );
             Sleep( 250 );
         }
 
@@ -497,7 +481,7 @@ int get_imap_untagged_server_response( Buf * responseStr  )
 }
 
 
-int get_imap_tagged_server_response( Buf * responseStr, LPTSTR tag  )
+int get_imap_tagged_server_response( COMMON_DATA & CommonData, Buf * responseStr, LPTSTR tag  )
 {
     _TCHAR ch;
     _TCHAR in_data [MAXOUTLINE];
@@ -516,12 +500,12 @@ int get_imap_tagged_server_response( Buf * responseStr, LPTSTR tag  )
     do {
         ch = __T('\0'); // Must reinitialize to avoid '\n' being here in the event of a multi-line response
 /*
-        printMsg(__T("in_data = %p, index = %p\n"), in_data, index );
+        printMsg( CommonData, __T("in_data = %p, index = %p\n"), in_data, index );
  */
         while ( ch != __T('\n') ) {
-            retval = gensock_getchar(ServerSocket, 0, &ch);
+            retval = gensock_getchar(CommonData, CommonData.ServerSocket, 0, &ch);
             if ( retval ) {
-                gensock_error (__T("gensock_getchar"), retval, __T(""));
+                gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
                 return(-1);
             }
@@ -546,23 +530,23 @@ int get_imap_tagged_server_response( Buf * responseStr, LPTSTR tag  )
                 _stprintf(str, __T(" %02") _TCHAR_PRINTF_FORMAT __T("X"), in_data[x] );
                 textMsg.Add(str);
             }
-            printMsg(__T("%s\n"), textMsg.Get() );
+            printMsg( CommonData, __T("%s\n"), textMsg.Get() );
             textMsg.Free();
         }
  */
         received.Add( in_data );
-        if ( debug ) printMsg(__T("<<<getline<<< %s\n"), in_data );
+        if ( CommonData.debug ) printMsg( CommonData, __T("<<<getline<<< %s\n"), in_data );
         if ( memcmp( in_data, tag, _tcslen(tag)*sizeof(_TCHAR)) == 0 )
             break;
 
         /* append following lines, if there are some waiting to be received... */
         /* This is a polling call, and will return if no data is waiting.*/
-        for ( x = 0; x < globaltimeout*4; x++ ) {
-            retval = gensock_getchar(ServerSocket, 1, &ch);
+        for ( x = 0; x < CommonData.globaltimeout*4; x++ ) {
+            retval = gensock_getchar(CommonData, CommonData.ServerSocket, 1, &ch);
             if ( retval != WAIT_A_BIT )
                 break;
 
-            // if ( debug ) printMsg(__T("\tgoing to sleep for a quarter of a second...zzzzz\n") );
+            // if ( CommonData.debug ) printMsg( CommonData, __T("\tgoing to sleep for a quarter of a second...zzzzz\n") );
             Sleep( 250 );
         }
 
@@ -598,29 +582,30 @@ int get_imap_tagged_server_response( Buf * responseStr, LPTSTR tag  )
 #endif
 
 
-int put_message_line( socktag sock, LPTSTR line )
+int put_message_line( COMMON_DATA & CommonData, socktag sock, LPTSTR line )
 {
     size_t nchars;
     int retval;
 
     nchars = _tcslen(line);
 
-    retval = gensock_put_data(sock,
+    retval = gensock_put_data(CommonData,
+                              sock,
                               line,
                               (unsigned long) nchars);
     if ( retval ) {
         switch ( retval ) {
         case ERR_NOT_CONNECTED:
-            gensock_error( __T("Server has closed the connection"), retval, __T("") );
+            gensock_error( CommonData, __T("Server has closed the connection"), retval, __T("") );
             break;
 
         default:
-            gensock_error (__T("gensock_put_data"), retval, __T(""));
+            gensock_error (CommonData, __T("gensock_put_data"), retval, __T(""));
         }
         return(-1);
     }
 
-    if ( debug ) {
+    if ( CommonData.debug ) {
         _TCHAR c;
         LPTSTR pStr;
         static _TCHAR maskedLine[] = __T(">>>putline>>> %s *****\n");
@@ -629,47 +614,47 @@ int put_message_line( socktag sock, LPTSTR line )
              ((pStr = _tcsstr( line, __T("AUTH PLAIN ") )) != NULL) ) {
             c = pStr[11];
             pStr[11] = __T('\0');
-            printMsg(maskedLine, line);
+            printMsg(CommonData, maskedLine, line);
             pStr[11] = c;
         }
         else
         if ( (pStr = _tcsstr( line, __T("PASS ") )) != NULL ) {
             c = pStr[4];
             pStr[4] = __T('\0');
-            printMsg(maskedLine, line);
+            printMsg(CommonData, maskedLine, line);
             pStr[4] = c;
         }
         else
-            printMsg(__T(">>>putline>>> %s\n"),line);
+            printMsg(CommonData, __T(">>>putline>>> %s\n"),line);
     }
 
     return(0);
 }
 
 
-int finish_server_message( void )
+int finish_server_message( COMMON_DATA & CommonData )
 {
     int enhancedStatusCode;
     int ret;
 
-    ret = put_message_line( ServerSocket, __T("QUIT\r\n") );
+    ret = put_message_line( CommonData, CommonData.ServerSocket, __T("QUIT\r\n") );
 
 #if INCLUDE_POP3
-    if ( xtnd_xmit_supported ) {
-        // get_server_response( NULL );
-        get_pop3_server_response( NULL );
+    if ( CommonData.xtnd_xmit_supported ) {
+        // get_server_response( CommonData, NULL );
+        get_pop3_server_response( CommonData, NULL );
     } else
 #endif
     {
         // wait for a 221 message from the smtp server,
         // or a 205 message from the nntp server.
-        get_server_response( NULL, &enhancedStatusCode );
+        get_server_response( CommonData, NULL, &enhancedStatusCode );
     }
     return(ret);
 }
 
 
-void server_error( LPTSTR message)
+void server_error( COMMON_DATA & CommonData, LPTSTR message )
 {
     Buf      outString;
     _TCHAR * pChar;
@@ -690,13 +675,13 @@ void server_error( LPTSTR message)
             outString.Add( message );
         }
         if ( outString.Get() && *outString.Get() )
-            printMsg( outString.Get() );
+            printMsg( CommonData, outString.Get() );
         outString.Free();
     }
 }
 
 
-void server_warning( LPTSTR message)
+void server_warning( COMMON_DATA & CommonData, LPTSTR message)
 {
     Buf      outString;
     _TCHAR * pChar;
@@ -717,16 +702,16 @@ void server_warning( LPTSTR message)
             outString.Add( message );
         }
         if ( outString.Get() && *outString.Get() )
-            printMsg( outString.Get() );
+            printMsg( CommonData, outString.Get() );
         outString.Free();
     }
 }
 
 
 #ifdef BLATDLL_TC_WCX
-int transform_and_send_edit_data( socktag sock, LPTSTR editptr, DWORD attachmentSize )
+int transform_and_send_edit_data( COMMON_DATA & CommonData, LPTSTR editptr, DWORD attachmentSize )
 #else
-int transform_and_send_edit_data( socktag sock, LPTSTR editptr )
+int transform_and_send_edit_data( COMMON_DATA & CommonData, LPTSTR editptr )
 #endif
 {
     LPTSTR index;
@@ -740,8 +725,8 @@ int transform_and_send_edit_data( socktag sock, LPTSTR editptr )
     msgLength = (DWORD)_tcslen(editptr);
     retval = 0;
 
-    if ( chunkingSupported ) {
-        retval = gensock_put_data_buffered(sock, editptr, msgLength);
+    if ( CommonData.chunkingSupported ) {
+        retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, editptr, msgLength);
     } else {
         msg_end = editptr + msgLength;
         index = editptr;
@@ -764,10 +749,10 @@ int transform_and_send_edit_data( socktag sock, LPTSTR editptr )
             if ( *index == __T('.') ) {
                 if ( previous_char == __T('\n') ) {
                     /* send _two_ dots... */
-                    retval = gensock_put_data_buffered(sock, index, 1);
+                    retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, index, 1);
                 }
                 if ( !retval ) {
-                    retval = gensock_put_data_buffered(sock, index, 1);
+                    retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, index, 1);
                 }
             } else
             if ( *index == __T('\r') ) {
@@ -776,18 +761,18 @@ int transform_and_send_edit_data( socktag sock, LPTSTR editptr )
                     index += 2;
                 else
                 if ( previous_char != __T('\r') ) {
-                    retval = gensock_put_data_buffered(sock, index, 1);
+                    retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, index, 1);
                 }
                 // soft line-break (see EM_FMTLINES), skip extra CR */
             } else {
                 if ( *index == __T('\n') )
                     if ( previous_char != __T('\r') ) {
-                        retval = gensock_put_data_buffered(sock, __T("\r"), 1);
+                        retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, __T("\r"), 1);
                         if ( retval )
                             break;
                     }
 
-                retval = gensock_put_data_buffered(sock, index, 1);
+                retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, index, 1);
             }
 
             previous_char = *index;
@@ -819,42 +804,42 @@ int transform_and_send_edit_data( socktag sock, LPTSTR editptr )
         }
     }
 
-    if ( !chunkingSupported &&  !retval ) {
+    if ( !CommonData.chunkingSupported &&  !retval ) {
         // no errors so far, finish up this block of data.
         // this handles the case where the user doesn't end the last
         // line with a <return>
 
         if ( previous_char != __T('\n') )
-            retval = gensock_put_data_buffered(sock, __T("\r\n.\r\n"), 5);
+            retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, __T("\r\n.\r\n"), 5);
         else
-            retval = gensock_put_data_buffered(sock, __T(".\r\n"), 3);
+            retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, __T(".\r\n"), 3);
     }
     /* now make sure it's all sent... */
-    return (retval ? retval : gensock_put_data_flush(sock));
+    return (retval ? retval : gensock_put_data_flush(CommonData, CommonData.ServerSocket));
 }
 
 
 #if INCLUDE_POP3
 
 #ifdef BLATDLL_TC_WCX
-int send_edit_data (LPTSTR message, Buf * responseStr, DWORD attachmentSize )
+int send_edit_data (COMMON_DATA & CommonData, LPTSTR message, Buf * responseStr, DWORD attachmentSize )
 #else
-int send_edit_data (LPTSTR message, Buf * responseStr )
+int send_edit_data (COMMON_DATA & CommonData, LPTSTR message, Buf * responseStr )
 #endif
 {
     int retval;
 
 #ifdef BLATDLL_TC_WCX
-    retval = transform_and_send_edit_data( ServerSocket, message, attachmentSize );
+    retval = transform_and_send_edit_data( CommonData, message, attachmentSize );
 #else
-    retval = transform_and_send_edit_data( ServerSocket, message );
+    retval = transform_and_send_edit_data( CommonData, message );
 #endif
     if ( retval )
         return(retval);
 
-    if ( get_pop3_server_response( responseStr ) ) {
-        server_error (__T("Message not accepted by server\n"));
-        finish_server_message();
+    if ( get_pop3_server_response( CommonData, responseStr ) ) {
+        server_error (CommonData, __T("Message not accepted by server\n"));
+        finish_server_message(CommonData);
         return(-1);
     }
 
@@ -864,25 +849,25 @@ int send_edit_data (LPTSTR message, Buf * responseStr )
 
 
 #ifdef BLATDLL_TC_WCX
-int send_edit_data (LPTSTR message, int expected_response, Buf * responseStr, DWORD attachmentSize )
+int send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, int expected_response, Buf * responseStr, DWORD attachmentSize )
 #else
-int send_edit_data (LPTSTR message, int expected_response, Buf * responseStr )
+int send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, int expected_response, Buf * responseStr )
 #endif
 {
     int enhancedStatusCode;
     int retval;
 
 #ifdef BLATDLL_TC_WCX
-    retval = transform_and_send_edit_data( ServerSocket, message, attachmentSize );
+    retval = transform_and_send_edit_data( CommonData, message, attachmentSize );
 #else
-    retval = transform_and_send_edit_data( ServerSocket, message );
+    retval = transform_and_send_edit_data( CommonData, message );
 #endif
     if ( retval )
         return(retval);
 
-    if ( get_server_response( responseStr, &enhancedStatusCode ) != expected_response ) {
-        server_error (__T("Message not accepted by server\n"));
-        finish_server_message();
+    if ( get_server_response( CommonData, responseStr, &enhancedStatusCode ) != expected_response ) {
+        server_error (CommonData, __T("Message not accepted by server\n"));
+        finish_server_message(CommonData);
         return(-1);
     }
 
@@ -891,25 +876,25 @@ int send_edit_data (LPTSTR message, int expected_response, Buf * responseStr )
 
 
 // Convert the entry "n of try" to a numeric, defaults to 1
-int noftry()
+int noftry( COMMON_DATA & CommonData )
 {
     int    n_of_try;
     int    i;
     size_t len;
 
     n_of_try = 0;
-    len = _tcslen(Try);
+    len = _tcslen(CommonData.Try);
     for ( i = 0; (unsigned)i < len; i++ )
-        Try[i] = (_TCHAR) _totupper(Try[i]);
+        CommonData.Try[i] = (_TCHAR) _totupper(CommonData.Try[i]);
 
-    if ( !_tcscmp(Try, __T("ONCE")    ) ) n_of_try = 1;
-    if ( !_tcscmp(Try, __T("TWICE")   ) ) n_of_try = 2;
-    if ( !_tcscmp(Try, __T("THRICE")  ) ) n_of_try = 3;
-    if ( !_tcscmp(Try, __T("INFINITE")) ) n_of_try = -1;
-    if ( !_tcscmp(Try, __T("-1")      ) ) n_of_try = -1;
+    if ( !_tcscmp(CommonData.Try, __T("ONCE")    ) ) n_of_try = 1;
+    if ( !_tcscmp(CommonData.Try, __T("TWICE")   ) ) n_of_try = 2;
+    if ( !_tcscmp(CommonData.Try, __T("THRICE")  ) ) n_of_try = 3;
+    if ( !_tcscmp(CommonData.Try, __T("INFINITE")) ) n_of_try = -1;
+    if ( !_tcscmp(CommonData.Try, __T("-1")      ) ) n_of_try = -1;
 
     if ( n_of_try == 0 ) {
-        i = _stscanf( Try, __T("%d"), &n_of_try );
+        i = _stscanf( CommonData.Try, __T("%d"), &n_of_try );
         if ( !i )
             n_of_try = 1;
     }
