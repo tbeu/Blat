@@ -92,10 +92,10 @@ dllDbg_RSC_PROJ=/nologo /l 0x409 /fo$(dllDbgDir)\blat.res /d _DEBUG /d WIN64 /d 
 #dll_DEF_FILE=.\blatdll\blat.def
 
 LIB64 =lib.exe
-exeRel_LIB64_FLAGS=/nologo /machine:X64 /subsystem:CONSOLE /nologo /out:$(exeRelDir)\blatproj.lib
-exeDbg_LIB64_FLAGS=/nologo /machine:X64 /subsystem:CONSOLE /nologo /out:$(exeDbgDir)\blatproj.lib
-dllRel_LIB64_FLAGS=/nologo /machine:X64 /subsystem:CONSOLE /nologo /out:$(dllRelDir)\blatproj.lib
-dllDbg_LIB64_FLAGS=/nologo /machine:X64 /subsystem:CONSOLE /nologo /out:$(dllDbgDir)\blatproj.lib
+exeRel_LIB64_FLAGS=/machine:X64  /subsystem:CONSOLE /nologo /out:$(exeRelDir)\blatproj.lib
+exeDbg_LIB64_FLAGS=/machine:X64  /subsystem:CONSOLE /nologo /out:$(exeDbgDir)\blatproj.lib
+dllRel_LIB64_FLAGS=/machine:X64  /subsystem:CONSOLE /nologo /out:$(dllRelDir)\blatproj.lib
+dllDbg_LIB64_FLAGS=/machine:X64  /subsystem:CONSOLE /nologo /out:$(dllDbgDir)\blatproj.lib
 
 exeRel_LIB64_OBJS= \
         $(exeRelDir)\attach.obj   \
@@ -191,9 +191,9 @@ dllDbg_LIB64_OBJS= \
 
 
 LINK64=link.exe
-exeRel_LINK64_FLAGS=$(exeRelDir)\blatproj.lib libcmt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /subsystem:console /incremental:no  /pdb:$(exeRelDir)\blat.pdb /map:$(exeRelDir)\blat.map        /STACK:102400 /machine:X64 $(DXP) /nodefaultlib /out:$(exeRelDir)\blat.exe
+exeRel_LINK64_FLAGS=$(exeRelDir)\blatproj.lib libcmt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /subsystem:console /incremental:no  /pdb:none                  /map:$(exeRelDir)\blat.map        /STACK:102400 /machine:X64 $(DXP) /nodefaultlib /out:$(exeRelDir)\blat.exe
 exeDbg_LINK64_FLAGS=$(exeDbgDir)\blatproj.lib libcmtd.lib wsock32.lib kernel32.lib advapi32.lib /nologo /subsystem:console /incremental:yes /pdb:$(exeDbgDir)\blat.pdb /map:$(exeDbgDir)\blat.map /debug /STACK:102400 /machine:X64 $(DXP) /nodefaultlib /out:$(exeDbgDir)\blat.exe
-dllRel_LINK64_FLAGS=$(dllRelDir)\blatproj.lib libcmt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /dll               /incremental:no  /pdb:$(dllRelDir)\blat.pdb /map:$(dllRelDir)\blat.map        /STACK:102400 /machine:X64 $(DXP) /nodefaultlib /out:$(dllRelDir)\blat.dll /implib:$(dllRelDir)\blat.lib
+dllRel_LINK64_FLAGS=$(dllRelDir)\blatproj.lib libcmt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /dll               /incremental:no  /pdb:none                  /map:$(dllRelDir)\blat.map        /STACK:102400 /machine:X64 $(DXP) /nodefaultlib /out:$(dllRelDir)\blat.dll /implib:$(dllRelDir)\blat.lib
 dllDbg_LINK64_FLAGS=$(dllDbgDir)\blatproj.lib libcmtd.lib wsock32.lib kernel32.lib advapi32.lib /nologo /dll               /incremental:yes /pdb:$(dllDbgDir)\blat.pdb /map:$(dllDbgDir)\blat.map /debug /STACK:102400 /machine:X64 $(DXP) /nodefaultlib /out:$(dllDbgDir)\blat.dll /implib:$(dllDbgDir)\blat.lib
 
 exeRel_LINK64_OBJS= \
@@ -216,54 +216,38 @@ dllDbg_LINK64_OBJS= \
 $(exeRelDir)\blatproj.lib : $(exeRelDir) $(exe_DEF_FILE) $(exeRel_LIB64_OBJS)
     -@if exist $(exeRelDir)\blatproj.lib erase $(exeRelDir)\blatproj.lib
     -@if exist $(exeRelDir)\blat.obj erase $(exeRelDir)\blat.obj
-    $(LIB64) @<<
-  $(exeRel_LIB64_FLAGS) $(exeRel_LIB64_OBJS)
-<<
+    $(LIB64) $(exeRel_LIB64_FLAGS) $(exeRel_LIB64_OBJS)
 
 $(exeRelDir)\blat.exe : $(exeRelDir) $(exe_DEF_FILE) $(exeRelDir)\blatproj.lib \
                         $(exeRel_LINK64_OBJS)
-    $(LINK64) @<<
-  $(exeRel_LINK64_FLAGS) $(exeRel_LINK64_OBJS)
-<<
+    $(LINK64) $(exeRel_LINK64_FLAGS) $(exeRel_LINK64_OBJS)
 
 $(exeDbgDir)\blatproj.lib : $(exeDbgDir) $(exe_DEF_FILE) $(exeDbg_LIB64_OBJS)
     -@if exist $(exeDbgDir)\blatproj.lib erase $(exeDbgDir)\blatproj.lib
     -@if exist $(exeDbgDir)\blat.obj erase $(exeDbgDir)\blat.obj
-    $(LIB64) @<<
-  $(exeDbg_LIB64_FLAGS) $(exeDbg_LIB64_OBJS)
-<<
+    $(LIB64) $(exeDbg_LIB64_FLAGS) $(exeDbg_LIB64_OBJS)
 
 $(exeDbgDir)\blat.exe : $(exeDbgDir) $(exe_DEF_FILE) $(exeDbgDir)\blatproj.lib \
                         $(exeDbg_LINK64_OBJS)
-    $(LINK64) @<<
-  $(exeDbg_LINK64_FLAGS) $(exeDbg_LINK64_OBJS)
-<<
+    $(LINK64) $(exeDbg_LINK64_FLAGS) $(exeDbg_LINK64_OBJS)
 
 $(dllRelDir)\blatproj.lib : $(dllRelDir) $(dll_DEF_FILE) $(dllRel_LIB64_OBJS)
     -@if exist $(dllRelDir)\blatproj.lib erase $(dllRelDir)\blatproj.lib
     -@if exist $(dllRelDir)\blat.obj erase $(dllRelDir)\blat.obj
-    $(LIB64) @<<
-  $(dllRel_LIB64_FLAGS) $(dllRel_LIB64_OBJS)
-<<
+    $(LIB64) $(dllRel_LIB64_FLAGS) $(dllRel_LIB64_OBJS)
 
 $(dllRelDir)\blat.dll : $(dllRelDir) $(dll_DEF_FILE) $(dllRelDir)\blatproj.lib \
                         $(dllRel_LINK64_OBJS)
-    $(LINK64) @<<
-  $(dllRel_LINK64_FLAGS) $(dllRel_LINK64_OBJS)
-<<
+    $(LINK64) $(dllRel_LINK64_FLAGS) $(dllRel_LINK64_OBJS)
 
 $(dllDbgDir)\blatproj.lib : $(dllDbgDir) $(dll_DEF_FILE) $(dllDbg_LIB64_OBJS)
     -@if exist $(dllDbgDir)\blatproj.lib erase $(dllDbgDir)\blatproj.lib
     -@if exist $(dllDbgDir)\blat.obj erase $(dllDbgDir)\blat.obj
-    $(LIB64) @<<
-  $(dllDbg_LIB64_FLAGS) $(dllDbg_LIB64_OBJS)
-<<
+    $(LIB64) $(dllDbg_LIB64_FLAGS) $(dllDbg_LIB64_OBJS)
 
 $(dllDbgDir)\blat.dll : $(dllDbgDir) $(dll_DEF_FILE) $(dllDbgDir)\blatproj.lib \
                         $(dllDbg_LINK64_OBJS)
-    $(LINK64) @<<
-  $(dllDbg_LINK64_FLAGS) $(dllDbg_LINK64_OBJS)
-<<
+    $(LINK64) $(dllDbg_LINK64_FLAGS) $(dllDbg_LINK64_OBJS)
 
 
 #
@@ -451,6 +435,7 @@ $(dllDbgDir)\options.obj      : .\options.cpp     $(dllDbgDir) .\blat.h .\buf.h 
 $(dllDbgDir)\parsing.obj      : .\parsing.cpp     $(dllDbgDir) .\blat.h .\buf.h
 
 $(dllDbgDir)\punycode.obj     : .\punycode.cpp    $(dllDbgDir) .\blat.h .\buf.h .\punycode.h
+
 $(dllDbgDir)\reg.obj          : .\reg.cpp         $(dllDbgDir) .\blat.h .\buf.h
 
 $(dllDbgDir)\sendnntp.obj     : .\sendnntp.cpp    $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h

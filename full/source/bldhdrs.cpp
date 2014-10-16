@@ -18,7 +18,6 @@
 #include "gensock.h"
 
 extern LPTSTR getShortFileName (LPTSTR fileName);
-extern void   fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewrap );
 extern int    CheckIfNeedQuotedPrintable(LPTSTR pszStr, int inHeader);
 extern int    GetLengthQuotedPrintable(LPTSTR pszStr, int inHeader);
 extern void   ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader);
@@ -101,6 +100,11 @@ _TCHAR        sendUndisclosed      = FALSE;
 
 _TCHAR        priority[2];
 _TCHAR        sensitivity[2];
+
+
+static _TCHAR base64_marker[] = __T("?B?"); // RFC 2047 section 4.1. The "B" encoding
+static _TCHAR mime_marker[]   = __T("?Q?"); // RFC 2047 section 4.2. The "Q" encoding
+
 
 static _TCHAR abclist[] = __T("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 
@@ -191,14 +195,15 @@ void addStringToHeaderNoQuoting(LPTSTR string, Buf & outS, int & headerLen, int 
 
 void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
 {
-    int    doBase64;
     int    i, qLen, bLen;
     Buf    outS;
     Buf    fixupString;
     Buf    tempstring;
     size_t charsetLen;
     int    stringOffset;
-    int    utf;
+    int    tempUTF;
+    int    utfRequested;
+    _TCHAR localCharset[40];
 
 #if BLAT_LITE
 #else
@@ -207,9 +212,19 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
 
     savedEightBitMimeSupported = eightBitMimeSupported;
     savedBinaryMimeSupported   = binaryMimeSupported;
+    if ( eightBitMimeSupported )
+        utfRequested = 8;
+    else
 #endif
+        utfRequested = 7;
 
-    charsetLen = _tcslen( charset );
+    if ( memcmp(charset, __T("utf-"), 4*sizeof(_TCHAR)) == 0 ) {
+        localCharset[0] = __T('\0');
+        charsetLen   = 0;
+    } else {
+        _tcscpy( localCharset, charset );
+        charsetLen = _tcslen( localCharset );
+    }
     if ( !charsetLen )
         charsetLen = _tcslen( defaultCharset );
 
@@ -218,128 +233,119 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
     stringOffset = 0;
     tempstring.Add( string );
     outS.Clear();
+    tempUTF = 0;
 
     if ( CheckIfNeedQuotedPrintable( tempstring.Get(), TRUE ) ) {
         Buf    tmpstr;
         LPTSTR pStr;
 
-        fixupString.Clear();
-
-        utf = 0;
-        convertPackedUnicodeToUTF( tempstring, fixupString, &utf, NULL, 8 );
-        if ( utf )
+        convertPackedUnicodeToUTF( tempstring, fixupString, &tempUTF, localCharset, utfRequested );
+        if ( tempUTF )
         {
             tempstring = fixupString;
-            fixupString.Clear();
             charsetLen = 12;    // =?utf-8?q? ?=
         }
-        i = (int)tempstring.Length();
-        qLen = GetLengthQuotedPrintable(tempstring.Get(), TRUE );
-        bLen = ((i / 3) * 4) + ((i % 3) ? 4 : 0);
 
 #if BLAT_LITE
 #else
         eightBitMimeSupported = FALSE;
         binaryMimeSupported   = 0;
-
-        if ( forcedHeaderEncoding == __T('q') ) {
-            bLen = qLen + 1;
-        } else
-        if ( forcedHeaderEncoding == __T('b') ) {
-            qLen = bLen + 1;
-        }
 #endif
-        if ( qLen <= bLen )
-            doBase64 = FALSE;
-        else
-            doBase64 = TRUE;
+        do {
+            Buf holdingPen;
 
-        fixupString.Add( __T("=?") );
-        if ( utf )
-            fixupString.Add( __T("utf-8") );
-        else
-        if ( charset[0] )
-            fixupString.Add(charset);
-        else
-            fixupString.Add((LPTSTR)defaultCharset);
 
-        if ( doBase64 ) {
-            _TCHAR c;
-            LPTSTR pStr;
+            fixupString.Clear();
+            fixupString.Add( __T("=?") );
+            if ( localCharset[0] )
+                fixupString.Add( localCharset );
+            else
+                fixupString.Add( defaultCharset );
 
-            fixupString.Add( __T("?b?") );
-            outS.Add(fixupString);
-            if ( linewrap && ((fixupString.Length() + bLen) > (size_t)(73-headerLen)) ) { // minimum fixup length too long?
-                int room;
+            if ( !linewrap )
+                headerLen = (int)(73-(fixupString.Length() + (tempstring.Length()*3) + headerLen));
 
-                pStr = string;
-                for ( ; *pStr != __T('\0'); ) {
-                    room = (int)((73-headerLen-fixupString.Length()) * 3) / 4;
-                    for ( i = 0; i < room; i++ ) {
-                        if ( pStr[i] == __T('\0') )
-                            break;
-                    }
-                    if ( pStr[i] == __T('\0') ) {
-                        tempstring.Clear();
-                        tempstring.Add( pStr );
-                        tmpstr.Clear();
-                        base64_encode(tempstring, tmpstr, FALSE, TRUE);
-                        pStr += i;
-                        // break;
-                    } else {
-                        while ( i ) {
-                            if ( pStr[i-1] == __T(' ') )
-                                break;
-                            i--;
-                        }
-                        if ( i == 0 ) {
-                            i = room;
-                        }
-                        c = pStr[i];
-                        pStr[i] = __T('\0');
-                        tempstring.Clear();
-                        tempstring.Add( pStr );
-                        tmpstr.Clear();
-                        base64_encode(tempstring, tmpstr, FALSE, TRUE);
-                        outS.Add( tmpstr.Get() );
-                        outS.Add( __T("?=\r\n ") );
-                        outS.Add( fixupString );
-                        pStr[i] = c;
-                        pStr += i;
-                    }
-                    headerLen = 1;
+            holdingPen = tempstring;
+            i = (int)tempstring.Length();
+            pStr = tempstring.Get();
+
+            for ( ; ; ) {
+                int encodingLength;
+
+                qLen = GetLengthQuotedPrintable(pStr, TRUE );
+                bLen = ((i / 3) * 4) + ((i % 3) ? 4 : 0);
+#if BLAT_LITE
+#else
+                if ( forcedHeaderEncoding == __T('q') ) {
+                    bLen = qLen + 1;
+                } else
+                if ( forcedHeaderEncoding == __T('b') ) {
+                    qLen = bLen + 1;
                 }
+#endif
+                if ( qLen <= bLen )
+                    encodingLength = qLen;
+                else
+                    encodingLength = bLen;
+
+                if ( (fixupString.Length() + encodingLength) <= (size_t)(73-headerLen) )
+                    break;
+
+                for ( ; ; ) {
+                    i--;
+                    if ( i < 1 ) {
+                        i = (int)tempstring.Length();
+                        pStr[--i] = __T('\0');
+                        tempstring.SetLength();
+                        break;
+                    }
+                    if ( pStr[i] == __T(' ') ) {
+                        pStr[i] = __T('\0');
+                        tempstring.SetLength();
+                        break;
+                    }
+                }
+            }
+            _tcscpy( holdingPen.Get(), (holdingPen.Get()+i) );
+            holdingPen.SetLength();
+
+            /* If the number of bytes needed for MIME encoding is fewer
+               than or equal to how many are needed for BASE64 encoding,
+               then perform MIME encoding on this string.
+             */
+            tmpstr.Clear();
+            if ( qLen <= bLen ) {
+                fixupString.Add( mime_marker );
+                outS.Add(fixupString);
+
+                ConvertToQuotedPrintable(tempstring, tmpstr, TRUE );
             } else {
+                /* BASE64 encoding is computed to be shorter.
+                 */
+                fixupString.Add( base64_marker );
+                outS.Add(fixupString);
+
                 base64_encode(tempstring, tmpstr, FALSE, TRUE);
             }
-        } else {
-            fixupString.Add( __T("?q?") );
-            ConvertToQuotedPrintable(tempstring, tmpstr, TRUE );
-
-            outS.Add(fixupString);
-            for ( ; linewrap && ((fixupString.Length() + tmpstr.Length()) > (size_t)(73-headerLen)); ) { // minimum fixup length too long?
-                size_t x = 73-headerLen-fixupString.Length();
-
-                pStr = tmpstr.Get();
-                if ( doBase64 )
-                    x &= ~3;
-                else
-                if ( pStr[x-2] == __T('=') )
-                    x -= 2;
-                else
-                if ( pStr[x-1] == __T('=') )
-                    x -= 1;
-
-                outS.Add( tmpstr.Get(), x );
-                _tcscpy( tmpstr.Get(), (LPTSTR)(pStr+x) );
-                tmpstr.SetLength();
-                outS.Add( __T("?=\r\n ") );
-                outS.Add( fixupString );
+            outS.Add( tmpstr.Get() );
+            outS.Add( __T("?=") );
+            tempstring = holdingPen;
+            holdingPen.Free();
+            if ( tempstring.Length() ) {
+                outS.Add( __T("\r\n ") );
                 headerLen = 1;
+
+                if ( !CheckIfNeedQuotedPrintable( tempstring.Get(), TRUE ) ) {
+                    // quoting not necessary for the remaining balance
+                    pStr = tempstring.Get();
+                    while ( *pStr == __T(' ') )
+                        pStr++;
+
+                    addStringToHeaderNoQuoting(pStr, outS, headerLen, linewrap );
+                    tempstring.SetLength(0);
+                }
             }
-        }
-        outS.Add( tmpstr );
-        outS.Add( __T("?=") );
+        } while ( tempstring.Length() );
 
         tmpstr.Free();
 #if BLAT_LITE
@@ -379,18 +385,18 @@ void fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewr
     shortname = getShortFileName(filename);
 
 #if defined(_UNICODE) || defined(UNICODE)
-
     Buf shortNameBuf;
 
     for ( size_t x = 0; ; x++ ) {
+        if ( x || (shortname[0] != 0xFEFF) ) {
+            if ( ((_TUCHAR)shortname[x] > 0x00FF) || ((memcmp(charset, __T("UTF-"), 4*sizeof(_TCHAR)) == 0) && ((_TUCHAR)shortname[x] > 0x007F)) ) {
+                shortNameBuf.Clear();
+                if ( shortname[0] != 0xFEFF )
+                    shortNameBuf.Add( (_TCHAR)0xFEFF );
 
-        if ( (_TUCHAR)shortname[x] > 0x00FF ) {
-            _TUCHAR BOM;
-
-            BOM = 0xFEFF;
-            shortNameBuf.Add( &BOM, 1 );
-            shortNameBuf.Add( shortname );
-            break;
+                shortNameBuf.Add( shortname );
+                break;
+            }
         }
         shortNameBuf.Add( shortname[x] );
         if ( shortname[x] == __T('\0') )
@@ -419,6 +425,7 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
     LPTSTR pStr2;
     LPTSTR pStr3;
     LPTSTR pStr4;
+    _TCHAR localCharset[40];
 
 #if BLAT_LITE
 #else
@@ -429,14 +436,25 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
     savedBinaryMimeSupported   = binaryMimeSupported;
 #endif
 
-    charsetLen = _tcslen( charset );
+    if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 ) {
+        localCharset[0] = __T('\0');
+        charsetLen = 0;
+    } else {
+        _tcscpy( localCharset, charset );
+        charsetLen = _tcslen( localCharset );
+    }
     if ( !charsetLen )
         charsetLen = _tcslen( defaultCharset );
 
+    _tcsupr( localCharset );
     charsetLen += 7;    // =? ?q? ?=
 
     stringOffset = 0;
+    if ( *string == 0xFEFF )
+        string++;
+
     tempstring = string;
+
     outS.Clear();
 
     for ( ; ; ) {
@@ -467,25 +485,35 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
             fixupString.Clear();
 
             if ( i && CheckIfNeedQuotedPrintable( tempstring.Get(), TRUE ) ) {
-                int utf;
+                int tempUTF;
                 Buf holdingPen;
 
-                utf = 0;
-                holdingPen = tempstring;
+                tempUTF = 0;
+                holdingPen.Add( tempstring.Get() );
+
 #if defined(_UNICODE) || defined(UNICODE)
                 _TUCHAR * pStr;
                 size_t    x;
+                Buf       outputText;
+                int       utfRequested;
 
-                pStr = tempstring.Get();
+                pStr = holdingPen.Get();
                 for ( x = 0; *pStr != __T('\0'); pStr++ ) {
-                    if ( *pStr > 0x00FF ) {
-                        utf = sizeof(_TCHAR);
-                        convertPackedUnicodeToUTF( tempstring, holdingPen, &utf, NULL, 8 );
-                        if ( utf )
-                            charsetLen = 12;    // =?utf-8?q? ?=
+                    if ( (*pStr > 0x00FF) || ((memcmp(localCharset, __T("UTF-"), 4*sizeof(_TCHAR)) == 0) && (*pStr > 0x007F)) ) {
+  #if BLAT_LITE
+  #else
+                        if ( savedEightBitMimeSupported && eightBitMimeRequested )
+                            utfRequested = 8;
                         else
-                            holdingPen = tempstring;
+  #endif
+                            utfRequested = 7;
 
+                        tempUTF = NATIVE_16BIT_UTF;
+                        convertPackedUnicodeToUTF( holdingPen, outputText, &tempUTF, localCharset, utfRequested );
+                        if ( tempUTF ) {
+                            holdingPen = outputText;
+                            charsetLen = 12;    // =?utf-8?q? ?=
+                        }
                         break;
                     }
                 }
@@ -511,21 +539,18 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
                     doBase64 = TRUE;
 
                 fixupString.Add( __T("=?") );
-                if ( utf )
-                    fixupString.Add( __T("utf-8") );
-                else
-                if ( charset[0] )
-                    fixupString.Add(charset);
+                if ( localCharset[0] )
+                    fixupString.Add(localCharset);
                 else
                     fixupString.Add(defaultCharset);
 
                 t = holdingPen;
 
                 if ( doBase64 ) {
-                    fixupString.Add( __T("?b?") );
+                    fixupString.Add( base64_marker );
                     base64_encode(t, tmpstr, FALSE, TRUE);
                 } else {
-                    fixupString.Add( __T("?q?") );
+                    fixupString.Add( mime_marker );
                     ConvertToQuotedPrintable(t, tmpstr, TRUE );
                 }
 
@@ -599,17 +624,17 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
                     doBase64 = TRUE;
 
                 fixupString.Add( __T("=?") );
-                if ( charset[0] )
-                    fixupString.Add(charset);
+                if ( localCharset[0] )
+                    fixupString.Add(localCharset);
                 else
                     fixupString.Add(defaultCharset);
 
                 t = pStr4;
                 if ( doBase64 ) {
-                    fixupString.Add( __T("?b?") );
+                    fixupString.Add( base64_marker );
                     base64_encode(t, tmpstr, FALSE, TRUE);
                 } else {
-                    fixupString.Add( __T("?q?") );
+                    fixupString.Add( mime_marker );
                     ConvertToQuotedPrintable(t, tmpstr, TRUE );
                 }
 
@@ -1248,7 +1273,10 @@ void build_headers( BLDHDRS & bldHdrs )
                 contentType.Add( textmode );
 #endif
                 contentType.Add( __T("; charset=") );
-                contentType.Add( charset );
+                if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 )
+                    contentType.Add( defaultCharset );
+                else
+                    contentType.Add( charset );
                 contentType.Add( __T("\r\n") );
             }
         }
@@ -1315,7 +1343,10 @@ void build_headers( BLDHDRS & bldHdrs )
                     contentType.Add( textmode );
   #endif
                     contentType.Add( __T("; charset=") );
-                    contentType.Add( charset );
+                    if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 )
+                        contentType.Add( defaultCharset );
+                    else
+                        contentType.Add( charset );
                     contentType.Add( __T("\r\n") );
   */
                 } else {
@@ -1359,7 +1390,10 @@ void build_headers( BLDHDRS & bldHdrs )
                 contentType.Add( textmode );
 #endif
                 contentType.Add( __T("; charset=") );
-                contentType.Add( charset );
+                if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 )
+                    contentType.Add( defaultCharset );
+                else
+                    contentType.Add( charset );
                 contentType.Add( __T("\r\n") );
             }
         }

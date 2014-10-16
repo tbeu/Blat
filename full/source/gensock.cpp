@@ -16,13 +16,12 @@
 #include <stdio.h>
 #include <ctype.h>
 
-extern "C" {
 #if (WINVER > 0x0500)
-    #include <winsock2.h>
+
+  #include <winsock2.h>
 #else
-    #include <winsock.h>
+  #include <winsock.h>
 #endif
-}
 //#include <tchar.h>
 
 #include "gensock.h"
@@ -33,7 +32,7 @@ extern "C" {
 #endif
 
 #define MAX_PRINTF_LENGTH   1000
-#define MAX_HOSTNAME_LENGTH  512
+#define MAX_HOSTNAME_LENGTH 1025
 
 #ifdef SOCKET_BUFFER_SIZE
     #undef SOCKET_BUFFER_SIZE
@@ -71,6 +70,65 @@ extern _TCHAR quiet;
 extern int  noftry();
 extern void printMsg(LPTSTR p, ... );
 
+#if INCLUDE_SUPERDEBUG
+
+static LPTSTR errorName(int WinSockErrorCode )
+{
+    switch( WinSockErrorCode )
+    {
+        case 0                 :  return __T("NO_ERROR");
+        case WSABASEERR        :  return __T("WSABASEERR");
+        case WSAEINTR          :  return __T("WSAEINTR");
+        case WSAEBADF          :  return __T("WSAEBADF");
+        case WSAEACCES         :  return __T("WSAEACCES");
+        case WSAEFAULT         :  return __T("WSAEFAULT");
+        case WSAEINVAL         :  return __T("WSAEINVAL");
+        case WSAEMFILE         :  return __T("WSAEMFILE");
+        case WSAEWOULDBLOCK    :  return __T("WSAEWOULDBLOCK");
+        case WSAEINPROGRESS    :  return __T("WSAEINPROGRESS");
+        case WSAEALREADY       :  return __T("WSAEALREADY");
+        case WSAENOTSOCK       :  return __T("WSAENOTSOCK");
+        case WSAEDESTADDRREQ   :  return __T("WSAEDESTADDRREQ");
+        case WSAEMSGSIZE       :  return __T("WSAEMSGSIZE");
+        case WSAEPROTOTYPE     :  return __T("WSAEPROTOTYPE");
+        case WSAENOPROTOOPT    :  return __T("WSAENOPROTOOPT");
+        case WSAEPROTONOSUPPORT:  return __T("WSAEPROTONOSUPPORT");
+        case WSAESOCKTNOSUPPORT:  return __T("WSAESOCKTNOSUPPORT");
+        case WSAEOPNOTSUPP     :  return __T("WSAEOPNOTSUPP");
+        case WSAEPFNOSUPPORT   :  return __T("WSAEPFNOSUPPORT");
+        case WSAEAFNOSUPPORT   :  return __T("WSAEAFNOSUPPORT");
+        case WSAEADDRINUSE     :  return __T("WSAEADDRINUSE");
+        case WSAEADDRNOTAVAIL  :  return __T("WSAEADDRNOTAVAIL");
+        case WSAENETDOWN       :  return __T("WSAENETDOWN");
+        case WSAENETUNREACH    :  return __T("WSAENETUNREACH");
+        case WSAENETRESET      :  return __T("WSAENETRESET");
+        case WSAECONNABORTED   :  return __T("WSAECONNABORTED");
+        case WSAECONNRESET     :  return __T("WSAECONNRESET");
+        case WSAENOBUFS        :  return __T("WSAENOBUFS");
+        case WSAEISCONN        :  return __T("WSAEISCONN");
+        case WSAENOTCONN       :  return __T("WSAENOTCONN");
+        case WSAESHUTDOWN      :  return __T("WSAESHUTDOWN");
+        case WSAETOOMANYREFS   :  return __T("WSAETOOMANYREFS");
+        case WSAETIMEDOUT      :  return __T("WSAETIMEDOUT");
+        case WSAECONNREFUSED   :  return __T("WSAECONNREFUSED");
+        case WSAELOOP          :  return __T("WSAELOOP");
+        case WSAENAMETOOLONG   :  return __T("WSAENAMETOOLONG");
+        case WSAEHOSTDOWN      :  return __T("WSAEHOSTDOWN");
+        case WSAEHOSTUNREACH   :  return __T("WSAEHOSTUNREACH");
+        case WSAENOTEMPTY      :  return __T("WSAENOTEMPTY");
+        case WSAEPROCLIM       :  return __T("WSAEPROCLIM");
+        case WSAEUSERS         :  return __T("WSAEUSERS");
+        case WSAEDQUOT         :  return __T("WSAEDQUOT");
+        case WSAESTALE         :  return __T("WSAESTALE");
+        case WSAEREMOTE        :  return __T("WSAEREMOTE");
+        case WSAEDISCON        :  return __T("WSAEDISCON");
+        case WSASYSNOTREADY    :  return __T("WSASYSNOTREADY");
+        case WSAVERNOTSUPPORTED:  return __T("WSAVERNOTSUPPORTED");
+        case WSANOTINITIALISED :  return __T("WSANOTINITIALISED");
+    }
+    return __T("?");
+}
+#endif
 //
 //
 //
@@ -162,13 +220,11 @@ int
     return(1);
 }
 
-#if defined(_UNICODE) || defined(UNICODE)
-
 #define unicode_max_length  256
 #define ace_max_length      256
 
 
-static void convertHostnameUsingPunycode( LPTSTR _Thostname, char * punycodeName )
+static void convertHostnameUsingPunycode( LPWSTR _Thostname, char * punycodeName )
 {
     Buf             tmpBuf;
     punycode_uint   input[unicode_max_length];
@@ -177,76 +233,87 @@ static void convertHostnameUsingPunycode( LPTSTR _Thostname, char * punycodeName
     _TCHAR          output[ace_max_length+1];
     punycode_uint   output_length;
     size_t          c;
-    LPTSTR          there;
-    LPTSTR          start;
+    LPTSTR          pString;
+    LPWSTR          there;
+    LPWSTR          start;
     BYTE            needPunycode;
     Buf             finishedURL;
-    _TCHAR          oldC;
-    punycode_status status;
 
 
     /* Read the input code points: */
-
+#if defined(_UNICODE) || defined(UNICODE)
     tmpBuf = _Thostname;
-    there  = tmpBuf.Get();
+#else
+    tmpBuf.Clear();
+    for ( ; ; ) {
+        tmpBuf.Add( (LPTSTR)_Thostname, sizeof(wchar_t) / sizeof(_TCHAR) );
+        if ( *_Thostname == L'\0' )
+            break;
+
+        _Thostname++;
+    }
+#endif
+    there  = (LPWSTR)tmpBuf.Get();
     start  = there;
-    _tcslwr(there);
     finishedURL.Clear();
     needPunycode = 0;
     for (;;) {
         if ((*there == __T('\0')) || (*there == __T('.'))) {
-            oldC = *there;
-            *there = __T('\0');
             if ( needPunycode ) {
                 input_length = 0;
                 while ( start < there ) {
                     case_flags[input_length] = 0;
-                    input[input_length] = (punycode_uint)*start;
-                    if ((input[input_length] >= 0xD800) && (input[input_length] <= 0xDBFF) &&
-                        (start[1]            >= 0xDC00) && (start[1]            <= 0xDFFF)) {
-                        input[input_length] = 0x10000l + ((input[input_length] & 0x3FFl) << 10) + (start[1] & 0x3FFl);
+                    if ((start[0] >= 0xD800) && (start[0] <= 0xDBFF) &&
+                        (start[1] >= 0xDC00) && (start[1] <= 0xDFFF)) {
+                        input[input_length] = 0x10000l + ((start[0] & 0x3FFl) << 10) + (start[1] & 0x3FFl);
                         start++;
                     }
+                    else
+                        input[input_length] = (punycode_uint)start[0];
+
                     input_length++;
                     start++;
                 }
                 /* Encode: */
                 output_length = ace_max_length;
-                status = punycode_encode(input_length, input, case_flags,
-                                         &output_length, output);
+                punycode_encode(input_length, input, case_flags,
+                                &output_length, output);
                 finishedURL.Add( __T("xn--") );
                 finishedURL.Add( output, output_length );
                 needPunycode = 0;
-            } else
-                finishedURL.Add( start );
+            } else {
+                while ( start < there ) {
+                    finishedURL.Add( (LPTSTR)start, 1 );
+                    start++;
+                }
+            }
 
-            *there = oldC;
             if (*there == __T('\0'))
                 break;
 
-            finishedURL.Add( oldC );
+            finishedURL.Add( (LPTSTR)there, 1 );
             start = there + 1;
         } else
-        if ( *there > 0x7F )
+        if ( *there >= 0x7F )
             needPunycode = 1;
 
         there++;
     }
-    there = finishedURL.Get();
+    finishedURL.Add( __T('\0') );
+    pString = finishedURL.Get();
     c = 0;
     do {
-        punycodeName[c] = (char)(there[c] & 0x0FF);
+        punycodeName[c] = (char)(pString[c] & 0x0FF);
         if ( punycodeName[c] == '\0' )
             break;
 
     } while ( ++c < 511 );
-    punycodeName[511] = '\0';
+    punycodeName[c] = '\0';
 
     finishedURL.Free();
     tmpBuf.Free();
 }
 
-#endif
 //
 // ---------------------------------------------------------------------------
 //
@@ -267,7 +334,7 @@ int
     unsigned long        ioctl_blocking = 1;
     _TCHAR               message[80];
     int                  tryCount;
-    char                 service[MAX_HOSTNAME_LENGTH];
+    char                 service [MAX_HOSTNAME_LENGTH];
     char                 hostname[MAX_HOSTNAME_LENGTH];
 
     // if the ctor couldn't get a buffer
@@ -279,10 +346,48 @@ int
     //
 
 #if defined(_UNICODE) || defined(UNICODE)
+    _tcslwr( _Thostname );
     convertHostnameUsingPunycode( _Thostname, hostname );
 #else
-    strncpy( hostname, _Thostname, sizeof(hostname)-1 );
-    hostname[sizeof(hostname)] = '\0';
+    int byteCount;
+
+    hostname[0] = '\0';
+    for ( byteCount = 0; _Thostname[byteCount]; byteCount++ ) {
+        if ( (unsigned)_Thostname[byteCount] >= 0x7F )
+            break;
+    }
+    if ( _Thostname[byteCount] ) {
+        byteCount = MultiByteToWideChar( CP_ACP, 0, _Thostname, -1, NULL, 0 );
+        if ( byteCount > 1 ) {
+            wchar_t * pWhostname = (wchar_t *) new wchar_t[(size_t)byteCount+1];
+
+            if ( pWhostname ) {
+                MultiByteToWideChar( CP_ACP, 0, _Thostname, -1, pWhostname, byteCount );
+
+                _wcslwr( pWhostname );
+                convertHostnameUsingPunycode( pWhostname, hostname );
+                delete [] pWhostname;
+            }
+            else {
+                wchar_t Whostname[MAX_HOSTNAME_LENGTH];
+
+                for ( byteCount = 0; _Thostname[byteCount] && (byteCount < (MAX_HOSTNAME_LENGTH-1)); byteCount++ ) {
+                    Whostname[byteCount] = (wchar_t)_Thostname[byteCount];
+                }
+                Whostname[byteCount] = 0;
+                _wcslwr( Whostname );
+                convertHostnameUsingPunycode( Whostname, hostname );
+            }
+        } else {
+            strncpy( hostname, _Thostname, sizeof(hostname)-1 );
+            hostname[sizeof(hostname)-1] = '\0';
+            _strlwr( hostname );
+        }
+    } else {
+        strncpy( hostname, _Thostname, sizeof(hostname)-1 );
+        hostname[sizeof(hostname)-1] = '\0';
+        _strlwr( hostname );
+    }
 #endif
 
     for ( dummyVal = 0; _Tservice[dummyVal] && (dummyVal < (sizeof(service)-1)); dummyVal++ ) {
@@ -443,7 +548,11 @@ int
             return(ERR_CONNECTION_REFUSED);
 
         default:
+#if INCLUDE_SUPERDEBUG
+            _stprintf(message, __T("unexpected error %d (%s) from winsock"), err_code, errorName( err_code ) );
+#else
             _stprintf(message, __T("unexpected error %d from winsock"), err_code);
+#endif
             complain(message);
 
         case WSAETIMEDOUT:
@@ -553,7 +662,7 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
                     for ( tx = 0; buf[tx]; tx++ )
                         _tprtline[tx] = buf[tx];
                     _tprtline[tx] = __T('\0');
-                    printMsg( __T("superDebug: %05lX %s\r\n"), offset, _tprtline );
+                    printMsg( __T("superDebug: %05lX %s\n"), offset, _tprtline );
                     memset( buf, ' ', 66 );
                     x = 0;
                     offset += 16;
@@ -570,7 +679,7 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
             for ( tx = 0; buf[tx]; tx++ )
                 _tprtline[tx] = buf[tx];
             _tprtline[tx] = __T('\0');
-            printMsg( __T("superDebug: %05lX %s\r\n"), offset, _tprtline );
+            printMsg( __T("superDebug: %05lX %s\n"), offset, _tprtline );
         }
         quiet = savedQuiet;
     }
@@ -611,9 +720,15 @@ int
             return(WAIT_A_BIT);
         }
 
+#if INCLUDE_SUPERDEBUG
+        _stprintf( what_error,
+                   __T("connection::get_buffer() unexpected error from select: %d (%s)"),
+                   error_code, errorName( error_code ));
+#else
         _stprintf( what_error,
                    __T("connection::get_buffer() unexpected error from select: %d"),
-                   error_code);
+                   error_code );
+#endif
         complain (what_error);
         // return( wait ? WAIT_A_BIT : ERR_READING_SOCKET );
     }
@@ -653,9 +768,15 @@ int
             return(WAIT_A_BIT);
 
         default:
+#if INCLUDE_SUPERDEBUG
+            _stprintf( what_error,
+                       __T("connection::get_buffer() unexpected error: %d (%s)"),
+                       ws_error, errorName( ws_error ));
+#else
             _stprintf( what_error,
                        __T("connection::get_buffer() unexpected error: %d"),
                        ws_error);
+#endif
             complain ( what_error );
             // return( wait ? WAIT_A_BIT : ERR_READING_SOCKET );
         }
@@ -821,9 +942,15 @@ int
             _TCHAR what_error[256];
             int error_code = WSAGetLastError();
 
+#if INCLUDE_SUPERDEBUG
+            _stprintf( what_error,
+                       __T("connection::put_pData() unexpected error from select: %d (%s)"),
+                       error_code, errorName( error_code ) );
+#else
             _stprintf( what_error,
                        __T("connection::put_pData() unexpected error from select: %d"),
                        error_code );
+#endif
             complain ( what_error );
         }
 
@@ -847,9 +974,15 @@ int
                 break;
 
             default:
+#if INCLUDE_SUPERDEBUG
+                _stprintf( what_error,
+                           __T("connection::put_pData() unexpected error from send(): %d (%s)"),
+                           ws_error, errorName( ws_error ) );
+#else
                 _stprintf( what_error,
                            __T("connection::put_pData() unexpected error from send(): %d"),
                            ws_error );
+#endif
                 complain (what_error);
                 return(ERR_SENDING_DATA);
             }
@@ -1223,6 +1356,7 @@ LPTSTR
     char     hostname[MAX_HOSTNAME_LENGTH];
     static _TCHAR _Thostname[MAX_HOSTNAME_LENGTH];
 
+    _tcslwr( pName );
     convertHostnameUsingPunycode( pName, hostname );
     pTDomainName = NULL;
     pDomainName = gensock_getdomainfromhostnameA( hostname );
@@ -1233,6 +1367,7 @@ LPTSTR
             if ( pDomainName[x] == '\0' )
                 break;
         }
+        _Thostname[x] = __T('\0');
     }
     return pTDomainName;
 }
@@ -1244,21 +1379,94 @@ LPTSTR
 int
      gensock_gethostname (LPTSTR pName, int namelen)
 {
-    char name[MAX_HOSTNAME_LENGTH];
-    int  retval;
+    char     name[max(MAX_HOSTNAME_LENGTH+1,MAX_COMPUTERNAME_LENGTH+1)];
+    int      retval;
+    DWORD    nSize;
+    Buf      tHost;
+    BOOL     ret;
+
 
     ZeroMemory(name, sizeof(name));
-    retval = gethostname(name, namelen);
+
+    retval = 0;
+
+    nSize = MAX_COMPUTERNAME_LENGTH + 1;
+    tHost.Alloc( nSize * 2 );
+    tHost = __T("");
+    ret = GetComputerName( tHost.Get(), &nSize );
+    *(tHost.Get()+nSize) = __T('\0');
+    tHost.SetLength();
+    if ( !ret || !tHost.Length() )
+    {
+        name[0] = __T('\0');
+        retval = gethostname(name, namelen);
+        tHost.Free();
+        for ( nSize = 0; ((int)nSize < namelen) && name[nSize]; nSize++ )
+            tHost.Add( (_TCHAR)(name[nSize] & 0xFF) );
+
+        tHost.Add( __T('\0') );
+    }
+
     if ( retval )
         return(retval - 5000);
 
-    for ( retval = 0; (retval < namelen) && (retval < sizeof(name)); retval++ ) {
-        if ( !name[retval] )
+#if defined(_UNICODE) || defined(UNICODE)
+    _tcslwr( tHost.Get() );
+    convertHostnameUsingPunycode( tHost.Get(), name );
+#else
+    LPTSTR   pChar;
+    int      byteCount;
+
+    pChar = tHost.Get();
+    name[0] = '\0';
+    for ( byteCount = 0; pChar[byteCount]; byteCount++ ) {
+        if ( (unsigned)pChar[byteCount] >= 0x7F )
+            break;
+    }
+    if ( pChar[byteCount] ) {
+        byteCount = MultiByteToWideChar( CP_ACP, 0, pChar, -1, NULL, 0 );
+        if ( byteCount > 1 ) {
+            wchar_t * pWhostname = (wchar_t *) new wchar_t[(size_t)byteCount+1];
+
+            if ( pWhostname ) {
+                MultiByteToWideChar( CP_ACP, 0, pChar, -1, pWhostname, byteCount );
+
+                _wcslwr( pWhostname );
+                convertHostnameUsingPunycode( pWhostname, name );
+                delete [] pWhostname;
+            }
+            else {
+                wchar_t Whostname[MAX_HOSTNAME_LENGTH];
+
+                for ( byteCount = 0; pChar[byteCount] && (byteCount < (MAX_HOSTNAME_LENGTH-1)); byteCount++ ) {
+                    Whostname[byteCount] = (wchar_t)pChar[byteCount];
+                }
+                Whostname[byteCount] = 0;
+                _wcslwr( Whostname );
+                convertHostnameUsingPunycode( Whostname, name );
+            }
+        } else {
+            strncpy( name, pChar, sizeof(name)-1 );
+            name[sizeof(name)-1] = '\0';
+            _strlwr( name );
+        }
+    } else {
+        strncpy( name, pChar, sizeof(name)-1 );
+        name[sizeof(name)-1] = '\0';
+        _strlwr( name );
+    }
+#endif
+    tHost.Free();
+    for ( nSize = 0; ((int)nSize < namelen) && (nSize < sizeof(name)); nSize++ ) {
+        if ( (name[nSize] < 32) || (name[nSize] > 126) )
             break;
 
-        pName[retval] = (_TCHAR)name[retval];
+        pName[nSize] = (_TCHAR)name[nSize];
     }
-    pName[retval] = __T('\0');
+    pName[nSize] = __T('\0');
+    if ( pName[0] == __T('\0') )
+        _tcscpy( pName, __T("localhost") );
+
     return(0);
 }
 
@@ -1290,65 +1498,6 @@ int
     return(0);
 }
 
-#if INCLUDE_SUPERDEBUG
-
-static LPTSTR errorName(int WinSockErrorCode )
-{
-    switch( WinSockErrorCode )
-    {
-        case 0                 :  return __T("NO_ERROR");
-        case WSABASEERR        :  return __T("WSABASEERR");
-        case WSAEINTR          :  return __T("WSAEINTR");
-        case WSAEBADF          :  return __T("WSAEBADF");
-        case WSAEACCES         :  return __T("WSAEACCES");
-        case WSAEFAULT         :  return __T("WSAEFAULT");
-        case WSAEINVAL         :  return __T("WSAEINVAL");
-        case WSAEMFILE         :  return __T("WSAEMFILE");
-        case WSAEWOULDBLOCK    :  return __T("WSAEWOULDBLOCK");
-        case WSAEINPROGRESS    :  return __T("WSAEINPROGRESS");
-        case WSAEALREADY       :  return __T("WSAEALREADY");
-        case WSAENOTSOCK       :  return __T("WSAENOTSOCK");
-        case WSAEDESTADDRREQ   :  return __T("WSAEDESTADDRREQ");
-        case WSAEMSGSIZE       :  return __T("WSAEMSGSIZE");
-        case WSAEPROTOTYPE     :  return __T("WSAEPROTOTYPE");
-        case WSAENOPROTOOPT    :  return __T("WSAENOPROTOOPT");
-        case WSAEPROTONOSUPPORT:  return __T("WSAEPROTONOSUPPORT");
-        case WSAESOCKTNOSUPPORT:  return __T("WSAESOCKTNOSUPPORT");
-        case WSAEOPNOTSUPP     :  return __T("WSAEOPNOTSUPP");
-        case WSAEPFNOSUPPORT   :  return __T("WSAEPFNOSUPPORT");
-        case WSAEAFNOSUPPORT   :  return __T("WSAEAFNOSUPPORT");
-        case WSAEADDRINUSE     :  return __T("WSAEADDRINUSE");
-        case WSAEADDRNOTAVAIL  :  return __T("WSAEADDRNOTAVAIL");
-        case WSAENETDOWN       :  return __T("WSAENETDOWN");
-        case WSAENETUNREACH    :  return __T("WSAENETUNREACH");
-        case WSAENETRESET      :  return __T("WSAENETRESET");
-        case WSAECONNABORTED   :  return __T("WSAECONNABORTED");
-        case WSAECONNRESET     :  return __T("WSAECONNRESET");
-        case WSAENOBUFS        :  return __T("WSAENOBUFS");
-        case WSAEISCONN        :  return __T("WSAEISCONN");
-        case WSAENOTCONN       :  return __T("WSAENOTCONN");
-        case WSAESHUTDOWN      :  return __T("WSAESHUTDOWN");
-        case WSAETOOMANYREFS   :  return __T("WSAETOOMANYREFS");
-        case WSAETIMEDOUT      :  return __T("WSAETIMEDOUT");
-        case WSAECONNREFUSED   :  return __T("WSAECONNREFUSED");
-        case WSAELOOP          :  return __T("WSAELOOP");
-        case WSAENAMETOOLONG   :  return __T("WSAENAMETOOLONG");
-        case WSAEHOSTDOWN      :  return __T("WSAEHOSTDOWN");
-        case WSAEHOSTUNREACH   :  return __T("WSAEHOSTUNREACH");
-        case WSAENOTEMPTY      :  return __T("WSAENOTEMPTY");
-        case WSAEPROCLIM       :  return __T("WSAEPROCLIM");
-        case WSAEUSERS         :  return __T("WSAEUSERS");
-        case WSAEDQUOT         :  return __T("WSAEDQUOT");
-        case WSAESTALE         :  return __T("WSAESTALE");
-        case WSAEREMOTE        :  return __T("WSAEREMOTE");
-        case WSAEDISCON        :  return __T("WSAEDISCON");
-        case WSASYSNOTREADY    :  return __T("WSASYSNOTREADY");
-        case WSAVERNOTSUPPORTED:  return __T("WSAVERNOTSUPPORTED");
-        case WSANOTINITIALISED :  return __T("WSANOTINITIALISED");
-    }
-    return __T("?");
-}
-#endif
 //---------------------------------------------------------------------------
 //
 //

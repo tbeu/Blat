@@ -43,6 +43,9 @@ extern void ShowRegHelp( void );
 extern void ListProfiles( LPTSTR pstrProfile );
 extern void parseCommaDelimitString ( LPTSTR source, Buf & parsed_addys, int pathNames );
 extern void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequested );
+#if defined(_UNICODE) || defined(UNICODE)
+void checkInputForUnicode ( Buf & stringToCheck );
+#endif
 
 extern void printMsg( LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
 
@@ -244,6 +247,11 @@ _TCHAR strSender[]        = __T("-sender");
 _TCHAR superDebug = FALSE;
 #endif
 
+#if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER < 1400)
+static _TCHAR utfHeader[] = { __T('\xEF'), __T('\xBB'), __T('\xBF'), __T('\0') };
+#endif
+
+
 int  printUsage( int optionPtr );
 
 #if BLAT_LITE
@@ -279,16 +287,13 @@ static int ReadNamesFromFile(LPTSTR type, LPTSTR namesfilename, Buf &listofnames
 
     tmpstr[filesize] = __T('\0');
   #if defined(_UNICODE) || defined(UNICODE)
-    Buf    sourceText;
-    int    utf;
+    Buf sourceText;
 
-    utf = 0;
+    sourceText.Clear();
     sourceText.Add( tmpstr, filesize );
-    convertUnicode( sourceText, &utf, NULL, 8 );
-    if ( utf )
-        _tcscpy( tmpstr, sourceText.Get() );
-
-    sourceText.Free();
+    checkInputForUnicode( sourceText );
+    memcpy( tmpstr, sourceText.Get(), sourceText.Length()*sizeof(_TCHAR) );
+    tmpstr[sourceText.Length()] = __T('\0');
   #endif
     parseCommaDelimitString( tmpstr, p, FALSE );
     free(tmpstr);
@@ -1724,16 +1729,10 @@ static int checkSubjectOption ( int argc, LPTSTR * argv, int this_arg, int start
 
     subject.Free();
     if ( argv[this_arg+1][0] != __T('\0') ) {
-  #if defined(_UNICODE) || defined(UNICODE)
-        int    utf;
-
-        subject.Add( (_TCHAR)0xFEFF );          /* Prepend a UTF-16 BOM */
         subject.Add( argv[this_arg+1] );
-        utf = 0;
-        convertUnicode( subject, &utf, NULL, 8 );
-  #else
-        subject.Add( argv[this_arg+1] );
-  #endif
+#if defined(_UNICODE) || defined(UNICODE)
+        checkInputForUnicode( subject );
+#endif
     }
     return(1);
 }
@@ -1758,19 +1757,9 @@ static int checkSubjectFile ( int argc, LPTSTR * argv, int this_arg, int startar
         _fgetts(tmpSubject, SUBJECT_SIZE, infile);    //lint !e534 ignore return
         tmpSubject[SUBJECT_SIZE] = __T('\0');
         fclose(infile);
-        subject.Add( tmpSubject );
-
+        subject.Add( tmpSubject, SUBJECT_SIZE );
   #if defined(_UNICODE) || defined(UNICODE)
-        Buf    sourceText;
-        int    utf;
-
-        utf = 0;
-        sourceText.Add( subject.Get(), SUBJECT_SIZE );
-        convertUnicode( sourceText, &utf, NULL, 8 );
-        if ( utf )
-            subject = sourceText;
-
-        sourceText.Free();
+        checkInputForUnicode( subject );
   #endif
         pString = subject.Get();
         for ( x = 0; pString[x]; x++ ) {
@@ -1816,32 +1805,8 @@ static int checkBodyText ( int argc, LPTSTR * argv, int this_arg, int startargv 
 
     _tcscpy(bodyFilename, __T("-"));
     bodyparameter = argv[this_arg+1];
-
 #if defined(_UNICODE) || defined(UNICODE)
-    size_t    length;
-    size_t    x;
-    _TUCHAR * pStr;
-
-    length = bodyparameter.Length();
-    pStr = (_TUCHAR *)bodyparameter.Get();
-    for ( x = 0; x < length; x++ ) {
-        if ( pStr[x] > 0x00FF ) {
-            Buf newbody;
-
-            newbody.Add( (_TCHAR)0xFEFF );          /* Prepend a UTF-16 BOM */
-            newbody.Add( (LPTSTR)pStr, length );    /* Now add the user's Unicode message */
-            bodyparameter = newbody;
-            newbody.Free();
-
-            utf = UTF_REQUESTED;
-#if BLAT_LITE
-            mime = TRUE;
-#else
-            eightBitMimeRequested = TRUE;
-#endif
-            break;
-        }
-    }
+    checkInputForUnicode( bodyparameter );
 #endif
 
     return(1);
@@ -2250,7 +2215,21 @@ static int checkCharset ( int argc, LPTSTR * argv, int this_arg, int startargv )
 
     _tcsncpy( charset, argv[this_arg+1], 40-1 );
     charset[40-1] = __T('\0');
-
+    _tcsupr( charset );
+    if ( _tcscmp( charset, __T("UTF-8") ) == 0 ) {
+        utf = UTF_REQUESTED;
+ #if BLAT_LITE
+        mime = TRUE;
+ #else
+        eightBitMimeRequested = TRUE;
+ #endif
+    } else
+    if ( _tcscmp( charset, __T("UTF-7") ) == 0 ) {
+        utf = UTF_REQUESTED;
+ #if BLAT_LITE
+        mime = TRUE;
+ #endif
+    }
     return(1);
 }
 
@@ -2536,6 +2515,14 @@ static int ReadFilenamesFromFile(LPTSTR namesfilename, _TCHAR aType) {
     fileh.Close();
 
     tmpstr[filesize] = __T('\0');
+  #if defined(_UNICODE) || defined(UNICODE)
+    Buf sourceText;
+
+    sourceText.Clear();
+    sourceText.Add( tmpstr, filesize );
+    checkInputForUnicode( sourceText );
+    memcpy( tmpstr, sourceText.Get(), (sourceText.Length()+1)*sizeof(_TCHAR) );
+  #endif
     addToAttachments( &tmpstr, -1, aType );
     free(tmpstr);
     return(1);                                   // indicates no error.
@@ -2641,8 +2628,13 @@ static int checkLogMessages ( int argc, LPTSTR * argv, int this_arg, int startar
     logFile[_MAX_PATH - 1] = __T('\0');
 
     if ( logFile[0] ) {
-        if ( clearLogFirst )
+        if ( clearLogFirst ) {
             logOut = _tfopen(logFile, fileCreateAttribute);
+#if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER < 1400)
+            if ( logOut )
+                _ftprintf( logOut, __T("%s"), utfHeader );
+#endif
+        }
         else
             logOut = _tfopen(logFile, fileAppendAttribute);
     }
@@ -2666,6 +2658,10 @@ static int checkLogOverwrite ( int argc, LPTSTR * argv, int this_arg, int starta
     {
         fclose( logOut );
         logOut = _tfopen(logFile, fileCreateAttribute);
+#if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER < 1400)
+        if ( logOut )
+            _ftprintf( logOut, __T("%s"), utfHeader );
+#endif
     }
 
     return(0);
@@ -2854,11 +2850,14 @@ static int checkAltTextFile ( int argc, LPTSTR * argv, int this_arg, int startar
 
         if ( fileSize ) {
             alternateText.Alloc( fileSize + 1 );
+            alternateText.SetLength( fileSize );
             if ( !atf.ReadThisFile(alternateText.Get(), fileSize, &dummy, NULL) ) {
                 printMsg( __T("Error reading %s, Alternate Text will not be added.\n"), alternateTextFile );
             } else {
-                *(alternateText.Get()+fileSize) = __T('\0');
-                alternateText.SetLength(fileSize);
+                *alternateText.GetTail() = __T('\0');
+  #if defined(_UNICODE) || defined(UNICODE)
+                checkInputForUnicode( alternateText );
+  #endif
             }
         }
         atf.Close();
@@ -2900,9 +2899,12 @@ static int checkSigFile ( int argc, LPTSTR * argv, int this_arg, int startargv )
         printMsg( __T("Error reading signature file %s, signature will not be added\n"), argv[this_arg] );
         signature.Free();
     }
-    else
+    else {
         *signature.GetTail() = __T('\0');
-
+  #if defined(_UNICODE) || defined(UNICODE)
+        checkInputForUnicode( signature );
+  #endif
+    }
     fileh.Close();
     return(1);
 }
@@ -2937,6 +2939,9 @@ static int checkTagFile ( int argc, LPTSTR * argv, int this_arg, int startargv )
         }
 
         *tmpBuf.GetTail() = __T('\0');
+  #if defined(_UNICODE) || defined(UNICODE)
+        checkInputForUnicode( tmpBuf );
+  #endif
         p = tmpBuf.Get();
         for ( count = 0; p; ) {
             p = _tcschr( p, __T('\n') );
@@ -2992,9 +2997,12 @@ static int checkPostscript ( int argc, LPTSTR * argv, int this_arg, int startarg
         printMsg( __T("Error reading P.S. file %s, postscript will not be added\n"), argv[this_arg] );
         postscript.Free();
     }
-    else
+    else {
         *postscript.GetTail() = __T('\0');
-
+  #if defined(_UNICODE) || defined(UNICODE)
+        checkInputForUnicode( postscript );
+  #endif
+    }
     fileh.Close();
     return(1);
 }

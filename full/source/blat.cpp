@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.0.3")
+#define BLAT_VERSION    __T("3.0.5")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -65,7 +65,11 @@ extern size_t make_argv( LPTSTR arglist,                /* argument list        
 
 void printMsg(LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
 
+extern void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
 extern void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequested );
+#if defined(_UNICODE) || defined(UNICODE)
+void checkInputForUnicode ( Buf & stringToCheck );
+#endif
 
 #if INCLUDE_SUPERDEBUG
 extern _TCHAR        superDebug;
@@ -134,14 +138,9 @@ MSVC++ 7.0  _MSC_VER = 1300
 MSVC++ 6.0  _MSC_VER = 1200
 MSVC++ 5.0  _MSC_VER = 1100
  */
-#if defined(_UNICODE) || defined(UNICODE)
-# if defined(_MSC_VER) && (_MSC_VER >= 1400)
+#if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER >= 1400)
 _TCHAR  fileCreateAttribute[] = __T("w, ccs=UTF-8");
 _TCHAR  fileAppendAttribute[] = __T("a, ccs=UTF-8");
-# else
-_TCHAR  fileCreateAttribute[] = __T("w");
-_TCHAR  fileAppendAttribute[] = __T("a");
-# endif
 #else
 _TCHAR  fileCreateAttribute[] = __T("w");
 _TCHAR  fileAppendAttribute[] = __T("a");
@@ -270,7 +269,7 @@ _TCHAR  attachtype[64];
 _TCHAR  timestamp;
 
 LPTSTR stdinFileName     = __T("stdin.txt");
-LPTSTR defaultCharset    = __T("iso-8859-1");
+LPTSTR defaultCharset    = __T("ISO-8859-1");
 LPTSTR days[]            = { __T("Sun"),
                              __T("Mon"),
                              __T("Tue"),
@@ -371,6 +370,14 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
 
 #if defined(_UNICODE) || defined(UNICODE)
+    DWORD dwVersion = GetVersion();
+    if ( dwVersion & (0x80ul << ((sizeof(DWORD)-1) * 8)) ) {
+        fprintf( stderr, "This Unicode version of Blat cannot run in Windows earlier than Windows 2000.\n" \
+                         "Please download and use Blat from the Win98 download folder on Yahoo! groups\n" \
+                         "at http://tech.groups.yahoo.com/group/blat/files/Official/32%20bit%20versions/\n" );
+        exit(14);
+    }
+
     {
         unsigned ix;
 
@@ -635,18 +642,19 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 #else
     if ( optionsFile[0] ) {
 
-        #define BUFFER_SIZE 2048
-        _TCHAR buffer[BUFFER_SIZE];
-        LPTSTR bufPtr;
         size_t maxEntries = 256;
 
         secondArgV = (LPTSTR*)malloc( (maxEntries + 1) * sizeof(LPTSTR) );
         if ( secondArgV ) {
-            size_t nextEntry = 0;
+            WinFile fileh;
+            DWORD   filesize;
+            DWORD   dummy;
+            LPTSTR  tmpstr;
+            size_t  nextEntry = 0;
+            LPTSTR  pChar;
 
             memset( secondArgV, 0, (maxEntries + 1) * sizeof(LPTSTR) );
-            optsFile = _tfopen( optionsFile, __T("r") );
-            if ( !optsFile ) {
+            if ( !fileh.OpenThisFile(optionsFile) ) {
                 free( secondArgV );
                 printMsg( __T("Options file \"%s\" not found or could not be opened.\n"), optionsFile );
 
@@ -657,49 +665,58 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 cleanUpBuffers();
                 return(2);
             }
+            filesize = fileh.GetSize();
+            tmpstr = (LPTSTR)malloc( (filesize + 1)*sizeof(_TCHAR) );
+            if ( !tmpstr ) {
+                fileh.Close();
+                printMsg( __T("error allocating memory for reading %s, aborting\n"), optionsFile );
+                if ( logOut )
+                    fclose(logOut);
 
-            for ( ; nextEntry < maxEntries; ) {
-                if ( feof( optsFile ) )
-                    break;
-
-                bufPtr = _fgetts( buffer, BUFFER_SIZE, optsFile );
-                if ( bufPtr ) {
-  #if defined(_UNICODE) || defined(UNICODE)
-                    Buf    sourceText;
-                    int    utf;
-
-                    utf = 0;
-                    sourceText.Add( buffer, BUFFER_SIZE );
-                    convertUnicode( sourceText, &utf, NULL, 8 );
-                    if ( utf )
-                        _tcscpy( buffer, sourceText.Get() );
-
-                    sourceText.Free();
-  #endif
-                    for ( ;; ) {
-                        i = (int)_tcslen(buffer) - 1;
-                        if ( buffer[ i ] == __T('\n') ) {
-                            buffer[ i ] = __T('\0');
-                            continue;
-                        }
-
-                        if ( buffer[ i ] == __T('\r') ) {
-                            buffer[ i ] = __T('\0');
-                            continue;
-                        }
-
-                        break;
-                    }
-
-                    nextEntry = make_argv( buffer,      /* argument list                     */
-                                           secondArgV,  /* pointer to argv to use            */
-                                           maxEntries,  /* maximum number of entries allowed */
-                                           nextEntry,
-                                           FALSE );
-                }
+                cleanUpBuffers();
+                return(2);
             }
 
-            fclose( optsFile );
+            if ( !fileh.ReadThisFile(tmpstr, filesize, &dummy, NULL) ) {
+                fileh.Close();
+                free(tmpstr);
+                printMsg( __T("error reading %s, aborting\n"), optionsFile );
+                if ( logOut )
+                    fclose(logOut);
+
+                cleanUpBuffers();
+                return(2);
+            }
+            fileh.Close();
+
+            tmpstr[filesize] = __T('\0');
+ #if defined(_UNICODE) || defined(UNICODE)
+            Buf sourceText;
+
+            sourceText.Clear();
+            sourceText.Add( tmpstr, filesize );
+            checkInputForUnicode( sourceText );
+            memcpy( tmpstr, sourceText.Get(), sourceText.Length()*sizeof(_TCHAR) );
+            tmpstr[sourceText.Length()] = __T('\0');
+            if ( tmpstr[0] == 0xFEFF )
+                _tcscpy( &tmpstr[0], &tmpstr[1] );
+ #endif
+            do {
+                pChar = _tcschr( tmpstr, __T('\n') );
+                if ( pChar )
+                    *pChar = __T(' ');
+            } while ( pChar );
+            do {
+                pChar = _tcschr( tmpstr, __T('\r') );
+                if ( pChar )
+                    *pChar = __T(' ');
+            } while ( pChar );
+
+            nextEntry = make_argv( tmpstr,      /* argument list                     */
+                                   secondArgV,  /* pointer to argv to use            */
+                                   maxEntries,  /* maximum number of entries allowed */
+                                   nextEntry,
+                                   FALSE );
             secondArgC = (int)nextEntry;
         }
     }
@@ -998,7 +1015,8 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         if ( lpszMessageCgi.Length() ) {
             ConsoleDone = TRUE;
             TempConsole.Add(lpszMessageCgi);
-        } else if ( bodyparameter.Length() ) {
+        } else
+        if ( bodyparameter.Length() ) {
             LPTSTR p = bodyparameter.Get();
             ConsoleDone = TRUE;
             if (bodyconvert) {
@@ -1076,12 +1094,25 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
 #if BLAT_LITE
 #else
-    if ( eightBitMimeRequested )
-        convertUnicode( TempConsole, &utf, charset, 8 );
-    else
-#endif
-        convertUnicode( TempConsole, &utf, charset, 7 );
+  #if defined(_UNICODE) || defined(UNICODE)
+    _TCHAR savedEightBitMimeRequested;
+    int    savedUTF;
 
+    savedEightBitMimeRequested = eightBitMimeRequested;
+    savedUTF = utf;
+
+    eightBitMimeRequested = 0;
+    utf = 0;
+    checkInputForUnicode ( TempConsole );
+    if ( utf == UTF_REQUESTED ) {
+        if ( charset[0] == __T('\0') )
+            _tcscpy( charset, __T("utf-8") );   // Set to lowercase to distinguish between our determination and user specified.
+    } else {
+        eightBitMimeRequested = savedEightBitMimeRequested;
+        utf = savedUTF;
+    }
+  #endif
+#endif
     filesize = (DWORD)TempConsole.Length();
 
     attachFoundFault = FALSE;
@@ -1578,7 +1609,7 @@ void printMsg(LPTSTR p, ... )
     bool   converted;
     int    len;
 
-    if ( _tcsicmp( charset, __T("utf-8") ) == 0 ) {
+    if ( _tcsicmp( charset, __T("UTF-8") ) == 0 ) {
         // Convert UTF-8 data to Unicode for correct string output
         converted = TRUE;
         y = (int)_tcslen(buf);
@@ -1682,6 +1713,21 @@ void printMsg(LPTSTR p, ... )
             if ( timestamp )
                 _ftprintf( logOut, __T("%s: "), timeBuffer );
 
+#if defined(_MSC_VER) && (_MSC_VER < 1400) && (defined(_UNICODE) || defined(UNICODE))
+            Buf source;
+            Buf output;
+            int tempUTF;
+
+            source.Add( (_TCHAR)0xFEFF );       /* Prepend a UTF-16 BOM */
+            source.Add( buf );
+            tempUTF = NATIVE_16BIT_UTF;
+            convertPackedUnicodeToUTF( source, output, &tempUTF, NULL, 8 );
+            if ( tempUTF )
+                _tcscpy( buf, output.Get() );
+
+            output.Free();
+            source.Free();
+#endif
             _ftprintf(logOut, __T("%s"), buf);
             fflush( logOut );
             fclose( logOut );

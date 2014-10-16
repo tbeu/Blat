@@ -5,11 +5,32 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.0.5
+[*] Text attachments will be sent in their entirety, even if the message is
+    supposed to be multipart.  This change allows UTF/Unicode files to be
+    processed correctly so that all characters of the file should be received
+    and decoded without issue.
+[-] Extensive changes related to how Unicode is handled versus 7-/8-bit
+    characters in English, European, and some other languages.  These changes
+    include fixes to salutations, postscripts, the subject line, text
+    attachments, and attachment file names.  Additional changes identify 7-bit
+    data for text messages and text attachments.
+-------------------------------------------------------------------------------
+3.0.4
+[+] If 32-bit Unicode code is run with Windows 9x/ME, exit with error code 14
+    because Unicode is not supported with Windows earlier than Windows 2000.
+[+] Try to support non-ANSI computer names, as found with a Russian version of
+    Windows 7.
+-------------------------------------------------------------------------------
 3.0.3
 [-] Per Thomas Beutlich, changed how the blat log file is opened, to create
     this file as UTF-8 when Blat is compiled with Microsoft Visual Studio 2005
-    or newer.  As a result, 32-bit Blat with Unicode will now be built with
-    Visual Studio 2005.
+    or newer.  When compiled with Visual Studio 2003, or earlier, Unicode
+    strings will be converted to UTF-8 before being written to the log.  If the
+    log is created, the first three bytes will be a UTF-8 marker.  Testing with
+    Visual C++ 6.0 in Unicode showed that VC could not write Unicode strings
+    correctly, which required that strings be converted to UTF-8 before writing
+    to the log.
 [-] Fixed yEnc encoding to work properly with binary files.  One line of code
     needed to be moved about eight (8) lines lower.
 -------------------------------------------------------------------------------

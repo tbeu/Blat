@@ -11,7 +11,13 @@
 
 #include "blat.h"
 
-extern LPTSTR base64table;
+#if BLAT_LITE
+extern _TCHAR       mime;
+#else
+extern _TCHAR       eightBitMimeRequested;
+#endif
+extern int          utf;
+extern LPTSTR       base64table;
 
 extern void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
 
@@ -30,16 +36,16 @@ extern void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
 static const _TCHAR SetD[] = { 39, 40, 41, 44, 45, 46, 47, 58, 63 };
 static const _TCHAR SetO[] = { 33, 34, 35, 36, 37, 38, 42, 59, 60, 61, 62, 64, 91, 93, 94, 95, 96, 123, 124, 125 };
 
-void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested )
+void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * pUTF, LPTSTR charset, int pUTFRequested )
 {
-    int    utf8Found;
+    int    pUTF8Found;
     int    BOM_found;         /* Byte Order Marker, for Unicode */
-    int    localutf;
+    int    tempUTF;
 
     unsigned short * pp;
 
 
-    if ( (utfRequested != 8) && (utfRequested != 7) )
+    if ( (pUTFRequested != 8) && (pUTFRequested != 7) )
         return;
 
     pp = (unsigned short *)sourceText.Get();
@@ -51,35 +57,35 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, L
 
     outputText.Clear();
 
-    utf8Found = FALSE;
+    pUTF8Found = FALSE;
     BOM_found = FALSE;
-    localutf = 0;
-    if ( utf )
-        localutf = *utf;
+    tempUTF = 0;
+    if ( pUTF )
+        tempUTF = *pUTF;
 
     if ( pp[0] == 0xFEFF ) {
         BOM_found = TRUE;
         if ( (pp[1] == 0x0000) && !(sourceText.Length() & 1) ) {
-            localutf = NATIVE_32BIT_UTF;     /* Looks like Unicode 32-bit in native format */
+            tempUTF = NATIVE_32BIT_UTF;     /* Looks like Unicode 32-bit in native format */
         } else {
-            localutf = NATIVE_16BIT_UTF;     /* Looks like Unicode 16-bit in native format */
+            tempUTF = NATIVE_16BIT_UTF;     /* Looks like Unicode 16-bit in native format */
         }
-        if ( utf )
-            *utf = localutf;
+        if ( pUTF )
+            *pUTF = tempUTF;
     }
-    if ( localutf ) {
+    if ( tempUTF ) {
         unsigned        bufL;
         unsigned long   value;
         unsigned        incrementor;
 
-        incrementor = (localutf & 0x07) / sizeof(_TCHAR);
+        incrementor = (tempUTF & 0x07) / sizeof(_TCHAR);
 
         bufL = (unsigned)(sourceText.Length() / incrementor);
         if ( BOM_found ) {
             pp += incrementor;
             bufL--;
         }
-        if ( (utfRequested == 7) && (localutf == NATIVE_16BIT_UTF) ) {
+        if ( (pUTFRequested == 7) && (tempUTF == NATIVE_16BIT_UTF) ) {
             /*
              * UTF-7 requested.  This format supports only 8-/16-bit Unicode values.
              * In this case, we believe we found 16-bit Unicode.
@@ -92,6 +98,11 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, L
                 Buf tempString;
 
                 value = pp[0];
+                if ( value == 0xFEFF ) {
+                    pp += incrementor;
+                    bufL--;
+                    continue;
+                }
                 if ( value == __T('-') ) {
                     if ( prevC )    /* previous "character" was Unicode? */
                         outputText.Add( __T('-') );
@@ -119,7 +130,7 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, L
 
                 tempString.Clear();
                 prevC      = TRUE;
-                utf8Found  = TRUE;
+                pUTF8Found  = TRUE;
                 // needHyphen = FALSE;
                 for ( ; bufL; ) {
                     value = pp[0];
@@ -187,18 +198,23 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, L
                 tempString.Free();
             }
             if ( prevC )
-                outputText.Add( __T('-') );  /* terminate the utf-7 string */
+                outputText.Add( __T('-') );  /* terminate the pUTF-7 string */
         } else {
             /*
              * UTF-8 requested, or 32-bit Unicode found.
              * UTF-8 format supports all 16-bit and 32-bit Unicode values.
              */
             for ( ; bufL; ) {
-                if ( localutf == NATIVE_32BIT_UTF )
+                if ( tempUTF == NATIVE_32BIT_UTF )
                     value = ((unsigned long)(_TUCHAR)pp[1] << 16) + (_TUCHAR)pp[0];
                 else
                     value = pp[0];
 
+                if ( value == 0xFEFF ) {
+                    pp += incrementor;
+                    bufL--;
+                    continue;
+                }
                 if ( value < (1 << 7) ) {
                     outputText.Add((LPTSTR)&value, 1);
                 } else {
@@ -207,7 +223,7 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, L
                     int extraCount = 1;
                     int x = 11;
 
-                    if ( (localutf & 7) == NATIVE_16BIT_UTF ) {  /* 16-bit Unicode? */
+                    if ( (tempUTF & 7) == NATIVE_16BIT_UTF ) {  /* 16-bit Unicode? */
                         if ( (value & ~0x03FFul) == 0xD800ul ) {      /* high half of surrogate pair? */
                             unsigned short secondVal;
 
@@ -219,7 +235,7 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, L
                             }
                         }
                     }
-                    utf8Found = TRUE;
+                    pUTF8Found = TRUE;
                     if ( charset ) {
                         _tcscpy(charset, __T("UTF-8"));
                         charset = 0;
@@ -249,25 +265,25 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, L
             }
         }
     }
-    if ( utf ) {
-        if ( utf8Found )
-            *utf = UTF_REQUESTED;
+    if ( pUTF ) {
+        if ( pUTF8Found )
+            *pUTF = UTF_REQUESTED;
         else
         if ( !BOM_found )
-            *utf = FALSE;
+            *pUTF = FALSE;
     }
 }
 
 
-void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequested )
+void convertUnicode( Buf &sourceText, int * pUTF, LPTSTR charset, int pUTFRequested )
 {
     Buf    outputText;
-    int    utf8Found;
+    int    pUTF8Found;
     int    BOM_found;         /* Byte Order Marker, for Unicode */
-    int    localutf;
+    int    tempUTF;
     LPTSTR pp;
 
-    if ( (utfRequested != 8) && (utfRequested != 7) )
+    if ( (pUTFRequested != 8) && (pUTFRequested != 7) )
         return;
 
     pp = sourceText.Get();
@@ -281,28 +297,28 @@ void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequeste
 
 #if defined(_UNICODE) || defined(UNICODE)
     if ( pp[0] == 0xFEFF ) {
-        convertPackedUnicodeToUTF( sourceText, outputText, utf, charset, utfRequested );
+        convertPackedUnicodeToUTF( sourceText, outputText, pUTF, charset, pUTFRequested );
         sourceText = outputText;
         outputText.Free();
         return;
     }
 #else
-    if ( (pp[0] == 0xFF) && (pp[1] == 0xFE) ) {
-        convertPackedUnicodeToUTF( sourceText, outputText, utf, charset, utfRequested );
+    if ( (pp[0] == __T('\xFF')) && (pp[1] == __T('\xFE')) ) {
+        convertPackedUnicodeToUTF( sourceText, outputText, pUTF, charset, pUTFRequested );
         sourceText = outputText;
         outputText.Free();
         return;
     }
 #endif
 
-    utf8Found = FALSE;
+    pUTF8Found = FALSE;
     BOM_found = FALSE;
-    localutf = 0;
-    if ( utf )
-        localutf = *utf;
+    tempUTF = 0;
+    if ( pUTF )
+        tempUTF = *pUTF;
 
     if ( sourceText.Length() > 2 ) {
-        if ( (pp[0] == 0xEF) && (pp[1] == 0xBB) && (pp[2] == 0xBF) ) {
+        if ( (pp[0] == __T('\xEF')) && (pp[1] == __T('\xBB')) && (pp[2] == __T('\xBF')) ) {
             /*
              * UTF-8 BOM found.  Check if UTF-8 data actually exists, and
              * set the charset if it does.  If UTF-7 is requested, then
@@ -316,11 +332,11 @@ void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequeste
                     if ( charset ) {
                         _tcscpy(charset, __T("UTF-8"));
                     }
-                    utf8Found = TRUE;
+                    pUTF8Found = TRUE;
                     break;
                 }
             } while ( *(++pp) );
-            if ( utf8Found && (utfRequested == 7) ) {
+            if ( pUTF8Found && (pUTFRequested == 7) ) {
                 int prevC;
                 // int needHyphen;
 
@@ -430,54 +446,54 @@ void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequeste
                     }
                 }
                 if ( prevC )
-                    outputText.Add( __T('-') );  /* terminate the utf-7 string */
+                    outputText.Add( __T('-') );  /* terminate the pUTF-7 string */
             }
             sourceText = outputText;
-            if ( utf8Found ) {
-                if ( utf )
-                    *utf = UTF_REQUESTED;
+            if ( pUTF8Found ) {
+                if ( pUTF )
+                    *pUTF = UTF_REQUESTED;
             }
             else {
-                if ( utf )
-                    *utf = 0;
+                if ( pUTF )
+                    *pUTF = 0;
             }
 
             outputText.Free();
             return;
         }
 
-        if ( (pp[0] == 0xFF) && (pp[1] == 0xFE) && (pp[2] == 0x00) && (pp[3] == 0x00) && !(sourceText.Length() & 3) ) {
+        if ( (pp[0] == __T('\xFF')) && (pp[1] == __T('\xFE')) && (pp[2] == __T('\0')) && (pp[3] == __T('\0')) && !((sourceText.Length() & 3) /sizeof(_TCHAR)) ) {
             BOM_found = TRUE;
-            localutf = NATIVE_32BIT_UTF;     /* Looks like Unicode 32-bit in native format */
+            tempUTF = NATIVE_32BIT_UTF;     /* Looks like Unicode 32-bit in native format */
         } else
-        if ( (pp[0] == 0x00) && (pp[1] == 0x00) && (pp[2] == 0xFE) && (pp[3] == 0xFF) && !(sourceText.Length() & 3) ) {
+        if ( (pp[0] == __T('\0')) && (pp[1] == __T('\0')) && (pp[2] == __T('\xFE')) && (pp[3] == _T('\xFF')) && !((sourceText.Length() & 3) /sizeof(_TCHAR)) ) {
             BOM_found = TRUE;
-            localutf = NON_NATIVE_32BIT_UTF; /* Looks like Unicode 32-bit in non-native format */
+            tempUTF = NON_NATIVE_32BIT_UTF; /* Looks like Unicode 32-bit in non-native format */
         } else
-        if ( (pp[0] == 0xFF) && (pp[1] == 0xFE) && !(sourceText.Length() & 1) ) {
+        if ( (pp[0] == __T('\xFF')) && (pp[1] == __T('\xFE')) && !((sourceText.Length() & 1) /sizeof(_TCHAR)) ) {
             BOM_found = TRUE;
-            localutf = NATIVE_16BIT_UTF;     /* Looks like Unicode 16-bit in native format */
+            tempUTF = NATIVE_16BIT_UTF;     /* Looks like Unicode 16-bit in native format */
         } else
-        if ( (pp[0] == 0xFE) && (pp[1] == 0xFF) && !(sourceText.Length() & 1) ) {
+        if ( (pp[0] == __T('\xFE')) && (pp[1] == __T('\xFF')) && !((sourceText.Length() & 1) /sizeof(_TCHAR)) ) {
             BOM_found = TRUE;
-            localutf = NON_NATIVE_16BIT_UTF; /* Looks like Unicode 16-bit in non-native format */
+            tempUTF = NON_NATIVE_16BIT_UTF; /* Looks like Unicode 16-bit in non-native format */
         } else
-        if ( utf && *utf && !(sourceText.Length() & 1) )
-            localutf = NATIVE_16BIT_UTF; /* No BOM found, but user specified Unicode, presume 16-bit native format */
+        if ( pUTF && *pUTF && !((sourceText.Length() & 1) /sizeof(_TCHAR)) )
+            tempUTF = NATIVE_16BIT_UTF; /* No BOM found, but user specified Unicode, presume 16-bit native format */
         else
-            localutf = 0;
+            tempUTF = 0;
     } else
-    if ( localutf ) {
+    if ( tempUTF ) {
         if ( sourceText.Length() == 2 )
-            localutf = NATIVE_16BIT_UTF;
+            tempUTF = NATIVE_16BIT_UTF;
         else
-            localutf = 0;
+            tempUTF = 0;
     }
 
-    if ( utf )
-        *utf = localutf;
+    if ( pUTF )
+        *pUTF = tempUTF;
 
-    if ( localutf ) {
+    if ( tempUTF ) {
         unsigned        bufL;
         unsigned long   value;
         unsigned        incrementor;
@@ -485,7 +501,7 @@ void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequeste
 
         holdingPen.Clear();
 
-        incrementor = (unsigned)(localutf & 0x07);
+        incrementor = (unsigned)(tempUTF & 0x07);
         value = 0x0000FEFFl;
         holdingPen.Add( (LPTSTR)&value, incrementor /sizeof(_TCHAR) );
 
@@ -495,14 +511,14 @@ void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequeste
             bufL--;
         }
         for ( ; bufL; ) {
-            if ( localutf == NATIVE_32BIT_UTF ) {
+            if ( tempUTF == NATIVE_32BIT_UTF ) {
                 value = ((unsigned long)pp[3] << 24) + ((unsigned long)pp[2] << 16) + ((unsigned long)pp[1] << 8) + (unsigned long)pp[0];
             } else
-            if ( localutf == NATIVE_16BIT_UTF ) {
-                value = (unsigned long)((pp[1] << 8) + pp[0]);
-            } else
-            if ( localutf == NON_NATIVE_32BIT_UTF ) {
+            if ( tempUTF == NON_NATIVE_32BIT_UTF ) {
                 value = ((unsigned long)pp[0] << 24) + ((unsigned long)pp[1] << 16) + ((unsigned long)pp[2] << 8) + (unsigned long)pp[3];
+            } else
+            if ( tempUTF == NATIVE_16BIT_UTF ) {
+                value = (unsigned long)((pp[1] << 8) + pp[0]);
             } else {
                 value = (unsigned long)((pp[0] << 8) + pp[1]);
             }
@@ -511,10 +527,216 @@ void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequeste
             bufL--;
         }
 
-        convertPackedUnicodeToUTF( holdingPen, outputText, utf, charset, utfRequested );
+        convertPackedUnicodeToUTF( holdingPen, outputText, pUTF, charset, pUTFRequested );
         sourceText = outputText;
         holdingPen.Free();
     }
 
     outputText.Free();
 }
+
+#if defined(_UNICODE) || defined(UNICODE)
+
+void compactUnicodeFileData( Buf &sourceText )
+{
+    Buf           outputText;
+    int           tempUTF;
+    LPTSTR        pp;
+    unsigned long value;
+
+    pp = sourceText.Get();
+    if ( !pp )
+        return;
+
+    if ( !sourceText.Length() )
+        return;
+
+    outputText.Clear();
+    tempUTF = 0;
+
+    if ( sourceText.Length() > 2 ) {
+        if ( (pp[0] == __T('\xEF')) && (pp[1] == __T('\xBB')) && (pp[2] == __T('\xBF')) ) {
+  #if 1
+            /*
+             * UTF-8 BOM found.
+             */
+            int    count;
+            size_t thisLength;
+
+            thisLength = 3;
+            pp += 3;
+            outputText.Add( (_TCHAR)0xFEFF );
+
+            for ( ; thisLength < sourceText.Length(); ) {
+                if ( (_TUCHAR)*pp < 0x80 ) {
+                    outputText.Add( (_TCHAR)*pp );
+                    pp++;
+                    thisLength++;
+                    continue;
+                }
+                do {
+                    if ( (_TUCHAR)*pp >= 0xFE ) {
+                        outputText.Free();        /* Marker bytes 0xFE and 0xFF  */
+                        return;                   /* are invalid for UTF-8.      */
+                    }
+                    if ( (_TUCHAR)*pp < 0xC0 ) {
+                        outputText.Free();        /* Marker bytes from 0x80 to   */
+                        return;                   /* 0xBF are invalid for UTF-8. */
+                    }
+                    if ( (_TUCHAR)*pp < 0xE0 )
+                        count = 1;
+                    else
+                    if ( (_TUCHAR)*pp < 0xF0 )
+                        count = 2;
+                    else
+                    if ( (_TUCHAR)*pp < 0xF8 )
+                        count = 3;
+                    else
+                    if ( (_TUCHAR)*pp < 0xFC )
+                        count = 4;
+                    else
+                        count = 5;
+
+                    value = (unsigned long)(*pp & ((1 << (6 - count)) - 1));
+                    pp++;
+                    thisLength++;
+                    for ( ; count; count-- ) {
+                        value = (unsigned long)((value << 6) | (*pp & ((1 << 6) - 1)));
+                        pp++;
+                        thisLength++;
+                    }
+                    if ( value > 0x10FFFFul ) {
+                        outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
+                        return;
+                    }
+                    if ( (0xD800 <= value) && (value <= 0xFFFF) ) {
+                        outputText.Free();        /* values from 0xD800 - 0xFFFF are invalid for Unicode */
+                        return;
+                    }
+                    if ( value > 0x0FFFF ) {
+                        _TCHAR surrogatePair;
+
+                        surrogatePair = (_TCHAR)(((value - 0x10000ul) / 0x0400) + 0xD800);
+                        value = (value & 0x03FF) + 0xDC00;
+                        outputText.Add( surrogatePair );
+                    }
+                    outputText.Add( (_TCHAR)value );
+
+                } while ( *pp & 0x80 );
+            }
+            sourceText = outputText;
+  #endif
+            outputText.Free();
+            return;
+        }
+
+        if ( (pp[0] == __T('\xFF')) && (pp[1] == __T('\xFE')) && (pp[2] == __T('\0')) && (pp[3] == __T('\0')) && !(sourceText.Length() & 1) ) {
+            tempUTF = NATIVE_32BIT_UTF;     /* Looks like Unicode 32-bit in native format */
+        } else
+        if ( (pp[0] == __T('\0')) && (pp[1] == __T('\0')) && (pp[2] == __T('\xFE')) && (pp[3] == _T('\xFF')) && !(sourceText.Length() & 1) ) {
+            tempUTF = NON_NATIVE_32BIT_UTF; /* Looks like Unicode 32-bit in non-native format */
+        } else
+        if ( (pp[0] == __T('\xFF')) && (pp[1] == __T('\xFE')) ) {
+            tempUTF = NATIVE_16BIT_UTF;     /* Looks like Unicode 16-bit in native format */
+        } else
+        if ( (pp[0] == __T('\xFE')) && (pp[1] == __T('\xFF')) ) {
+            tempUTF = NON_NATIVE_16BIT_UTF; /* Looks like Unicode 16-bit in non-native format */
+        }
+    }
+
+    if ( tempUTF ) {
+        unsigned bufL;
+        unsigned incrementor;
+
+        outputText.Clear();
+
+        incrementor = (unsigned)(tempUTF & 0x07);
+        outputText.Add( (_TCHAR)0xFEFF );
+
+        bufL = (unsigned)(sourceText.Length() / incrementor);
+        pp += incrementor;
+        bufL--;
+
+        for ( ; bufL; ) {
+            if ( tempUTF == NATIVE_32BIT_UTF ) {
+                value = ((unsigned long)pp[3] << 24) + ((unsigned long)pp[2] << 16) + ((unsigned long)pp[1] << 8) + (unsigned long)pp[0];
+                if ( value > 0x10FFFFul ) {
+                    outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
+                    return;
+                }
+                if ( (0xD800 <= value) && (value <= 0xFFFF) ) {
+                    outputText.Free();        /* values from 0xD800 - 0xFFFF are invalid for Unicode */
+                    return;
+                }
+            } else
+            if ( tempUTF == NON_NATIVE_32BIT_UTF ) {
+                value = ((unsigned long)pp[0] << 24) + ((unsigned long)pp[1] << 16) + ((unsigned long)pp[2] << 8) + (unsigned long)pp[3];
+                if ( value > 0x10FFFFul ) {
+                    outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
+                    return;
+                }
+                if ( (0xD800 <= value) && (value <= 0xFFFF) ) {
+                    outputText.Free();        /* values from 0xD800 - 0xFFFF are invalid for Unicode */
+                    return;
+                }
+            } else
+            if ( tempUTF == NATIVE_16BIT_UTF ) {
+                value = (unsigned long)((pp[1] << 8) + pp[0]);
+            } else {
+                value = (unsigned long)((pp[0] << 8) + pp[1]);
+            }
+            if ( value > 0x0FFFF ) {
+                _TCHAR surrogatePair;
+
+                surrogatePair = (_TCHAR)(((value - 0x10000ul) / 0x0400) + 0xD800);
+                value = (value & 0x03FF) + 0xDC00;
+                outputText.Add( surrogatePair );
+            }
+            outputText.Add( (_TCHAR)value );
+            pp += incrementor;
+            bufL--;
+        }
+        sourceText = outputText;
+    }
+
+    outputText.Free();
+}
+
+
+void checkInputForUnicode ( Buf & stringToCheck )
+{
+    size_t    length;
+    size_t    x;
+    _TUCHAR * pStr;
+
+    compactUnicodeFileData( stringToCheck );
+    stringToCheck.SetLength();
+    length = stringToCheck.Length();
+    pStr = (_TUCHAR *)stringToCheck.Get();
+    for ( x = 0; x < length; x++ ) {
+        if ( x == 0 ) {
+            if ( pStr[0] == 0xFEFF )
+                continue;
+        }
+        if ( pStr[x] > 0x00FF ) {
+            Buf newString;
+
+            newString.Clear();
+            if ( pStr[0] != 0xFEFF ) {
+                newString.Add( (_TCHAR)0xFEFF );    /* Prepend a UTF-16 BOM */
+            }
+            newString.Add( (LPTSTR)pStr, length );  /* Now add the user's Unicode string */
+            stringToCheck = newString;
+            newString.Free();
+
+            utf = UTF_REQUESTED;
+ #if BLAT_LITE
+            mime = TRUE;
+ #else
+            eightBitMimeRequested = TRUE;
+ #endif
+            break;
+        }
+    }
+}
+#endif

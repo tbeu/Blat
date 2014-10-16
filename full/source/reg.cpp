@@ -103,7 +103,7 @@ static void encodeThis( _TUCHAR * in, LPTSTR out, int inclCrLf )
     Buf    msg;
     size_t len;
     Buf    inputString;
-    int    utf;
+    int    tempUTF;
 
 
     if ( !in || !out )
@@ -116,9 +116,9 @@ static void encodeThis( _TUCHAR * in, LPTSTR out, int inclCrLf )
         if ( in[len] == __T('\0') )
             break;
         if ( in[len] > 0x00FF ) {
-            utf = sizeof(_TCHAR);
+            tempUTF = sizeof(_TCHAR);
             inputString = (LPTSTR)in;
-            convertPackedUnicodeToUTF( inputString, tmpStr, &utf, NULL, 8 );
+            convertPackedUnicodeToUTF( inputString, tmpStr, &tempUTF, NULL, 8 );
             break;
         }
         tmpStr.Add( (_TCHAR)in[len] );

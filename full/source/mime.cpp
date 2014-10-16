@@ -232,7 +232,7 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
                 CurrPos++;
             } else
             if ( ThisChar == __T('_') ) {     // Have an underscore?
-                _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar );
+                _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar & 0xFF );
                 out.Add( tmpstr );
                 CurrPos += 3;
             } else
@@ -247,7 +247,7 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
                 out.Add( ThisChar );
                 CurrPos++;
             } else {
-                _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar );
+                _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar & 0xFF );
                 out.Add( tmpstr );
                 CurrPos += 3;
             }
@@ -276,7 +276,7 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
                     } else
 #endif
                     {
-                        _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar );
+                        _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar & 0xFF );
                         out.Add( tmpstr );
                         CurrPos += 3;
                     }
@@ -289,7 +289,7 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
 #else
             if ( binaryMimeSupported /* && binaryMimeRequested */ ) {
                 if ( !ThisChar || ((binaryMimeSupported < 2) && (ThisChar == __T('='))) ) {
-                    _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar );
+                    _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar & 0xFF );
                     out.Add( tmpstr );
                     CurrPos += 3;
                 } else
@@ -315,7 +315,7 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
                  (ThisChar == __T('~') ) ||
                  (ThisChar == __T('\x7F') ) ||
                  (ThisChar <  __T(' ') ) ) {
-                _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar );
+                _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar & 0xFF );
                 out.Add( tmpstr );
                 CurrPos += 3;
             } else
@@ -325,7 +325,7 @@ void ConvertToQuotedPrintable(Buf & source, Buf & out, int inHeader)
                  && (!eightBitMimeSupported || !eightBitMimeRequested)
 #endif
                ) {
-                _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar );
+                _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar & 0xFF );
                 out.Add( tmpstr );
                 CurrPos += 3;
             } else {

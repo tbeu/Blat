@@ -112,6 +112,7 @@ extern _TCHAR  yEnc;
 extern _TCHAR  deliveryStatusRequested;
 extern _TCHAR  deliveryStatusSupported;
 
+extern _TCHAR  charset[];
 extern _TCHAR  eightBitMimeSupported;
 extern _TCHAR  eightBitMimeRequested;
 extern _TCHAR  binaryMimeSupported;
@@ -175,8 +176,10 @@ void find_and_strip_salutation ( Buf &email_addresses )
     size_t len;
     int    x;
 
+
     salutation.Free();
 
+    //_tprintf( __T("find_and_strip_salutation ()\n") );
     parseCommaDelimitString( email_addresses.Get(), tmpstr, FALSE );
     srcptr = tmpstr.Get();
     if ( !srcptr )
@@ -185,6 +188,7 @@ void find_and_strip_salutation ( Buf &email_addresses )
     for ( x = 0; *srcptr; srcptr += len + 1 ) {
         int addToSal = FALSE;
 
+        //_tprintf( __T("srcptr = '%s'\n"), srcptr );
         len = _tcslen (srcptr);
 
         // 30 Jun 2000 Craig Morrison, parses out just email address in TO:,CC:,BCC:
@@ -246,13 +250,19 @@ void find_and_strip_salutation ( Buf &email_addresses )
                     new_addresses.Add( srcptr, (size_t)(pp2 - srcptr)/sizeof(_TCHAR) );
                     new_addresses.Add( __T("\" "), 2 );
                     new_addresses.Add( pp );
-                } else
+                    //_tprintf( __T("1 new_addresses.Add() = '%s' )\n"), new_addresses.Get() );
+                } else {
                     new_addresses.Add( srcptr );
-            } else
+                    //_tprintf( __T("2 new_addresses.Add( '%s' )\n"), srcptr );
+                }
+            } else {
                 new_addresses.Add( srcptr );
-        } else
+                //_tprintf( __T("3 new_addresses.Add( '%s' )\n"), srcptr );
+            }
+        } else {
             new_addresses.Add( srcptr );
-
+            //_tprintf( __T("4 new_addresses.Add( '%s' )\n"), srcptr );
+        }
         if ( addToSal )
             salutation.Add( __T('\0') );
     }
@@ -260,12 +270,16 @@ void find_and_strip_salutation ( Buf &email_addresses )
     if ( salutation.Length() )
         salutation.Add( __T('\0') );
 
+    //if ( salutation.Length() )
+    //     _tprintf( __T("salutation = '%s'\n"), salutation.Get() );
+
     if ( x ) {
         email_addresses.Move( new_addresses );
     }
 
     new_addresses.Free();
     tmpstr.Free();
+    //_tprintf( __T("find_and_strip_salutation (), done\n") );
   #else
     // New version
 
@@ -291,6 +305,11 @@ void find_and_strip_salutation ( Buf &email_addresses )
 
     addToSal = FALSE;
     for ( x = 0; *srcptr; srcptr += len + 1 ) {
+
+#if defined(_UNICODE) || defined(UNICODE)
+        if ( *srcptr == 0xFEFF )
+            srcptr++;
+#endif
         //_tprintf( __T("srcptr = '%s'\n"), srcptr );
         tempLen = len = _tcslen (srcptr);
 
@@ -310,7 +329,31 @@ void find_and_strip_salutation ( Buf &email_addresses )
                 if ( x++ )
                     new_addresses.Add( __T(", ") );
 
-                new_addresses.Add( srcptr );
+                LPTSTR start;
+                LPTSTR end;
+
+                start = srcptr;
+                end = pp-1;
+                while ( end > start ) {
+                    if ( end[-1] != __T(' ') )
+                        break;
+                    end--;
+                }
+                foundQuote = 0;
+                while ( end > start ) {
+                    new_addresses.Add( *start );
+                    if ( *start == __T('"') )
+                        foundQuote++;
+
+                    start++;
+                }
+                if ( foundQuote & 1 )
+                    new_addresses.Add( __T('"') );
+
+                if ( end != &pp[-1] )
+                    new_addresses.Add( __T(' ') );
+
+                new_addresses.Add( pp-1 );
                 //_tprintf( __T("new_addresses.Add( '%s' )\n"), srcptr );
                 tempLen -= (pp2 - srcptr);
                 *pp2 = c;
@@ -357,6 +400,10 @@ void find_and_strip_salutation ( Buf &email_addresses )
                         tempLen--;
                     }
                 }
+//                if ( foundQuote ) {
+//                    new_addresses.Add( __T('"') );
+//                    foundQuote = FALSE;
+//                }
             }
         } else {
             pp = srcptr;
@@ -404,7 +451,6 @@ void find_and_strip_salutation ( Buf &email_addresses )
             salutation.Add( __T('\0') );
             addToSal = FALSE;
         }
-
     }
 
     if ( addToSal )
@@ -633,6 +679,7 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
                     } else
                     if ( memcmp(&index[4], __T("8bitmime"), 8*sizeof(_TCHAR)) == 0 ) {
                         eightBitMimeSupported = TRUE;
+                        //_tcsupr( charset );
 //                        printMsg( __T(" ... Server supports 8 bit MIME\n") );
                     } else
                     if ( memcmp(&index[4], __T("binarymime"), 10*sizeof(_TCHAR)) == 0 ) {
@@ -756,6 +803,13 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
         return(-1);
     }
 
+#if BLAT_LITE
+#else
+    if ( !eightBitMimeSupported ) {
+        if ( _tcscmp( charset, __T("utf-8") ) == 0 )
+            _tcscpy( charset, __T("UTF-7") );
+    }
+#endif
     return(0);
 }
 
@@ -1671,51 +1725,51 @@ int send_email( size_t msgBodySize,
 
 #if defined(_UNICODE) || defined(UNICODE)
     Buf tmpBuf2;
-    int utf;
+    int tmpUTF;
 
     tmpBuf.Clear();
     tmpBuf2 = AUTHLogin;
-    utf = NATIVE_16BIT_UTF;
-    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
-    if ( utf )
+    tmpUTF = NATIVE_16BIT_UTF;
+    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
+    if ( tmpUTF )
         AUTHLogin = tmpBuf;
 
     tmpBuf.Clear();
     tmpBuf2 = AUTHPassword;
-    utf = NATIVE_16BIT_UTF;
-    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
-    if ( utf )
+    tmpUTF = NATIVE_16BIT_UTF;
+    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
+    if ( tmpUTF )
         AUTHPassword = tmpBuf;
 
  #if INCLUDE_POP3
     tmpBuf.Clear();
     tmpBuf2 = POP3Login;
-    utf = NATIVE_16BIT_UTF;
-    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
-    if ( utf )
+    tmpUTF = NATIVE_16BIT_UTF;
+    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
+    if ( tmpUTF )
         POP3Login = tmpBuf;
 
     tmpBuf.Clear();
     tmpBuf2 = POP3Password;
-    utf = NATIVE_16BIT_UTF;
-    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
-    if ( utf )
+    tmpUTF = NATIVE_16BIT_UTF;
+    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
+    if ( tmpUTF )
         POP3Password = tmpBuf;
  #endif
 
  #if INCLUDE_IMAP
     tmpBuf.Clear();
     tmpBuf2 = IMAPLogin;
-    utf = NATIVE_16BIT_UTF;
-    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
-    if ( utf )
+    tmpUTF = NATIVE_16BIT_UTF;
+    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
+    if ( tmpUTF )
         IMAPLogin = tmpBuf;
 
     tmpBuf.Clear();
     tmpBuf2 = IMAPPassword;
-    utf = NATIVE_16BIT_UTF;
-    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
-    if ( utf )
+    tmpUTF = NATIVE_16BIT_UTF;
+    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
+    if ( tmpUTF )
         IMAPPassword = tmpBuf;
  #endif
 

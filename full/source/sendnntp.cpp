@@ -262,20 +262,20 @@ int send_news( size_t msgBodySize,
 
 #if defined(_UNICODE) || defined(UNICODE)
     Buf tmpBuf2;
-    int utf;
+    int tmpUTF;
 
     tmpBuf.Clear();
     tmpBuf2 = AUTHLogin;
-    utf = NATIVE_16BIT_UTF;
-    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
-    if ( utf )
+    tmpUTF = NATIVE_16BIT_UTF;
+    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
+    if ( tmpUTF )
         AUTHLogin = tmpBuf;
 
     tmpBuf.Clear();
     tmpBuf2 = AUTHPassword;
-    utf = NATIVE_16BIT_UTF;
-    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
-    if ( utf )
+    tmpUTF = NATIVE_16BIT_UTF;
+    convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
+    if ( tmpUTF )
         AUTHPassword = tmpBuf;
 
     tmpBuf2.Free();
