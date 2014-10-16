@@ -26,10 +26,10 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.0.2")
-// Major revision level        *      Update this when a major change occurs, such as a complete rewrite.
-// Minor revision level          *    Update this when the user experience changes, such as when new options/features are added.
-// Bug   revision level            *  Update this when bugs are fixed, but no other user experience changes.
+#define BLAT_VERSION    __T("3.0.3")
+// Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
+// Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
+// Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
 
 #ifdef __cplusplus
 extern "C" int _tmain( int argc, LPTSTR *argv, LPTSTR *envp );
@@ -118,9 +118,30 @@ _TCHAR  blatBuildTime[64];
 char    blatBuildDateA[] = __DATE__;
 char    blatBuildTimeA[] = __TIME__;
 
+/*
+How to check the Microsoft compiler version, from stackoverflow.com
+
+http://stackoverflow.com/questions/70013/how-to-detect-if-im-compiling-code-under-visual-studio-8
+
+Some values for the more recent versions of the compiler are:
+
+MSVC++ 11.0 _MSC_VER = 1700 (Visual Studio 2011)
+MSVC++ 10.0 _MSC_VER = 1600 (Visual Studio 2010)
+MSVC++ 9.0  _MSC_VER = 1500 (Visual Studio 2008)
+MSVC++ 8.0  _MSC_VER = 1400 (Visual Studio 2005)
+MSVC++ 7.1  _MSC_VER = 1310 (Visual Studio 2003)
+MSVC++ 7.0  _MSC_VER = 1300
+MSVC++ 6.0  _MSC_VER = 1200
+MSVC++ 5.0  _MSC_VER = 1100
+ */
 #if defined(_UNICODE) || defined(UNICODE)
+# if defined(_MSC_VER) && (_MSC_VER >= 1400)
 _TCHAR  fileCreateAttribute[] = __T("w, ccs=UTF-8");
 _TCHAR  fileAppendAttribute[] = __T("a, ccs=UTF-8");
+# else
+_TCHAR  fileCreateAttribute[] = __T("w");
+_TCHAR  fileAppendAttribute[] = __T("a");
+# endif
 #else
 _TCHAR  fileCreateAttribute[] = __T("w");
 _TCHAR  fileAppendAttribute[] = __T("a");

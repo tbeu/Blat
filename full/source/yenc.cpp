@@ -127,8 +127,7 @@ void yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len,
 
     while ( bufsize ) {
         bufsize--;
-        c = *pSrc++;  // Get a source byte
-        c &= 0xFF;
+        c = *pSrc++;    // Get a source byte
 
         partial_crc_val = (partial_crc_val >> 4) ^ crc_32_table[((partial_crc_val >> 0) ^ (c >> 0)) & 0x0F];
         partial_crc_val = (partial_crc_val >> 4) ^ crc_32_table[((partial_crc_val >> 0) ^ (c >> 4)) & 0x0F];
@@ -137,6 +136,8 @@ void yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len,
         full_crc_val    = (full_crc_val    >> 4) ^ crc_32_table[((full_crc_val    >> 0) ^ (c >> 4)) & 0x0F];
 
         c += 42;        // and add the secret number
+        c &= 0xFF;
+
         if ( !c ||
              (c == __T('\t')) ||
              (c == __T('\r')) ||

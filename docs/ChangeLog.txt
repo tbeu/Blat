@@ -5,6 +5,14 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.0.3
+[-] Per Thomas Beutlich, changed how the blat log file is opened, to create
+    this file as UTF-8 when Blat is compiled with Microsoft Visual Studio 2005
+    or newer.  As a result, 32-bit Blat with Unicode will now be built with
+    Visual Studio 2005.
+[-] Fixed yEnc encoding to work properly with binary files.  One line of code
+    needed to be moved about eight (8) lines lower.
+-------------------------------------------------------------------------------
 3.0.2
 [+] Changed subject handling to use Buf class, and to convert to UTF-8 right
     away, if necessary.
