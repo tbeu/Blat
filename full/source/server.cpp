@@ -34,6 +34,12 @@ extern _TCHAR   xtnd_xmit_supported;
 #define MY_HOSTNAME_SIZE    1024
 _TCHAR my_hostname[MY_HOSTNAME_SIZE];
 
+#ifdef BLATDLL_TC_WCX
+#ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
+extern tProcessDataProcW pProcessDataProcW;
+extern tProcessDataProc  pProcessDataProc;
+#endif
+#endif
 
 void gensock_error (LPTSTR function, int retval, LPTSTR hostname)
 {
@@ -615,7 +621,26 @@ int put_message_line( socktag sock, LPTSTR line )
     }
 
     if ( debug ) {
-        printMsg(__T(">>>putline>>> %s\n"),line);
+        _TCHAR c;
+        LPTSTR pStr;
+        static _TCHAR maskedLine[] = __T(">>>putline>>> %s *****\n");
+
+        if ( ((pStr = _tcsstr( line, __T("AUTH LOGIN ") )) != NULL) ||
+             ((pStr = _tcsstr( line, __T("AUTH PLAIN ") )) != NULL) ) {
+            c = pStr[11];
+            pStr[11] = __T('\0');
+            printMsg(maskedLine, line);
+            pStr[11] = c;
+        }
+        else
+        if ( (pStr = _tcsstr( line, __T("PASS ") )) != NULL ) {
+            c = pStr[4];
+            pStr[4] = __T('\0');
+            printMsg(maskedLine, line);
+            pStr[4] = c;
+        }
+        else
+            printMsg(__T(">>>putline>>> %s\n"),line);
     }
 
     return(0);
@@ -698,7 +723,11 @@ void server_warning( LPTSTR message)
 }
 
 
+#ifdef BLATDLL_TC_WCX
+int transform_and_send_edit_data( socktag sock, LPTSTR editptr, DWORD attachmentSize )
+#else
 int transform_and_send_edit_data( socktag sock, LPTSTR editptr )
+#endif
 {
     LPTSTR index;
     LPTSTR header_end;
@@ -716,6 +745,13 @@ int transform_and_send_edit_data( socktag sock, LPTSTR editptr )
     } else {
         msg_end = editptr + msgLength;
         index = editptr;
+
+#ifdef BLATDLL_TC_WCX
+        int currPos = 0;
+        int lastPos = -1;
+        LPTSTR initialIndex = index;
+        LPTSTR lastIndex = index;
+#endif
 
         header_end = _tcsstr (editptr, __T("\r\n\r\n"));
         if ( !header_end )
@@ -755,6 +791,30 @@ int transform_and_send_edit_data( socktag sock, LPTSTR editptr )
             }
 
             previous_char = *index;
+
+#ifdef BLATDLL_TC_WCX
+#ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
+            // call external progress function
+            if ( !retval ) {
+                if ( pProcessDataProcW || pProcessDataProc ) {
+                    currPos = min( 100, MulDiv( 100, (int)(index - initialIndex), msgLength ) );
+                    if (currPos > lastPos)  {
+                        int size = MulDiv( (int)(index - lastIndex), attachmentSize, msgLength );
+                        if ( pProcessDataProcW ) {
+                            retval = (pProcessDataProcW( NULL, max( 0, size ) ) == 0) ? 20 : 0;
+                        }
+                        else
+                        if ( pProcessDataProc ) {
+                            retval = (pProcessDataProc( NULL, max( 0, size ) ) == 0) ? 20 : 0;
+                        }
+                        lastIndex = index;
+                        lastPos = currPos;
+                    }
+                }
+            }
+#endif
+#endif
+
             index++;
         }
     }
@@ -776,11 +836,19 @@ int transform_and_send_edit_data( socktag sock, LPTSTR editptr )
 
 #if INCLUDE_POP3
 
+#ifdef BLATDLL_TC_WCX
+int send_edit_data (LPTSTR message, Buf * responseStr, DWORD attachmentSize )
+#else
 int send_edit_data (LPTSTR message, Buf * responseStr )
+#endif
 {
     int retval;
 
+#ifdef BLATDLL_TC_WCX
+    retval = transform_and_send_edit_data( ServerSocket, message, attachmentSize );
+#else
     retval = transform_and_send_edit_data( ServerSocket, message );
+#endif
     if ( retval )
         return(retval);
 
@@ -795,12 +863,20 @@ int send_edit_data (LPTSTR message, Buf * responseStr )
 #endif
 
 
+#ifdef BLATDLL_TC_WCX
+int send_edit_data (LPTSTR message, int expected_response, Buf * responseStr, DWORD attachmentSize )
+#else
 int send_edit_data (LPTSTR message, int expected_response, Buf * responseStr )
+#endif
 {
     int enhancedStatusCode;
     int retval;
 
+#ifdef BLATDLL_TC_WCX
+    retval = transform_and_send_edit_data( ServerSocket, message, attachmentSize );
+#else
     retval = transform_and_send_edit_data( ServerSocket, message );
+#endif
     if ( retval )
         return(retval);
 

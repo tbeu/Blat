@@ -30,13 +30,21 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 #ifdef _WIN64
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION    3,0,7,0
- PRODUCTVERSION 3,0,7,0
+ FILEVERSION    3,1,0,0
+ PRODUCTVERSION 3,1,0,0
  FILEFLAGSMASK  0x3fL
 #ifdef _DEBUG
- FILEFLAGS      0x1L
+ #ifdef BLATDLL_TC_WCX
+ FILEFLAGS      0x21L
+ #else
+ FILEFLAGS      0x01L
+ #endif
 #else
- FILEFLAGS      0x0L
+ #ifdef BLATDLL_TC_WCX
+ FILEFLAGS      0x20L
+ #else
+ FILEFLAGS      0x00L
+ #endif
 #endif
  FILEOS         VOS_NT_WINDOWS32
  FILETYPE       VFT_DLL
@@ -49,15 +57,19 @@ BEGIN
             VALUE __T("Comments"),         __T("Authors and contributors include P.Mendes, M.Neal, G.Vollant, T.Charron, T.Musson, H.Pesonen, A.Donchey, C.Hyde")
             VALUE __T("CompanyName"),      __T("http://www.blat.net/")
             VALUE __T("FileDescription"),  __T("A Win64 (AMD64) DLL eMail tool")
-            VALUE __T("FileVersion"),      __T("3.0.7")
+            VALUE __T("FileVersion"),      __T("3.1.0")
             VALUE __T("InternalName"),     __T("blatdll")
             VALUE __T("LegalCopyright"),   __T("Public domain")
             VALUE __T("LegalTrademarks"),  __T("")
             VALUE __T("OriginalFilename"), __T("blat.dll")
             VALUE __T("PrivateBuild"),     __T("")
             VALUE __T("ProductName"),      __T("Blat")
-            VALUE __T("ProductVersion"),   __T("3.0.7")
+            VALUE __T("ProductVersion"),   __T("3.1.0")
+#ifdef BLATDLL_TC_WCX
+            VALUE __T("SpecialBuild"),     __T("For use with Total Commander (http://www.ghisler.com/)")
+#else
             VALUE __T("SpecialBuild"),     __T("")
+#endif
         END
     END
     BLOCK __T("VarFileInfo")
@@ -67,13 +79,21 @@ BEGIN
 END
 #else
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION    3,0,7,0
- PRODUCTVERSION 3,0,7,0
+ FILEVERSION    3,1,0,0
+ PRODUCTVERSION 3,1,0,0
  FILEFLAGSMASK  0x3fL
 #ifdef _DEBUG
- FILEFLAGS      0x1L
+ #ifdef BLATDLL_TC_WCX
+ FILEFLAGS      0x21L
+ #else
+ FILEFLAGS      0x01L
+ #endif
 #else
- FILEFLAGS      0x0L
+ #ifdef BLATDLL_TC_WCX
+ FILEFLAGS      0x20L
+ #else
+ FILEFLAGS      0x00L
+ #endif
 #endif
  FILEOS         VOS_NT_WINDOWS32
  FILETYPE       VFT_DLL
@@ -86,15 +106,19 @@ BEGIN
             VALUE __T("Comments"),         __T("Authors and contributors include P.Mendes, M.Neal, G.Vollant, T.Charron, T.Musson, H.Pesonen, A.Donchey, C.Hyde")
             VALUE __T("CompanyName"),      __T("http://www.blat.net/")
             VALUE __T("FileDescription"),  __T("A Win32 DLL eMail tool")
-            VALUE __T("FileVersion"),      __T("3.0.7")
+            VALUE __T("FileVersion"),      __T("3.1.0")
             VALUE __T("InternalName"),     __T("blatdll")
             VALUE __T("LegalCopyright"),   __T("Public domain")
             VALUE __T("LegalTrademarks"),  __T("")
             VALUE __T("OriginalFilename"), __T("blat.dll")
             VALUE __T("PrivateBuild"),     __T("")
             VALUE __T("ProductName"),      __T("Blat")
-            VALUE __T("ProductVersion"),   __T("3.0.7")
+            VALUE __T("ProductVersion"),   __T("3.1.0")
+#ifdef BLATDLL_TC_WCX
+            VALUE __T("SpecialBuild"),     __T("For use with Total Commander (http://www.ghisler.com/)")
+#else
             VALUE __T("SpecialBuild"),     __T("")
+#endif
         END
     END
     BLOCK __T("VarFileInfo")

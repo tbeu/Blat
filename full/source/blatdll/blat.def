@@ -15,4 +15,7 @@ EXPORTS
   cSendW @11
   cSendA @12
 
+  SetProcessDataProc  @13
+  SetProcessDataProcW @14
+
 ; Explicit exports can go here

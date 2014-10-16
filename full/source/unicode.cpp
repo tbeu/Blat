@@ -21,7 +21,7 @@ extern LPTSTR       base64table;
 
 extern void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
 
-_TCHAR utf8BOM[] = { 0x00EF, 0x00BB, 0x00BF, 0 };
+_TCHAR utf8BOM[] = { __T('\xEF'), __T('\xBB'), __T('\xBF'), 0 };
 
 /*
  * This routine will convert 16-bit and 32-bit Unicode files into UTF-7 or

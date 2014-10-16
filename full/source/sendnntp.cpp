@@ -21,7 +21,11 @@ extern int  finish_server_message( void );
 extern int  close_server_socket( void );
 extern void server_error( LPTSTR message);
 extern void server_warning( LPTSTR message);
+#ifdef BLATDLL_TC_WCX
+extern int  send_edit_data (LPTSTR message, int expected_response, Buf * responseStr, DWORD attachmentSize );
+#else
 extern int  send_edit_data (LPTSTR message, int expected_response, Buf * responseStr );
+#endif
 extern int  noftry();
 extern void build_headers( BLDHDRS &bldHdrs );
 extern void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
@@ -404,7 +408,11 @@ int send_news( size_t msgBodySize,
 
                     retcode = prepare_nntp_message( AUTHLogin.Get(), AUTHPassword.Get() );
                     if ( 0 == retcode ) {
+#ifdef BLATDLL_TC_WCX
+                        retcode = send_edit_data( messageBuffer.Get(), 240, NULL, totalsize - msgBodySize );
+#else
                         retcode = send_edit_data( messageBuffer.Get(), 240, NULL );
+#endif
                         if ( 0 == retcode ) {
                             n_of_try = 1;
                             k = 2;
@@ -477,7 +485,11 @@ int send_news( size_t msgBodySize,
                 retcode = prepare_nntp_message( AUTHLogin.Get(), AUTHPassword.Get() );
 
             if ( 0 == retcode ) {
+#ifdef BLATDLL_TC_WCX
+                retcode = send_edit_data( messageBuffer.Get(), 240, NULL, totalsize - msgBodySize );
+#else
                 retcode = send_edit_data( messageBuffer.Get(), 240, NULL );
+#endif
                 if ( 0 == retcode ) {
                     finish_server_message();
                     n_of_try = 1;

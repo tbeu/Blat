@@ -5,6 +5,38 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.1.0
+[+] Added support for Blat.wcx in Total Commander (http://www.ghisler.com)
+[*] Blat 64-bit includes GSS encryption support once again.  gssapi64.dll can
+    be downloaded from http://web.mit.edu/kerberos/dist/testing.html#kfw-3.2.3
+    Download kfw-3-2-3-amd64.zip and extract the files.  gssapi64.dll is in
+    the kfw-3-2-3-final/bin folder.
+[+] Added more support for HTML in email addresses, such as %20 in place of
+    spaces, or &lt; and &gt; in place of < and >, respectively.  This should
+    make the email parser more compatible with web servers.  I do not know if
+    there is currently a problem, but I saw a change from someone else that
+    made a quick effort to support %20 in email addresses, so I took that idea
+    and expanded it.
+[+] The ability to have multiple -body options used for each session was an
+    undocumented "feature" in versions 2.6.2 through 2.7.6, but this was
+    dropped when version 3.0.0 was developed to support Unicode.  A user on
+    SourceForge.net complained that this "feature" was missing from version
+    3.x, so I added this back in and now it is being documented in this
+    Change log.
+    http://tinyurl.com/alx3z7z
+[+] Replace the user's login password in blat's log file with "*****" when
+    using -debug.  -superdebug is not effected, because this mode will write
+    the individual bytes in HEX mode, which the user can then validate if their
+    login credentials are being rejected.
+[-] RFC 2046 says that if "Content-Type:" is message/rfc822, then only 7BIT,
+    8BIT, and BINARY are permitted encoding types.  If an attachment is found
+    to have this content type defined, then the attachment will be treated as a
+    text file, and the encoding will be either 7BIT or 8BIT.  However, the
+    content of the attachment will not be validated for RFC 822 compliance.
+[-] Fixed a missing terminator byte for text attachments that sometimes allowed
+    text attachments to be longer than expected, and/or incorrectly converted
+    to UTF-8.
+-------------------------------------------------------------------------------
 3.0.7
 [-] Removed a line of debug code that printed command line arguments to the
     screen, always.

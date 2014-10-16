@@ -1,0 +1,106 @@
+<html><body>
+The Blat CGI feature uses html GET which can be passed from a FORM if you like<hr>
+<table border>
+	<caption>GET example using a FORM:</caption>
+<form action="/cgi-bin/blat.exe" method="GET">
+<tr><td align="right"> Sender:
+    <td> <INPUT TYPE="text" SIZE="30" NAME="Sender" VALUE="Blat@Valid.add">
+<tr><td align="right"> <b>To:</b>
+    <td> <INPUT TYPE="text" SIZE="30" NAME="TO" VALUE="MyName@Valid.add (change)">
+<tr><td align="right"> Subject:
+    <td> <INPUT TYPE="text" SIZE="30" NAME="Blat_Subject" VALUE="Blat CGI Demo from a FORM">
+<tr><td align="right"> User Data
+    <td> 1:  <INPUT TYPE="text" SIZE="10" NAME="Data1" VALUE="User Data 1">
+         2:  <INPUT TYPE="text" SIZE="10" NAME="Blat_Data2" VALUE="User Data 2">
+<tr><td align="right"> Message:
+    <td> <TEXTAREA Rows="3" Cols="23" NAME="Message">Enter your Message Here</TEXTAREA>
+             <INPUT TYPE="hidden" NAME="Blat_success" VALUE="/blat-success.htm">
+             <INPUT TYPE="hidden" NAME="Blat_failure" VALUE="/blat-fail.htm">
+             <INPUT TYPE="hidden" NAME="Blat_Mime" VALUE="Y">
+<tr><td>.<td><INPUT TYPE="submit" VALUE="submit"> . . . . . .
+ . . . . . . <INPUT TYPE="reset" VALUE="reset">
+<tr><td align="right"> <b>SMTP Svr:</b>
+    <td> <INPUT TYPE="text" SIZE="30" NAME="Server" VALUE="smtp.Valid.add (change)">
+</table></form></body></html>
+
+
+<pre>
+There are 2 methods of using Blat from a web page (without using anything else)
+
+1)
+    http://server/scripts/blat.exe
+    Your HTTP request must contain some vars with the command line.:
+	TO :            the -t parameters of Blat
+        CC :            the -c parameters of Blat
+        BCC :           the -b parameters of Blat
+        SENDER :        the -f parameters of Blat
+        FROM :          the -i parameters of Blat
+        ORGANISATION :  the -o parameters of Blat
+        SERVER :        the -server parameters of Blat
+        SUBJECT :       the -s parameters of Blat
+        PORT :          the -port parameters of Blat
+        HOSTNAME :      the -hostname parameters of Blat
+        TIMEOUT :       the -ti parameter of Blat
+
+    These Variable are Boolean (if present and set TO "1" or "Y", added the option,
+                                if not sent or set TO "N" or "0", remove the option)
+
+        NOH :           the -noh parameters of Blat
+        NOH2 :          the -noh2 parameters of Blat
+        MIME :          the -mime parameters of Blat
+        UUENCODE :      the -uuencode parameters of Blat
+        BASE64 :        the -base64 parameters of Blat
+        REQUESTRECEIPT :the -r parameter of Blat
+        NOTIFY :        the -d parameter of Blat
+
+You can prefix these variable names with "BLAT_" (ie using BLAT_SUBJECT instead
+SUBJECT) if you don't want see the variable content in the message. This goes for
+user defined variables too, see the Blat_Data2 field in the example above.
+
+Blat_success and Blat_failure will contain the URL for success and failure
+messages and will be displayed when Blat completes. If you are sending from a
+form, you can rename these files, and the browser will have the GET line in the
+address bar. This is very useful for debugging (a "?" separates blat.exe from
+the parms, and the parms are delimited by & as expected in a html GET line).
+
+    Here is an example from this page...  Note, all this is on one line in your
+    browser's address bar, and there are no spaces!
+
+	http://localhost:89/cgi-bin/blat.exe?
+	Sender=Blat@Valid.add&
+	TO=MyName@Valid.add&
+	Blat_Subject=Blat+CGI+Demo+from+a+FORM&
+	Server=smtp.Valid.add&
+	Data1=User+Data+1&
+	Blat_Data2=User+Data+2&
+	Blat_success=%2Fblat-success.htm&
+	Blat_failure=%2Fblat-fail.htm&
+	Blat_Mime=Y
+
+2)
+    Call from Web server
+    http://server/cgi-bin/blat.exe/Relative/WebPath/LineCommand.txt?Message_Body
+    \____________________________/\_______________________________/\___________/
+  		A				B			C
+
+    A)  Call Blat from your cgi-bin dir (or whatever your http server is configured for).
+
+    B)  http://Relative/WebPath/LineCommand.txt must be a single line text file, with
+	the Blat command line, like (without the double quotes):
+	"- -t MyName@Valid.add -server smtp.Valid.add -f MyName@Valid.add -subject Subject_Line"
+
+	If you want to put spaces in your Subject_Line you must quote them just
+	like using the command line version of Blat!
+
+    C)  ?Message_Body can not have spaces, not even %20's (which is what your browser
+	converts them to).
+
+    If Blat sent successfully, it outputs "Blat sending message result = 0 : Success"
+	to the browser. <hr>
+You need only copy blat.exe to your cgi-bin directory.
+Then make sure you have the blat-success.htm and blat-fail.htm files.
+    Example blat-success.htm
+	Blat send was a &lt;b&gt;Success!&lt;p&gt;lt;a href="javascript:history.go(-1)"&gt;back&lt;a&gt;
+    Example blat-fail.htm 
+	Blat send &lt;b&gt;Failed!&lt;p&gt;lt;a href="javascript:history.go(-1)"&gt;back&lt;a&gt;
+

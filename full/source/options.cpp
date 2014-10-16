@@ -1800,14 +1800,17 @@ static int checkSkipSubject ( int argc, LPTSTR * argv, int this_arg, int startar
 
 static int checkBodyText ( int argc, LPTSTR * argv, int this_arg, int startargv )
 {
+    Buf tempBodyParameter;
+
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcscpy(bodyFilename, __T("-"));
-    bodyparameter = argv[this_arg+1];
+    tempBodyParameter = argv[this_arg+1];
 #if defined(_UNICODE) || defined(UNICODE)
-    checkInputForUnicode( bodyparameter );
+    checkInputForUnicode( tempBodyParameter );
 #endif
+    bodyparameter.Add( tempBodyParameter );
+    _tcscpy(bodyFilename, __T("-"));
 
     return(1);
 }
@@ -3591,9 +3594,9 @@ void printTitleLine( int quiet )
 void print_usage_line( LPTSTR pUsageLine )
 {
 #if SUPPORT_GSSAPI
-    _TCHAR     * match;
-    _TCHAR       beginning[USAGE_LINE_SIZE];
-    static BOOL have_mechtype = FALSE;
+    _TCHAR      * match;
+    _TCHAR        beginning[USAGE_LINE_SIZE];
+    static BOOL   have_mechtype = FALSE;
     static _TCHAR mechtype[MECHTYPE_SIZE] = __T("UNKNOWN");
 
     //Make sure all lines about GSSAPI options contain "GSSAPI"
@@ -3611,9 +3614,9 @@ void print_usage_line( LPTSTR pUsageLine )
                 pGss->MechtypeText(mechtype);
             }
             catch (GssSession::GssException &e) {
-                printMsg(__T("GssSession Error: %s\n"),e.message());
+                printMsg(__T("GssSession Error: %s\n"), e.message());
                 pGss = NULL;
-                _tcscpy( mechtype,__T("UNAVAILABLE") );
+                _tcscpy( mechtype, __T("UNAVAILABLE") );
             }
 
             have_mechtype = TRUE;
@@ -3621,7 +3624,7 @@ void print_usage_line( LPTSTR pUsageLine )
 
         match = _tcsstr(pUsageLine,MECHTYPE);
         if ( match ) {
-            memcpy( beginning, pUsageLine, match - pUsageLine );
+            memcpy( beginning, pUsageLine, (match - pUsageLine)*sizeof(_TCHAR) );
             beginning[match - pUsageLine] = __T('\0');
 
             pMyPrintDLL(beginning);

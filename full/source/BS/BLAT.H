@@ -59,10 +59,10 @@
     #define INCLUDE_IMAP        TRUE
 #endif
 
-#ifdef _WIN64
-    #undef  SUPPORT_GSSAPI
-    #define SUPPORT_GSSAPI      FALSE
-#endif
+//#ifdef _WIN64
+//    #undef  SUPPORT_GSSAPI
+//    #define SUPPORT_GSSAPI      FALSE
+//#endif
 
 #if SUPPORT_GSSAPI  //Added 2003-11-07 Joseph Calzaretta
     #define SUBMISSION_PORT     FALSE   //  Change to TRUE if you want the default port for GSSAPI to be Submission (587)
@@ -87,6 +87,14 @@
 #define BINARY_ATTACHMENT       2
 #define TEXT_ATTACHMENT         3
 #define INLINE_ATTACHMENT       4
+#define EMBED_TEXT_ATTACHMENT       (0x40 | EMBED_ATTACHMENT )
+#define BINARY_TEXT_ATTACHMENT      (0x40 | BINARY_ATTACHMENT)
+#define TEXT_TEXT_ATTACHMENT        (0x40 | TEXT_ATTACHMENT  )
+#define INLINE_TEXT_ATTACHMENT      (0x40 | INLINE_ATTACHMENT)
+#define EMBED_MESSAGE_ATTACHMENT    (0x80 | EMBED_ATTACHMENT )
+#define BINARY_MESSAGE_ATTACHMENT   (0x80 | BINARY_ATTACHMENT)
+#define TEXT_MESSAGE_ATTACHMENT     (0x80 | TEXT_ATTACHMENT  )
+#define INLINE_MESSAGE_ATTACHMENT   (0x80 | INLINE_ATTACHMENT)
 
 #define NATIVE_32BIT_UTF        0x04
 #define NON_NATIVE_32BIT_UTF    0x84
@@ -166,5 +174,12 @@ typedef struct BLATOPTIONS {
  #define _tstoi      _ttoi      // fix for older VC
 #endif
 
+#ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
+// this is to be used with blat.wcx in Total Commander (www.ghisler.com)
+// additional typedef for SetProcessDataProc
+    /* Notify that data is processed - used for progress dialog */
+    typedef int (__stdcall *tProcessDataProc)(char *FileName, int Size);
+    typedef int (__stdcall *tProcessDataProcW)(wchar_t *FileName, int Size);
+#endif
 
 #endif

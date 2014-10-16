@@ -1,0 +1,7 @@
+Blat - Win32/Win64 utility to send
+SMTP mail from the command line.
+Useful for sending mail from
+automated jobs, HTML CGI scripts,
+etc. Includes source code.
+Public Domain.
+see http://www.blat.net

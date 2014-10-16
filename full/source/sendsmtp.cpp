@@ -44,8 +44,13 @@ extern int  finish_server_message( void );
 extern int  close_server_socket( void );
 extern void server_error( LPTSTR message);
 extern void server_warning( LPTSTR message);
+#ifdef BLATDLL_TC_WCX
+extern int  send_edit_data (LPTSTR message, Buf * responseStr, DWORD attachmentSize );
+extern int  send_edit_data (LPTSTR message, int expected_response, Buf * responseStr, DWORD attachmentSize );
+#else
 extern int  send_edit_data (LPTSTR message, Buf * responseStr );
 extern int  send_edit_data (LPTSTR message, int expected_response, Buf * responseStr );
+#endif
 extern int  noftry();
 extern void build_headers( BLDHDRS & bldHdrs /* Buf & messageBuffer, Buf & header, int buildSMTP,
                            Buf & lpszFirstReceivedData, Buf & lpszOtherHeader,
@@ -2000,7 +2005,11 @@ int send_email( size_t msgBodySize,
                             if ( partsCount > 1 )
                                 printMsg( __T("Sending part %d of %d\n"), thisPart, partsCount );
 
+#ifdef BLATDLL_TC_WCX
+                            retcode = send_edit_data( messageBuffer.Get(), 250, NULL, totalsize - msgBodySize );
+#else
                             retcode = send_edit_data( messageBuffer.Get(), 250, NULL );
+#endif
                             if ( 0 == retcode ) {
                                 n_of_try = 1;
                                 k = 2;
@@ -2154,10 +2163,18 @@ int send_email( size_t msgBodySize,
                 if ( 0 == retcode ) {
 #if INCLUDE_POP3
                     if ( xtnd_xmit_supported )
+  #ifdef BLATDLL_TC_WCX
+                        retcode = send_edit_data( messageBuffer.Get(), NULL, totalsize - msgBodySize );
+  #else
                         retcode = send_edit_data( messageBuffer.Get(), NULL );
+  #endif
                     else
 #endif
+#ifdef BLATDLL_TC_WCX
+                        retcode = send_edit_data( messageBuffer.Get(), 250, NULL, totalsize - msgBodySize );
+#else
                         retcode = send_edit_data( messageBuffer.Get(), 250, NULL );
+#endif
                     if ( 0 == retcode ) {
                         if ( anticipatedNameCount >= namesFound )
                             finish_server_message();

@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.0.7")
+#define BLAT_VERSION    __T("3.1.0")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -689,7 +689,6 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             DWORD   dummy;
             LPTSTR  tmpstr;
             size_t  nextEntry = 0;
-            LPTSTR  pChar;
 
             memset( secondArgV, 0, (maxEntries + 1) * sizeof(LPTSTR) );
             if ( !fileh.OpenThisFile(optionsFile) ) {
@@ -1268,7 +1267,14 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
 #ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
 
+#ifdef BLATDLL_TC_WCX
+#define BLATDLL_API
+
+extern tProcessDataProcW pProcessDataProcW = 0;
+extern tProcessDataProc pProcessDataProc = 0;
+#else
 #define BLATDLL_API __declspec(dllexport)
+#endif
 
 #if defined(__cplusplus)
 extern "C" {
@@ -1579,6 +1585,24 @@ BLATDLL_API int __cdecl cSend (LPCSTR sCmd) /* For compatibility with Blat.dll 2
     return cSendA (sCmd);
 }
 
+// additional exported function SetProcessDataProcW
+BLATDLL_API void _stdcall SetProcessDataProcW(tProcessDataProcW pProcessDataProcW1)
+{
+#ifdef BLATDLL_TC_WCX
+    pProcessDataProcW = pProcessDataProcW1;
+#else
+    pProcessDataProcW1 = pProcessDataProcW1;    // eliminate compiler warnings.
+#endif
+}
+
+BLATDLL_API void _stdcall SetProcessDataProc(tProcessDataProc pProcessDataProc1)
+{
+#ifdef BLATDLL_TC_WCX
+    pProcessDataProc = pProcessDataProc1;
+#else
+    pProcessDataProc1 = pProcessDataProc1;      // eliminate compiler warnings.
+#endif
+}
 
 #if defined(__cplusplus)
 }

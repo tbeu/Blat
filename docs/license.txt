@@ -1,0 +1,25 @@
+License to use Blat
+
+The authors of Blat have placed it in the public domain. This means you
+can use it free of charge for any purpose you like, with nearly no
+conditions being placed on its use by us. The source code is also
+available free of charge and under the same conditions as the
+executables.
+
+You have permission to modify, redistribute, hoard, or even sell Blat in
+its executable or source form. If you do sell Blat, though, we'd
+appreciate it if you'd provide your own support (and send us a free
+copy). We cannot take any support load for Blat (we've got better things
+to do).
+
+The only limitation we impose is that Blat not be used to send
+unsolicited commercial eMail (UCE). Use of this software to send
+unsolicited commercial eMail constitutes an agreement to pay each of the
+authors $10,000.
+
+Various bits of the source code are copyright by other
+people/organizations. Look in the source code for copyright ownership.
+
+The authors and contributors of the package are not responsible for any
+damage or losses that the usage of Blat may cause. We are especially not
+responsible for the misuse of the SMTP (or other) mail system.

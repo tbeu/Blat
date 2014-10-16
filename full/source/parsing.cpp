@@ -30,6 +30,86 @@ void parseCommaDelimitString ( LPTSTR source, Buf & parsed_strings, int pathName
     parsed_strings.Clear();
 
     len = _tcslen( source );
+    if ( len ) {
+        int x;
+        for ( ; ; ) {
+            if ( (srcptr = _tcschr( source, __T('%') )) != NULL ) {
+                _TCHAR holdingstr[3];
+
+                if ( _istxdigit( srcptr[1] ) &&
+                     _istxdigit( srcptr[2] ) ) {
+                    holdingstr[0] = srcptr[1];
+                    holdingstr[1] = srcptr[2];
+                    holdingstr[2] = __T('\0');
+                    _stscanf( holdingstr, __T("%02x"), &x );
+                    *srcptr = (_TCHAR)x;
+                    _tcscpy( srcptr+1, srcptr+3 );
+                }
+            }
+            else
+            if ( (srcptr = _tcschr( source, __T('&') )) != NULL ) {
+                size_t len;
+                static struct {
+                    _TCHAR   replacementChar;
+                    LPTSTR   str;
+                } htmlStrings[] = { { __T('\x27'), __T("&apostrophe;") },
+                                    { __T('*')   , __T("&asterisk;")   },
+                                    { __T(':')   , __T("&colon;")      },
+                                    { __T(',')   , __T("&comma;")      },
+                                    { __T('@')   , __T("&commat;")     },
+                                    { __T('$')   , __T("&dollar;")     },
+                                    { __T('=')   , __T("&equals;")     },
+                                    { __T('!')   , __T("&excl;")       },
+                                    { __T('-')   , __T("&hyphen;")     },
+                                    { __T('(')   , __T("&lpar;")       },
+                                    { __T('[')   , __T("&lsqb;")       },
+                                    { __T('%')   , __T("&percent;")    },
+                                    { __T('.')   , __T("&period;")     },
+                                    { __T('+')   , __T("&plus;")       },
+                                    { __T('?')   , __T("&quest;")      },
+                                    { __T('"')   , __T("&quot;")       },
+                                    { __T(')')   , __T("&rpar;")       },
+                                    { __T(']')   , __T("&rsqb;")       },
+                                    { __T(';')   , __T("&semi;")       },
+                                    { __T('|')   , __T("&verbar;")     },
+                                    { __T('#')   , __T("&pound;")      },
+                                    { __T('~')   , __T("&tilde;")      },
+                                    { __T('<')   , __T("&lt;")         },
+                                    { __T('>')   , __T("&gt;")         }
+                                  };
+                #define HTML_STRINGS_COUNT (sizeof(htmlStrings) / sizeof(htmlStrings[0]))
+
+                if ( srcptr[1] == __T('#') ) {
+                    int val;
+
+                    val = 0;
+                    for ( x = 2; ; x++ ) {
+                        if ( _istdigit( srcptr[x] ) ) {
+                            val = (val * 10) + (srcptr[x] - __T('0'));
+                        }
+                        else
+                            break;
+                    }
+                    if ( srcptr[x] == __T(';') ) {
+                        if ( val < (1 << (sizeof(_TCHAR)*8)) ) {
+                            srcptr[0] = (_TCHAR)val;
+                            _tcscpy( srcptr+1, srcptr+1+x );
+                        }
+                    }
+                }
+                for ( x = 0; x < HTML_STRINGS_COUNT; x++ ) {
+                    len = _tcslen( htmlStrings[x].str );
+                    if ( _memicmp( srcptr, htmlStrings[x].str, len*sizeof(_TCHAR) ) == 0 ) {
+                        srcptr[0] = htmlStrings[x].replacementChar;
+                        _tcscpy( srcptr+1, srcptr+len );
+                    }
+                }
+            }
+            else
+                break;
+        }
+        len = _tcslen( source );
+    }
     tmpstr = (LPTSTR)malloc( (len + 2)*sizeof(_TCHAR) );
     if ( !tmpstr )
         return;
@@ -43,6 +123,7 @@ void parseCommaDelimitString ( LPTSTR source, Buf & parsed_strings, int pathName
         // if there's only one token left, then len will = startLen,
         // and we'll iterate once only
         int foundQuote;
+
 
         while ( *srcptr && (_tcschr (__T(" ,\n\t\r"), *srcptr)) ) // eat leading white space
             srcptr++;

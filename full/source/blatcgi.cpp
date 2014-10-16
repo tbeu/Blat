@@ -262,8 +262,8 @@ BOOL BuildMessageAndCmdLine(Buf &lpszParamCgi, LPCTSTR lpszPathTranslated, Buf &
                     DWORD dwSizeRead = 0;
                     lpszParamFile.Alloc(dwSize+10);
                     hf.ReadThisFile(lpszParamFile.Get(),dwSize,&dwSizeRead,NULL);
-                    *(lpszParamFile.Get()+dwSizeRead) = __T('\0');
                     lpszParamFile.SetLength(dwSizeRead);
+                    *lpszParamFile.GetTail() = __T('\0');
                     hf.Close();
                 }
             }

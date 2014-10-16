@@ -30,7 +30,7 @@ void checkInputForUnicode ( Buf & stringToCheck );
 #endif
 
 #if SUPPORT_YENC
-extern void   yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len, 
+extern void   yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len,
                        int part, int lastpart, unsigned long &full_crc_val );
 #endif
 #if INCLUDE_NNTP
@@ -239,11 +239,34 @@ void getMaxMsgSize ( int buildSMTP, DWORD &length )
 }
 
 
-int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary, 
-                         DWORD startOffset, DWORD &length, 
+static _TCHAR getBitSize( LPTSTR pString )
+{
+    _TCHAR bitSize;
+
+    bitSize = __T('7');
+    if ( pString ) {
+        if ( *pString == 0xFEFF )
+            pString++;
+
+        for ( ; ; ) {
+            if ( *pString == __T('\0') )
+                break;
+            if ( *pString > 0x007F ) {
+                bitSize = __T('8');
+                break;
+            }
+            pString++;
+        }
+    }
+    return bitSize;
+}
+
+int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
+                         DWORD startOffset, DWORD &length,
                          int part, int totalparts, int attachNbr, int * prevAttachType )
 {
     int           yEnc_This;
+    Buf           tmpstr1;
     Buf           tmpstr2;
     LPTSTR        p;
     DWORD         dummy;
@@ -310,7 +333,24 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
     }
 #endif
 
-    if ( (attachType == TEXT_ATTACHMENT) || (attachType == INLINE_ATTACHMENT) ) {
+    tmpstr1.Alloc( _MAX_PATH*5 );
+    tmpstr1.Clear();
+    // 9/18/1998 by Toby Korn
+    // Replaced default Content-Type with a lookup based on file extension
+#if BLAT_LITE
+    getContentType (tmpstr1, NULL, NULL                 , shortname);
+#else
+    getContentType (tmpstr1, NULL, userContentType.Get(), shortname);
+#endif
+    if ( _memicmp( tmpstr1.Get(), __T("Content-Type: message/rfc822"), 28*sizeof(_TCHAR) ) == 0 )
+        attachType |= 0x80;
+    //else
+    //if ( _memicmp( tmpstr1.Get(), __T("Content-Type: text/"), 19*sizeof(_TCHAR) ) == 0 )
+    //    attachType |= 0x40;
+
+    if ( ((attachType & 0x07) == TEXT_ATTACHMENT  ) ||
+         ((attachType & 0x07) == INLINE_ATTACHMENT) ||
+         (attachType == BINARY_MESSAGE_ATTACHMENT ) ) {
         int    utfRequested;
         int    tempUTF;
 
@@ -336,6 +376,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
             shortNameBuf.Free();
             return(5);
         }
+        *fileBuffer.GetTail() = __T('\0');
         fileh.Close();
         tempUTF = 0;
 #if BLAT_LITE
@@ -372,6 +413,9 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
         if ( attachType == EMBED_ATTACHMENT )
             printMsg(__T("Embedded binary file: %s\n"), attachName);
         else
+        if ( attachType == EMBED_MESSAGE_ATTACHMENT )
+            printMsg(__T("Embedded binary file: %s\n"), attachName);
+        else
         if ( attachType == BINARY_ATTACHMENT )
             printMsg(__T("Attached binary file: %s\n"), attachName);
         else
@@ -389,97 +433,98 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
 #endif
         {
             Buf tmpstr3;
-            Buf tmpstr1;
 
             fixup( shortNameBuf.Get(), &tmpstr3, 22, TRUE );
 
-            tmpstr1.Alloc( _MAX_PATH*5 );
-            tmpstr1.Clear();
-            if ( attachType == EMBED_ATTACHMENT ) {
+            switch( attachType ) {
+                case EMBED_ATTACHMENT:
+                case EMBED_MESSAGE_ATTACHMENT:
+                    tmpstr2 = __T("Content-ID: <");
+                    tmpstr2.Add( tmpstr3 );
+                    tmpstr2.Add( __T(">\r\n") );
+                    tmpstr2.Add( __T("Content-Transfer-Encoding: BASE64\r\n") );
+                    tmpstr2.Add( __T("Content-Disposition: INLINE\r\n") );
+                    break;
 
-                // 9/18/1998 by Toby Korn
-                // Replaced default Content-Type with a lookup based on file extension
-#if BLAT_LITE
-                getContentType (tmpstr1, NULL, NULL                 , shortname);
-#else
-                getContentType (tmpstr1, NULL, userContentType.Get(), shortname);
-#endif
-                tmpstr2 = __T("Content-ID: <");
-                tmpstr2.Add( tmpstr3 );
-                tmpstr2.Add( __T(">\r\n") );
-                tmpstr2.Add( __T("Content-Transfer-Encoding: BASE64\r\n") );
-                tmpstr2.Add( __T("Content-Disposition: INLINE\r\n") );
-            } else
-            if ( attachType == BINARY_ATTACHMENT ) {
+                case BINARY_ATTACHMENT:
+                    tmpstr2    = __T("Content-Transfer-Encoding: BASE64\r\n");
+                    tmpstr2.Add( __T("Content-Disposition: ATTACHMENT;\r\n") );
+                    tmpstr2.Add( __T(" filename=\"") );
+                    tmpstr2.Add( tmpstr3 );
+                    tmpstr2.Add( __T("\"\r\n") );
+                    break;
 
-                // 9/18/1998 by Toby Korn
-                // Replaced default Content-Type with a lookup based on file extension
-                tmpstr2    = __T("Content-Transfer-Encoding: BASE64\r\n");
-                getContentType (tmpstr1, NULL, NULL, shortname);
-                tmpstr2.Add( __T("Content-Disposition: ATTACHMENT;\r\n") );
-                tmpstr2.Add( __T(" filename=\"") );
-                tmpstr2.Add( tmpstr3 );
-                tmpstr2.Add( __T("\"\r\n") );
-            } else {
-                _TCHAR bitSize;
-                Buf    disposition;
-                LPTSTR pString;
-
-                if ( attachType == TEXT_ATTACHMENT ) {
-                    disposition = __T("ATTACHMENT;\r\n");
-                    disposition.Add( __T(" filename=\"") );
-                    disposition.Add( tmpstr3 );
-                    disposition.Add( __T("\"") );
-                }
-                else
-                /* if ( attachType == INLINE_ATTACHMENT ) */ {
-                    disposition = __T("INLINE");
-                }
-
-                tmpstr1 = __T("Content-Type: text/");
-                tmpstr1.Add( textmode );
-                tmpstr1.Add( __T(";\r\n") );
-                tmpstr1.Add( __T(" charset=\"") );
-                if ( localCharset[0] )
-                    tmpstr1.Add( localCharset );
-                else
-                    tmpstr1.Add( defaultCharset );    // modified 15. June 1999 by JAG
-                tmpstr1.Add( __T("\";\r\n") );
-                tmpstr1.Add( __T(" name=\"") );
-                tmpstr1.Add( tmpstr3 );
-                tmpstr1.Add( __T("\";\r\n") );
-                tmpstr1.Add( __T(" reply-type=original\r\n") );
-
-                bitSize = __T('7');
-                pString = textFileBuffer.Get();
-                if ( pString ) {
-                    if ( *pString == 0xFEFF )
-                        pString++;
-
-                    for ( ; ; ) {
-                        if ( *pString == __T('\0') )
-                            break;
-                        if ( *pString > 0x007F ) {
-                            bitSize = __T('8');
-                            break;
-                        }
-                        pString++;
+                case BINARY_MESSAGE_ATTACHMENT:
+                case TEXT_ATTACHMENT:
+                case TEXT_MESSAGE_ATTACHMENT:
+                    if ( attachType == TEXT_ATTACHMENT ) {
+                        tmpstr1 = __T("Content-Type: text/");
+                        tmpstr1.Add( textmode );
+                        tmpstr1.Add( __T(";\r\n") );
+                        tmpstr1.Add( __T(" name=\"") );
+                        tmpstr1.Add( tmpstr3 );
+                        tmpstr1.Add( __T("\"") );
                     }
-                }
-                tmpstr2    = __T("Content-Transfer-Encoding: ");
-                tmpstr2.Add( bitSize );
-                tmpstr2.Add( __T("BIT\r\n") );
-                tmpstr2.Add( __T("Content-Disposition: ") );
-                tmpstr2.Add( disposition );
-                tmpstr2.Add( __T("\r\n") );
-                tmpstr2.Add( __T("Content-Description: \"") );
-                tmpstr2.Add( tmpstr3 );
-                tmpstr2.Add( __T("\"\r\n") );
-                disposition.Free();
+                    else {
+                        tmpstr1.Remove();
+                        tmpstr1.Remove();
+                    }
+                    tmpstr1.Add( __T(";\r\n") );
+                    tmpstr1.Add( __T(" charset=\"") );
+                    if ( localCharset[0] )
+                        tmpstr1.Add( localCharset );
+                    else
+                        tmpstr1.Add( defaultCharset );    // modified 15. June 1999 by JAG
+                    tmpstr1.Add( __T("\";\r\n") );
+                    tmpstr1.Add( __T(" reply-type=original\r\n") );
+
+                    tmpstr2    = __T("Content-Transfer-Encoding: ");
+                    tmpstr2.Add( getBitSize( textFileBuffer.Get() ) );
+                    tmpstr2.Add( __T("BIT\r\n") );
+                    tmpstr2.Add( __T("Content-Disposition: ATTACHMENT;\r\n") );
+                    tmpstr2.Add( __T(" filename=\"") );
+                    tmpstr2.Add( tmpstr3 );
+                    tmpstr2.Add( __T("\"\r\n") );
+                    tmpstr2.Add( __T("Content-Description: \"") );
+                    tmpstr2.Add( tmpstr3 );
+                    tmpstr2.Add( __T("\"\r\n") );
+                    break;
+
+                case INLINE_ATTACHMENT:
+                case INLINE_MESSAGE_ATTACHMENT:
+                    if ( attachType == INLINE_ATTACHMENT ) {
+                        tmpstr1 = __T("Content-Type: text/");
+                        tmpstr1.Add( textmode );
+                        tmpstr1.Add( __T(";\r\n") );
+                        tmpstr1.Add( __T(" name=\"") );
+                        tmpstr1.Add( tmpstr3 );
+                        tmpstr1.Add( __T("\"") );
+                    }
+                    else {
+                        tmpstr1.Remove();
+                        tmpstr1.Remove();
+                    }
+                    tmpstr1.Add( __T(";\r\n") );
+                    tmpstr1.Add( __T(" charset=\"") );
+                    if ( localCharset[0] )
+                        tmpstr1.Add( localCharset );
+                    else
+                        tmpstr1.Add( defaultCharset );    // modified 15. June 1999 by JAG
+                    tmpstr1.Add( __T("\";\r\n") );
+                    tmpstr1.Add( __T(" reply-type=original\r\n") );
+
+                    tmpstr2    = __T("Content-Transfer-Encoding: ");
+                    tmpstr2.Add( getBitSize( textFileBuffer.Get() ) );
+                    tmpstr2.Add( __T("BIT\r\n") );
+                    tmpstr2.Add( __T("Content-Disposition: INLINE\r\n") );
+                    tmpstr2.Add( __T("Content-Description: \"") );
+                    tmpstr2.Add( tmpstr3 );
+                    tmpstr2.Add( __T("\"\r\n") );
+                    break;
             }
 
             if ( *prevAttachType == EMBED_ATTACHMENT ) {
-                if ( attachType != EMBED_ATTACHMENT ) {
+                if ( (attachType & 0x07) != EMBED_ATTACHMENT ) {
                     localHdr.Add( __T("--") BOUNDARY_MARKER );
                     localHdr.Add( attachment_boundary, 21 );
                     localHdr.Add( __T("--\r\n\r\n") );
@@ -493,9 +538,10 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
             boundaryPosted = TRUE;
             tmpstr1.Free();
             tmpstr2.Free();
+            tmpstr3.Free();
         }
 
-        *prevAttachType = attachType;
+        *prevAttachType = (attachType & 0x07);
         if ( formattedContent )
             if ( (localHdr.Length() > 2) && (*(localHdr.GetTail()-3) != __T('\n')) )
                 localHdr.Add( __T("\r\n") );
@@ -504,7 +550,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
         messageBuffer.Add(localHdr);
     }
 
-    if ( (attachType == BINARY_ATTACHMENT) || (attachType == EMBED_ATTACHMENT) ) {
+    if ( (attachType == BINARY_ATTACHMENT) || ((attachType & 0x07) == EMBED_ATTACHMENT) ) {
         //get the text of the file into a string buffer
         if ( !fileh.OpenThisFile(attachName) ) {
             printMsg(__T("error opening %s, aborting\n"), attachName);
@@ -547,6 +593,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
             shortNameBuf.Free();
             return(5);
         }
+        *fileBuffer.GetTail() = __T('\0');
         fileh.Close();
 
 #if SUPPORT_YENC
@@ -590,6 +637,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
     }
 
     textFileBuffer.Free();
+    tmpstr1.Free();
     tmpstr2.Free();
     localHdr.Free();
     fileBuffer.Free();
@@ -608,7 +656,7 @@ int add_attachments ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bound
     prevAttachType = -1;
     for ( attachNbr = 0; attachNbr < nbrOfAttachments; attachNbr++ ) {
         length = (DWORD)-1;
-        retval = add_one_attachment( messageBuffer, buildSMTP, attachment_boundary, 
+        retval = add_one_attachment( messageBuffer, buildSMTP, attachment_boundary,
                                      0, length, 1, 1, attachNbr, &prevAttachType );
         if ( retval )
             return retval;

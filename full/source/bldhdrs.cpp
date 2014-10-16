@@ -1371,36 +1371,54 @@ void build_headers( BLDHDRS & bldHdrs )
                 }
 #endif
             } else {
-#if SMART_CONTENT_TYPE
-                _TCHAR foundType  [0x200];
+                if ( formattedContent ) {
+                    LPTSTR pString1;
+                    LPTSTR pString2;
 
-                _tcscpy( foundType, __T("text/") );
-                _tcscat( foundType, textmode );
+                    pString1 = pString2 = NULL;
+                    if ( TempConsole.Get() ) {
+                        pString1 = _tcsstr( TempConsole.Get(), __T("\r\n\r\n") );
+                        if ( pString1 ) {
+                            *pString1 = __T('\0');
+                            pString2 = _tcsstr( TempConsole.Get(), __T("Content-Type: ") );
+                            if ( pString2 == NULL )
+                                pString2 = _tcsstr( TempConsole.Get(), __T("Content-Transfer-Encoding:") );
+                            *pString1 - __T('\r');
+                        }
+                    }
+                    if ( pString2 == NULL ) {
+#if SMART_CONTENT_TYPE
+                        _TCHAR foundType  [0x200];
+
+                        _tcscpy( foundType, __T("text/") );
+                        _tcscat( foundType, textmode );
 #endif
 #if BLAT_LITE
 #else
-                if ( (binaryMimeSupported || eightBitMimeSupported) && (eightBitMimeRequested || yEnc_This) )
-                    contentType.Add( __T("Content-Transfer-Encoding: 8BIT\r\n") );
-                else
-                if ( CheckIfNeedQuotedPrintable( TempConsole.Get(), FALSE ) )
-                    contentType.Add( __T("Content-Transfer-Encoding: 8BIT\r\n") );
-                else
+                        if ( (binaryMimeSupported || eightBitMimeSupported) && (eightBitMimeRequested || yEnc_This) )
+                            contentType.Add( __T("Content-Transfer-Encoding: 8BIT\r\n") );
+                        else
+                        if ( CheckIfNeedQuotedPrintable( TempConsole.Get(), FALSE ) )
+                            contentType.Add( __T("Content-Transfer-Encoding: 8BIT\r\n") );
+                        else
 #endif
-                    contentType.Add( __T("Content-Transfer-Encoding: 7BIT\r\n") );
+                            contentType.Add( __T("Content-Transfer-Encoding: 7BIT\r\n") );
 
 #if SMART_CONTENT_TYPE
-                if ( !ConsoleDone && !_tcscmp( textmode, __T("plain")) )
-                    getContentType( tmpBuf, foundType, foundType, getShortFileName( bodyFilename ) );
+                        if ( !ConsoleDone && !_tcscmp( textmode, __T("plain")) )
+                            getContentType( tmpBuf, foundType, foundType, getShortFileName( bodyFilename ) );
 
-                contentType.Add( __T("Content-Type: ") );
-                contentType.Add( foundType );
+                        contentType.Add( __T("Content-Type: ") );
+                        contentType.Add( foundType );
 #else
-                contentType.Add( __T("Content-Type: text/") );
-                contentType.Add( textmode );
+                        contentType.Add( __T("Content-Type: text/") );
+                        contentType.Add( textmode );
 #endif
-                contentType.Add( __T(";\r\n charset=\"") );
-                contentType.Add( getCharsetString() );
-                contentType.Add( __T("\"\r\n") );
+                        contentType.Add( __T(";\r\n charset=\"") );
+                        contentType.Add( getCharsetString() );
+                        contentType.Add( __T("\"\r\n") );
+                    }
+                }
             }
         }
     }
