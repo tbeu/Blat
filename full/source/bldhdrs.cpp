@@ -733,6 +733,21 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
 }
 
 
+LPTSTR getCharsetString( void )
+{
+    static _TCHAR localCharset[40];
+
+
+    if ( charset[0] )
+        _tcscpy( localCharset, charset );
+    else
+        _tcscpy( localCharset, defaultCharset );
+
+    _tcsupr( localCharset );
+    return( localCharset );
+}
+
+
 void build_headers( BLDHDRS & bldHdrs )
 {
     int                   i;
@@ -1242,12 +1257,12 @@ void build_headers( BLDHDRS & bldHdrs )
                 if ( haveAttachments ) {
                     contentType.Add( __T(" multipart/mixed;\r\n") );
                 } else
-                    if ( haveEmbedded ) {
-                        contentType.Add( __T(" multipart/related;\r\n") );
-                        if ( alternateText.Length() )
-                            contentType.Add( __T(" type=\"multipart/alternative\";\r\n") );
-                    } else
-                        contentType.Add( __T(" multipart/alternative;\r\n") );
+                if ( haveEmbedded ) {
+                    contentType.Add( __T(" multipart/related;\r\n") );
+                    if ( alternateText.Length() )
+                        contentType.Add( __T(" type=\"multipart/alternative\";\r\n") );
+                } else
+                    contentType.Add( __T(" multipart/alternative;\r\n") );
 
                 contentType.Add( __T(" boundary=\"") BOUNDARY_MARKER );
                 contentType.Add( boundary2 );
@@ -1272,12 +1287,9 @@ void build_headers( BLDHDRS & bldHdrs )
                 contentType.Add( __T("Content-Type: text/") );
                 contentType.Add( textmode );
 #endif
-                contentType.Add( __T("; charset=") );
-                if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 )
-                    contentType.Add( defaultCharset );
-                else
-                    contentType.Add( charset );
-                contentType.Add( __T("\r\n") );
+                contentType.Add( __T(";\r\n charset=\"") );
+                contentType.Add( getCharsetString() );
+                contentType.Add( __T("\"\r\n") );
             }
         }
     } else {
@@ -1290,16 +1302,16 @@ void build_headers( BLDHDRS & bldHdrs )
             if ( haveAttachments ) {
                 contentType.Add( __T(" multipart/mixed;\r\n") );
             } else
-                if ( haveEmbedded ) {
-                    contentType.Add( __T(" multipart/related;\r\n") );
-                    // the next is required per RFC 2387
-                    if ( alternateText.Length() )
-                        contentType.Add( __T(" type=\"multipart/alternative\";\r\n") );
-                } else
-                    if ( alternateText.Length() )
-                        contentType.Add( __T(" multipart/alternative;\r\n") );
-                    else
-                        contentType.Add( __T(" multipart/mixed;\r\n") );
+            if ( haveEmbedded ) {
+                contentType.Add( __T(" multipart/related;\r\n") );
+                // the next is required per RFC 2387
+                if ( alternateText.Length() )
+                    contentType.Add( __T(" type=\"multipart/alternative\";\r\n") );
+            } else
+                if ( alternateText.Length() )
+                    contentType.Add( __T(" multipart/alternative;\r\n") );
+                else
+                    contentType.Add( __T(" multipart/mixed;\r\n") );
 
             contentType.Add( __T(" boundary=\"") BOUNDARY_MARKER );
             contentType.Add( boundary2 );
@@ -1342,12 +1354,9 @@ void build_headers( BLDHDRS & bldHdrs )
                     contentType.Add( __T("Content-Type: text/") );
                     contentType.Add( textmode );
   #endif
-                    contentType.Add( __T("; charset=") );
-                    if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 )
-                        contentType.Add( defaultCharset );
-                    else
-                        contentType.Add( charset );
-                    contentType.Add( __T("\r\n") );
+                    contentType.Add( __T(";\r\n charset=\"") );
+                    contentType.Add( getCharsetString() );
+                    contentType.Add( __T("\"\r\n") );
   */
                 } else {
                     contentType.Add( __T("MIME-Version: 1.0\r\n") );
@@ -1389,12 +1398,9 @@ void build_headers( BLDHDRS & bldHdrs )
                 contentType.Add( __T("Content-Type: text/") );
                 contentType.Add( textmode );
 #endif
-                contentType.Add( __T("; charset=") );
-                if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 )
-                    contentType.Add( defaultCharset );
-                else
-                    contentType.Add( charset );
-                contentType.Add( __T("\r\n") );
+                contentType.Add( __T(";\r\n charset=\"") );
+                contentType.Add( getCharsetString() );
+                contentType.Add( __T("\"\r\n") );
             }
         }
     }

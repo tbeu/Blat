@@ -8,7 +8,7 @@
 #include <windows.h>
 #include <ctype.h>
 
-TCHAR commentChar = __T(';');
+_TCHAR commentChar = __T(';');
 
 /*
  * Parse the arguments read in from an options file.  Allow the semicolon (';') to
@@ -34,14 +34,13 @@ size_t make_argv( LPTSTR arglist,                /* argument list               
     for ( argc = starting_entry; argc < max_static_entries; argc++) {
         int foundQuote;
 
-        for ( ; ; startArgs++ )
-            if ( *startArgs != __T(' ') )
-                break;
+        while( (*startArgs == __T(' ' )) ||
+               (*startArgs == __T('\t')) ||
+               (*startArgs == __T('\r')) ||
+               (*startArgs == __T('\n')) )
+            startArgs++;
 
-        if ( !*startArgs || (*startArgs == __T('\r')) || (*startArgs == __T('\n')))
-            break;
-
-        if ( *startArgs == commentChar )
+        if ( !*startArgs )
             break;
 
         foundQuote = FALSE;
@@ -76,7 +75,8 @@ size_t make_argv( LPTSTR arglist,                /* argument list               
                 continue;
             }
 
-            if ( startArgs[ x ] == __T(' ') ) {
+            if ( (startArgs[ x ] == __T(' ') ) ||
+                 (startArgs[ x ] == __T('\t')) ) {
                 if ( foundQuote )
                     continue;
 
@@ -84,13 +84,21 @@ size_t make_argv( LPTSTR arglist,                /* argument list               
             }
 
             if ( startArgs[ x ] == commentChar ) {
+                LPTSTR pChar;
+
                 if ( foundQuote )
                     continue;
 
                 // Terminate the string at this comment character.
-                for ( y = x; startArgs[y]; startArgs[y++] = 0 )
-                    ;
-
+                pChar = &startArgs[ x ];
+                for ( ; ; ) {
+                    pChar++;
+                    if ( (*pChar == __T('\0')) ||
+                         (*pChar == __T('\r')) ||
+                         (*pChar == __T('\n')) )
+                        break;
+                }
+                _tcscpy( &startArgs[ x ], pChar );
                 break;
             }
 
@@ -109,6 +117,12 @@ size_t make_argv( LPTSTR arglist,                /* argument list               
             }
         }
 
+        if ( (startArgs[ 0 ] == __T('\0')) ||
+             (startArgs[ 0 ] == __T('\r')) ||
+             (startArgs[ 0 ] == __T('\n')) ) {
+            argc--;
+            continue;
+        }
         /* Found end of this argument. */
         nextarg = (LPTSTR)malloc( (x + 1)*sizeof(_TCHAR) );
         if ( !nextarg )
@@ -234,7 +248,8 @@ size_t make_argv( LPTSTR arglist,                /* argument list               
                 continue;
             }
 
-            if ( startArgs[ z ] == __T(' ') ) {
+            if ( (startArgs[ z ] == __T(' ') ) ||
+                 (startArgs[ z ] == __T('\t')) ) {
                 if ( foundQuote ) {
                     y++;
                     continue;

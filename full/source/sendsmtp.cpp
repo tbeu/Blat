@@ -138,14 +138,14 @@ int                  maxNames            = 0;
 
 
 unsigned long maxMessageSize       = 0;
-TCHAR         commandPipelining    = FALSE;
-TCHAR         cramMd5AuthSupported = FALSE;
-TCHAR         plainAuthSupported   = FALSE;
-TCHAR         loginAuthSupported   = FALSE;
-TCHAR         enhancedCodeSupport  = FALSE;
-TCHAR         ByPassCRAM_MD5       = FALSE;
+_TCHAR        commandPipelining    = FALSE;
+_TCHAR        cramMd5AuthSupported = FALSE;
+_TCHAR        plainAuthSupported   = FALSE;
+_TCHAR        loginAuthSupported   = FALSE;
+_TCHAR        enhancedCodeSupport  = FALSE;
+_TCHAR        ByPassCRAM_MD5       = FALSE;
 #if SUPPORT_GSSAPI
-TCHAR         gssapiAuthSupported  = FALSE;
+_TCHAR        gssapiAuthSupported  = FALSE;
 
 
 BOOL putline ( LPTSTR line )
@@ -1741,7 +1741,7 @@ int send_email( size_t msgBodySize,
     if ( tmpUTF )
         AUTHPassword = tmpBuf;
 
- #if INCLUDE_POP3
+  #if INCLUDE_POP3
     tmpBuf.Clear();
     tmpBuf2 = POP3Login;
     tmpUTF = NATIVE_16BIT_UTF;
@@ -1755,9 +1755,9 @@ int send_email( size_t msgBodySize,
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
     if ( tmpUTF )
         POP3Password = tmpBuf;
- #endif
+  #endif
 
- #if INCLUDE_IMAP
+  #if INCLUDE_IMAP
     tmpBuf.Clear();
     tmpBuf2 = IMAPLogin;
     tmpUTF = NATIVE_16BIT_UTF;
@@ -1771,7 +1771,7 @@ int send_email( size_t msgBodySize,
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &tmpUTF, NULL, 8 );
     if ( tmpUTF )
         IMAPPassword = tmpBuf;
- #endif
+  #endif
 
     tmpBuf2.Free();
 #endif

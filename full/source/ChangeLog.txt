@@ -5,6 +5,21 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.0.6
+[+] Added error messages for attachment problems.  These include: no file was
+    found for a given search string, a name that matches the search string does
+    not appear to be an actual file, a file that is larger than 4 GB, a file
+    that cannot be opened, and a file that cannot be read.  These extra
+    messages should help people understand why their attachment(s) did not get
+    sent, or why Blat exits with error code 12.
+[+] Add more intelligence for checking UTF-8 byte sequences when the UTF-8 Byte
+    Order Marker (BOM) is not present.  This helps reduce the likelihood of
+    incorrectly marking the charset as "UTF-8" or not.
+[-] Forgot to properly set charset= in headers when Blat determines the message
+    body is UTF/Unicode.  Blat will now set charset= to UTF-8/UTF-7 as needed.
+[-] Fixed options file parsing that I broke in 3.0.5, trying to support UTF-8
+    and Unicode files that may not have a BOM.
+-------------------------------------------------------------------------------
 3.0.5
 [*] Text attachments will be sent in their entirety, even if the message is
     supposed to be multipart.  This change allows UTF/Unicode files to be

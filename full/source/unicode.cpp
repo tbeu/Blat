@@ -21,6 +21,8 @@ extern LPTSTR       base64table;
 
 extern void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
 
+_TCHAR utf8BOM[] = { 0x00EF, 0x00BB, 0x00BF, 0 };
+
 /*
  * This routine will convert 16-bit and 32-bit Unicode files into UTF-7 or
  * UTF-8 format, suitable for email transmission.  If the file is already
@@ -134,7 +136,7 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * pUTF, 
                 // needHyphen = FALSE;
                 for ( ; bufL; ) {
                     value = pp[0];
-                    if ( value < 0x80 ) {
+                    if ( value < 0x0080 ) {
                         if ( (value <= 0x20) || _tcschr(base64table, (_TCHAR)value) || _tcschr(SetD, (_TCHAR)value) || _tcschr(SetO, (_TCHAR)value) )
                             break;
 
@@ -144,9 +146,9 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * pUTF, 
                         bufL--;
                         continue;
                     }
-                    for ( ; bufL && (value >= 0x80); ) {
+                    for ( ; bufL && (value >= 0x0080); ) {
                         tempString.Add( (_TCHAR)((value >> 8) & 0xFF) );
-                        tempString.Add( (_TCHAR)(value & 0xFF) );
+                        tempString.Add( (_TCHAR)((value >> 0) & 0xFF) );
 
                         pp += incrementor;
                         bufL--;
@@ -171,7 +173,7 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * pUTF, 
                             bufL--;
                             value = pp[0];
                         } else
-                        if ( (value < 0x80) && (_tcschr(base64table, (_TCHAR)value) || (value == __T('-'))) ) {
+                        if ( (value < 0x0080) && (_tcschr(base64table, (_TCHAR)value) || (value == __T('-'))) ) {
                             if ( ((((tempString.Length()*8)+5)/6)+1) < ((((tempString.Length()+2)*8)+5)/6) ) {
                                 // needHyphen = TRUE;
                                 break;
@@ -254,10 +256,10 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * pUTF, 
                         _TCHAR c = (_TCHAR)(((value >> (6*extraCount)) & mask) | marker);
                         outputText.Add( &c, 1 );
                         mask = (1 << 6) - 1;
-                        marker = 0x80;
+                        marker = 0x0080;
                         extraCount--;
                     } while ( extraCount );
-                    value = (value & 0x3F) | 0x80;
+                    value = (value & 0x3F) | 0x0080;
                     outputText.Add( (LPTSTR)&value, 1 );
                 }
                 pp += incrementor;
@@ -303,7 +305,7 @@ void convertUnicode( Buf &sourceText, int * pUTF, LPTSTR charset, int pUTFReques
         return;
     }
 #else
-    if ( (pp[0] == __T('\xFF')) && (pp[1] == __T('\xFE')) ) {
+    if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) ) {
         convertPackedUnicodeToUTF( sourceText, outputText, pUTF, charset, pUTFRequested );
         sourceText = outputText;
         outputText.Free();
@@ -318,7 +320,7 @@ void convertUnicode( Buf &sourceText, int * pUTF, LPTSTR charset, int pUTFReques
         tempUTF = *pUTF;
 
     if ( sourceText.Length() > 2 ) {
-        if ( (pp[0] == __T('\xEF')) && (pp[1] == __T('\xBB')) && (pp[2] == __T('\xBF')) ) {
+        if ( memcmp( pp, utf8BOM, 3*sizeof(_TCHAR) ) == 0 ) {
             /*
              * UTF-8 BOM found.  Check if UTF-8 data actually exists, and
              * set the charset if it does.  If UTF-7 is requested, then
@@ -373,7 +375,7 @@ void convertUnicode( Buf &sourceText, int * pUTF, LPTSTR charset, int pUTFReques
                     prevC = TRUE;
                     // needHyphen = FALSE;
                     for ( ; ; ) {
-                        if ( (_TUCHAR)*pp < 0x80 ) {
+                        if ( (_TUCHAR)*pp < 0x0080 ) {
                             if ( ((_TUCHAR)*pp <= 0x20) || _tcschr(base64table, *pp) || _tcschr(SetD, *pp) || _tcschr(SetO, *pp) )
                                 break;
 
@@ -386,15 +388,15 @@ void convertUnicode( Buf &sourceText, int * pUTF, LPTSTR charset, int pUTFReques
                             int            count;
                             unsigned short value;
 
-                            if ( (_TUCHAR)*pp >= 0xF0 ) {
+                            if ( (_TUCHAR)*pp >= 0x00F0 ) {
                                 outputText.Free();        /* UTF-7 does not allow 32-bit */
                                 return;                   /* Unicode per RFC 2152        */
                             }
-                            if ( (_TUCHAR)*pp < 0xC0 ) {
+                            if ( (_TUCHAR)*pp < 0x00C0 ) {
                                 outputText.Free();        /* Marker bytes from 0x80 to   */
                                 return;                   /* 0xBF are invalid for UTF-8. */
                             }
-                            if ( (_TUCHAR)*pp < 0xE0 )
+                            if ( (_TUCHAR)*pp < 0x00E0 )
                                 count = 1;
                             else
                                 count = 2;
@@ -406,8 +408,8 @@ void convertUnicode( Buf &sourceText, int * pUTF, LPTSTR charset, int pUTFReques
                                 pp++;
                             }
                             tempString.Add( (_TCHAR)((value >> 8) & 0xFF) );
-                            tempString.Add( (_TCHAR)(value & 0xFF) );
-                        } while ( *pp & 0x80 );
+                            tempString.Add( (_TCHAR)((value >> 0) & 0xFF) );
+                        } while ( *pp & 0x0080 );
                         for ( ; ; ) {
                             if ( *pp == __T('+') ) {
                                 tempString.Add( __T('\0') );
@@ -462,19 +464,19 @@ void convertUnicode( Buf &sourceText, int * pUTF, LPTSTR charset, int pUTFReques
             return;
         }
 
-        if ( (pp[0] == __T('\xFF')) && (pp[1] == __T('\xFE')) && (pp[2] == __T('\0')) && (pp[3] == __T('\0')) && !((sourceText.Length() & 3) /sizeof(_TCHAR)) ) {
+        if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) && (pp[2] == 0x0000) && (pp[3] == 0x0000) && !((sourceText.Length() & 3) /sizeof(_TCHAR)) ) {
             BOM_found = TRUE;
             tempUTF = NATIVE_32BIT_UTF;     /* Looks like Unicode 32-bit in native format */
         } else
-        if ( (pp[0] == __T('\0')) && (pp[1] == __T('\0')) && (pp[2] == __T('\xFE')) && (pp[3] == _T('\xFF')) && !((sourceText.Length() & 3) /sizeof(_TCHAR)) ) {
+        if ( (pp[0] == 0x0000) && (pp[1] == 0x0000) && (pp[2] == 0x00FE) && (pp[3] == 0x00FF) && !((sourceText.Length() & 3) /sizeof(_TCHAR)) ) {
             BOM_found = TRUE;
             tempUTF = NON_NATIVE_32BIT_UTF; /* Looks like Unicode 32-bit in non-native format */
         } else
-        if ( (pp[0] == __T('\xFF')) && (pp[1] == __T('\xFE')) && !((sourceText.Length() & 1) /sizeof(_TCHAR)) ) {
+        if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) && !((sourceText.Length() & 1) /sizeof(_TCHAR)) ) {
             BOM_found = TRUE;
             tempUTF = NATIVE_16BIT_UTF;     /* Looks like Unicode 16-bit in native format */
         } else
-        if ( (pp[0] == __T('\xFE')) && (pp[1] == __T('\xFF')) && !((sourceText.Length() & 1) /sizeof(_TCHAR)) ) {
+        if ( (pp[0] == 0x00FE) && (pp[1] == 0x00FF) && !((sourceText.Length() & 1) /sizeof(_TCHAR)) ) {
             BOM_found = TRUE;
             tempUTF = NON_NATIVE_16BIT_UTF; /* Looks like Unicode 16-bit in non-native format */
         } else
@@ -555,7 +557,7 @@ void compactUnicodeFileData( Buf &sourceText )
     tempUTF = 0;
 
     if ( sourceText.Length() > 2 ) {
-        if ( (pp[0] == __T('\xEF')) && (pp[1] == __T('\xBB')) && (pp[2] == __T('\xBF')) ) {
+        if ( memcmp( pp, utf8BOM, 3*sizeof(_TCHAR) ) == 0 ) {
   #if 1
             /*
              * UTF-8 BOM found.
@@ -568,31 +570,31 @@ void compactUnicodeFileData( Buf &sourceText )
             outputText.Add( (_TCHAR)0xFEFF );
 
             for ( ; thisLength < sourceText.Length(); ) {
-                if ( (_TUCHAR)*pp < 0x80 ) {
+                if ( (_TUCHAR)*pp < 0x0080 ) {
                     outputText.Add( (_TCHAR)*pp );
                     pp++;
                     thisLength++;
                     continue;
                 }
                 do {
-                    if ( (_TUCHAR)*pp >= 0xFE ) {
+                    if ( (_TUCHAR)*pp >= 0x00FE ) {
                         outputText.Free();        /* Marker bytes 0xFE and 0xFF  */
                         return;                   /* are invalid for UTF-8.      */
                     }
-                    if ( (_TUCHAR)*pp < 0xC0 ) {
+                    if ( (_TUCHAR)*pp < 0x00C0 ) {
                         outputText.Free();        /* Marker bytes from 0x80 to   */
                         return;                   /* 0xBF are invalid for UTF-8. */
                     }
-                    if ( (_TUCHAR)*pp < 0xE0 )
+                    if ( (_TUCHAR)*pp < 0x00E0 )
                         count = 1;
                     else
-                    if ( (_TUCHAR)*pp < 0xF0 )
+                    if ( (_TUCHAR)*pp < 0x00F0 )
                         count = 2;
                     else
-                    if ( (_TUCHAR)*pp < 0xF8 )
+                    if ( (_TUCHAR)*pp < 0x00F8 )
                         count = 3;
                     else
-                    if ( (_TUCHAR)*pp < 0xFC )
+                    if ( (_TUCHAR)*pp < 0x00FC )
                         count = 4;
                     else
                         count = 5;
@@ -609,7 +611,7 @@ void compactUnicodeFileData( Buf &sourceText )
                         outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
                         return;
                     }
-                    if ( (0xD800 <= value) && (value <= 0xFFFF) ) {
+                    if ( (0x0D800 <= value) && (value <= 0x0FFFF) ) {
                         outputText.Free();        /* values from 0xD800 - 0xFFFF are invalid for Unicode */
                         return;
                     }
@@ -622,7 +624,7 @@ void compactUnicodeFileData( Buf &sourceText )
                     }
                     outputText.Add( (_TCHAR)value );
 
-                } while ( *pp & 0x80 );
+                } while ( *pp & 0x0080 );
             }
             sourceText = outputText;
   #endif
@@ -630,16 +632,16 @@ void compactUnicodeFileData( Buf &sourceText )
             return;
         }
 
-        if ( (pp[0] == __T('\xFF')) && (pp[1] == __T('\xFE')) && (pp[2] == __T('\0')) && (pp[3] == __T('\0')) && !(sourceText.Length() & 1) ) {
+        if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) && (pp[2] == 0x0000) && (pp[3] == 0x0000) && !(sourceText.Length() & 1) ) {
             tempUTF = NATIVE_32BIT_UTF;     /* Looks like Unicode 32-bit in native format */
         } else
-        if ( (pp[0] == __T('\0')) && (pp[1] == __T('\0')) && (pp[2] == __T('\xFE')) && (pp[3] == _T('\xFF')) && !(sourceText.Length() & 1) ) {
+        if ( (pp[0] == 0x0000) && (pp[1] == 0x0000) && (pp[2] == 0x00FE) && (pp[3] == 0x00FF) && !(sourceText.Length() & 1) ) {
             tempUTF = NON_NATIVE_32BIT_UTF; /* Looks like Unicode 32-bit in non-native format */
         } else
-        if ( (pp[0] == __T('\xFF')) && (pp[1] == __T('\xFE')) ) {
+        if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) ) {
             tempUTF = NATIVE_16BIT_UTF;     /* Looks like Unicode 16-bit in native format */
         } else
-        if ( (pp[0] == __T('\xFE')) && (pp[1] == __T('\xFF')) ) {
+        if ( (pp[0] == 0x00FE) && (pp[1] == 0x00FF) ) {
             tempUTF = NON_NATIVE_16BIT_UTF; /* Looks like Unicode 16-bit in non-native format */
         }
     }
@@ -664,7 +666,7 @@ void compactUnicodeFileData( Buf &sourceText )
                     outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
                     return;
                 }
-                if ( (0xD800 <= value) && (value <= 0xFFFF) ) {
+                if ( (0x0D800 <= value) && (value <= 0x0FFFF) ) {
                     outputText.Free();        /* values from 0xD800 - 0xFFFF are invalid for Unicode */
                     return;
                 }
@@ -675,7 +677,7 @@ void compactUnicodeFileData( Buf &sourceText )
                     outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
                     return;
                 }
-                if ( (0xD800 <= value) && (value <= 0xFFFF) ) {
+                if ( (0x0D800 <= value) && (value <= 0x0FFFF) ) {
                     outputText.Free();        /* values from 0xD800 - 0xFFFF are invalid for Unicode */
                     return;
                 }
@@ -708,7 +710,9 @@ void checkInputForUnicode ( Buf & stringToCheck )
     size_t    length;
     size_t    x;
     _TUCHAR * pStr;
+    Buf       newString;
 
+    newString.Clear();
     compactUnicodeFileData( stringToCheck );
     stringToCheck.SetLength();
     length = stringToCheck.Length();
@@ -719,24 +723,74 @@ void checkInputForUnicode ( Buf & stringToCheck )
                 continue;
         }
         if ( pStr[x] > 0x00FF ) {
-            Buf newString;
-
-            newString.Clear();
             if ( pStr[0] != 0xFEFF ) {
                 newString.Add( (_TCHAR)0xFEFF );    /* Prepend a UTF-16 BOM */
             }
             newString.Add( (LPTSTR)pStr, length );  /* Now add the user's Unicode string */
             stringToCheck = newString;
-            newString.Free();
 
             utf = UTF_REQUESTED;
- #if BLAT_LITE
+  #if BLAT_LITE
             mime = TRUE;
- #else
+  #else
             eightBitMimeRequested = TRUE;
- #endif
+  #endif
+            break;
+        }
+        if ( ( pStr[0]   != 0xFEFF) &&
+             ( pStr[x  ] <  0x00FE) &&
+             ( pStr[x  ] >= 0x00C0) &&
+             ((pStr[x+1] & (_TUCHAR)~0x3F) == 0x0080) ) {
+
+            size_t savedLength;
+
+            newString.Add( utf8BOM );
+            newString.Add( (LPTSTR)pStr, length );  /* Now add the user's UTF-8 string */
+            savedLength = newString.Length();
+
+            compactUnicodeFileData( newString );
+            if ( (savedLength != newString.Length()) ||                         /* If the string length changed */
+                 (memcmp( newString.Get(), utf8BOM, 3*sizeof(_TCHAR) ) != 0) || /* or if the 1st 3 bytes are not the UTF-8 BOM that I put in */
+                 (_tcscmp( stringToCheck, newString.Get()+3 ) != 0) ) {         /* or if the string itself is not the same */
+                stringToCheck = newString;
+                if ( *newString.Get() == 0xFEFF ) {
+                    utf = UTF_REQUESTED;
+  #if BLAT_LITE
+                    mime = TRUE;
+  #else
+                    eightBitMimeRequested = TRUE;
+  #endif
+                }
+                else {
+                    pStr = (_TUCHAR *)stringToCheck.Get();
+                    for ( savedLength = 0; savedLength < stringToCheck.Length(); savedLength++ ) {
+                        if ( *pStr > 0x007F ) {
+  #if BLAT_LITE
+                            mime = TRUE;
+  #else
+                            eightBitMimeRequested = TRUE;
+  #endif
+                            break;
+                        }
+                    }
+                }
+            }
+            else {
+                pStr = (_TUCHAR *)stringToCheck.Get();
+                for ( savedLength = 0; savedLength < stringToCheck.Length(); savedLength++ ) {
+                    if ( *pStr > 0x007F ) {
+  #if BLAT_LITE
+                        mime = TRUE;
+  #else
+                        eightBitMimeRequested = TRUE;
+  #endif
+                        break;
+                    }
+                }
+            }
             break;
         }
     }
+    newString.Free();
 }
 #endif

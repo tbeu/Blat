@@ -218,7 +218,7 @@ static void encodeThis( _TUCHAR * in, LPTSTR out, int inclCrLf )
 //                tlc |= (_TCHAR)(pTcharString[++len] & 0x3F);
 //                count--;
 //            }
-//            tmpStr.Add( (TCHAR)tlc );
+//            tmpStr.Add( (_TCHAR)tlc );
 //        }
 //        _tcscpy( out, tmpStr.Get() );
 //    }

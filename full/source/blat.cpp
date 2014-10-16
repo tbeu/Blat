@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.0.5")
+#define BLAT_VERSION    __T("3.0.6")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -367,9 +367,15 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     DWORD    totalsize; // total size of all attachments and the message body.
     int      nbrOfAttachments;
     _TCHAR   multipartID[1200];
-
-
 #if defined(_UNICODE) || defined(UNICODE)
+  #if BLAT_LITE
+    _TCHAR   savedMime;
+  #else
+    _TCHAR   savedEightBitMimeRequested;
+  #endif
+    int      savedUTF;
+    Buf      sourceText;
+
     DWORD dwVersion = GetVersion();
     if ( dwVersion & (0x80ul << ((sizeof(DWORD)-1) * 8)) ) {
         fprintf( stderr, "This Unicode version of Blat cannot run in Windows earlier than Windows 2000.\n" \
@@ -378,20 +384,57 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         exit(14);
     }
 
-    {
-        unsigned ix;
-
-        for ( ix = 0; ; ) {
-            blatBuildDate[ix] = (_TCHAR)blatBuildDateA[ix];
-            if ( !blatBuildDateA[ix++] )
-                break;
-        }
-        for ( ix = 0; ; ) {
-            blatBuildTime[ix] = (_TCHAR)blatBuildTimeA[ix];
-            if ( !blatBuildTimeA[ix++] )
-                break;
-        }
+    for ( i = 0; ; ) {
+        blatBuildDate[i] = (_TCHAR)blatBuildDateA[i];
+        if ( !blatBuildDateA[i++] )
+            break;
     }
+    for ( i = 0; ; ) {
+        blatBuildTime[i] = (_TCHAR)blatBuildTimeA[i];
+        if ( !blatBuildTimeA[i++] )
+            break;
+    }
+
+ #if 1
+    for ( i = 1; i < argc; i++ ) {
+        sourceText = argv[i];
+        utf = 0;
+        charset[0] = __T('\0');
+        checkInputForUnicode( sourceText );
+        if ( utf ) {
+            LPTSTR pString;
+            size_t oldLength;
+            size_t newLength;
+
+            pString = sourceText.Get();
+            if ( *pString == 0xFEFF )
+               pString++;
+
+            oldLength = _tcslen( argv[i] );
+            newLength = _tcslen( pString );
+
+            /* if the new Unicode string is shorter or equal length to input string */
+            if ( newLength <= oldLength )
+                memcpy( argv[i], pString, (newLength + 1) * sizeof(_TCHAR) );
+            else
+            /* oldLength < newLength, which should not happen. */
+            if ( _tcscmp( argv[i], pString ) != 0 ) {
+                LPTSTR pArgv;
+
+                pArgv = (LPTSTR) malloc( (newLength + 1) * sizeof(_TCHAR) );
+                if ( pArgv ) {
+                    memcpy( pArgv, pString, (newLength + 1) * sizeof(_TCHAR) );
+                    free( argv[i] );
+                    argv[i] = pArgv;
+                }
+            }
+        }
+    #if 01
+        _tprintf( __T("argv[%2i] = '%s'\n"), i, argv[i] );
+    #endif
+        sourceText.Free();
+    }
+  #endif
 #else
     _tcscpy( blatBuildDate, blatBuildDateA );
     _tcscpy( blatBuildTime, blatBuildTimeA );
@@ -690,28 +733,36 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             fileh.Close();
 
             tmpstr[filesize] = __T('\0');
- #if defined(_UNICODE) || defined(UNICODE)
-            Buf sourceText;
 
+  #if defined(_UNICODE) || defined(UNICODE)
+            savedEightBitMimeRequested = eightBitMimeRequested;
+            eightBitMimeRequested = 0;
+
+            savedUTF = utf;
+            utf = 0;
             sourceText.Clear();
             sourceText.Add( tmpstr, filesize );
             checkInputForUnicode( sourceText );
+            free( tmpstr );
+
+            tmpstr = (LPTSTR)malloc( (sourceText.Length() + 1)*sizeof(_TCHAR) );
+            if ( !tmpstr ) {
+                sourceText.Free();
+                printMsg( __T("error allocating memory for reading %s, aborting\n"), optionsFile );
+                if ( logOut )
+                    fclose(logOut);
+
+                cleanUpBuffers();
+                return(2);
+            }
             memcpy( tmpstr, sourceText.Get(), sourceText.Length()*sizeof(_TCHAR) );
             tmpstr[sourceText.Length()] = __T('\0');
             if ( tmpstr[0] == 0xFEFF )
                 _tcscpy( &tmpstr[0], &tmpstr[1] );
- #endif
-            do {
-                pChar = _tcschr( tmpstr, __T('\n') );
-                if ( pChar )
-                    *pChar = __T(' ');
-            } while ( pChar );
-            do {
-                pChar = _tcschr( tmpstr, __T('\r') );
-                if ( pChar )
-                    *pChar = __T(' ');
-            } while ( pChar );
 
+            utf = savedUTF;
+            eightBitMimeRequested = savedEightBitMimeRequested;
+  #endif
             nextEntry = make_argv( tmpstr,      /* argument list                     */
                                    secondArgV,  /* pointer to argv to use            */
                                    maxEntries,  /* maximum number of entries allowed */
@@ -1092,26 +1143,28 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         }
     }
 
-#if BLAT_LITE
-#else
-  #if defined(_UNICODE) || defined(UNICODE)
-    _TCHAR savedEightBitMimeRequested;
-    int    savedUTF;
-
+#if defined(_UNICODE) || defined(UNICODE)
+  #if BLAT_LITE
+    savedMime = mime;
+  #else
     savedEightBitMimeRequested = eightBitMimeRequested;
-    savedUTF = utf;
-
     eightBitMimeRequested = 0;
+  #endif
+
+    savedUTF = utf;
     utf = 0;
     checkInputForUnicode ( TempConsole );
     if ( utf == UTF_REQUESTED ) {
         if ( charset[0] == __T('\0') )
             _tcscpy( charset, __T("utf-8") );   // Set to lowercase to distinguish between our determination and user specified.
     } else {
+  #if BLAT_LITE
+        mime = savedMime;
+  #else
         eightBitMimeRequested = savedEightBitMimeRequested;
+  #endif
         utf = savedUTF;
     }
-  #endif
 #endif
     filesize = (DWORD)TempConsole.Length();
 

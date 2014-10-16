@@ -16,6 +16,7 @@
     #define _MAX_PATH 260
 #endif
 
+extern LPTSTR getCharsetString( void );
 extern void   incrementBoundary( _TCHAR boundary[] );
 extern void   decrementBoundary( _TCHAR boundary[] );
 extern LPTSTR getShortFileName (LPTSTR fileName);
@@ -125,6 +126,9 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
 
 #if BLAT_LITE
 #else
+            if ( lstrcmpi(charset, __T("UTF-7")) == 0 )
+                utfRequested = 7;
+            else
             if ( (eightBitMimeSupported && eightBitMimeRequested) || (lstrcmpi(charset, __T("UTF-8")) == 0) )
                 utfRequested = 8;
             else
@@ -265,17 +269,7 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
                     if ( altTextCharset[0] )
                         messageBuffer.Add( altTextCharset );
                     else
-                    if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 ) {
-                        _TCHAR localCharset[40];
-
-                        _tcscpy( localCharset, charset );
-                        _tcsupr( localCharset );
-                        messageBuffer.Add( localCharset );
-                    } else
-                    if ( charset[0] )
-                        messageBuffer.Add( charset );
-                    else
-                        messageBuffer.Add( defaultCharset );
+                        messageBuffer.Add( getCharsetString() );
                     messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
                     boundaryPosted = TRUE;
                     if ( needQP )
@@ -322,17 +316,7 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
                         messageBuffer.Add( textmode );
 #endif
                         messageBuffer.Add( __T(";\r\n charset=\"") );
-                        if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 ) {
-                            _TCHAR localCharset[40];
-
-                            _tcscpy( localCharset, charset );
-                            _tcsupr( localCharset );
-                            messageBuffer.Add( localCharset );
-                        } else
-                        if ( charset[0] )
-                            messageBuffer.Add( charset );
-                        else
-                            messageBuffer.Add( defaultCharset );
+                        messageBuffer.Add( getCharsetString() );
                         messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
                         boundaryPosted = TRUE;
                     }
@@ -372,17 +356,7 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
                             messageBuffer.Add( __T("Content-Type: text/") );
                             messageBuffer.Add( textmode );
                             messageBuffer.Add( __T(";\r\n charset=\"") );
-                            if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 ) {
-                                _TCHAR localCharset[40];
-
-                                _tcscpy( localCharset, charset );
-                                _tcsupr( localCharset );
-                                messageBuffer.Add( localCharset );
-                            } else
-                            if ( charset[0] )
-                                messageBuffer.Add( charset );
-                            else
-                                messageBuffer.Add( defaultCharset );
+                            messageBuffer.Add( getCharsetString() );
                             messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
                             boundaryPosted = TRUE;
 #else
@@ -411,17 +385,7 @@ int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdr
                                 messageBuffer.Add( textmode );
   #endif
                                 messageBuffer.Add( __T(";\r\n charset=\"") );
-                                if ( memcmp( charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 ) {
-                                    _TCHAR localCharset[40];
-
-                                    _tcscpy( localCharset, charset );
-                                    _tcsupr( localCharset );
-                                    messageBuffer.Add( localCharset );
-                                } else
-                                if ( charset[0] )
-                                    messageBuffer.Add( charset );
-                                else
-                                    messageBuffer.Add( defaultCharset );
+                                messageBuffer.Add( getCharsetString() );
                                 messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
                                 boundaryPosted = TRUE;
                             }

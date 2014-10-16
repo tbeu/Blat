@@ -30,7 +30,7 @@ void checkInputForUnicode ( Buf & stringToCheck );
 #endif
 
 #if SUPPORT_YENC
-extern void   yEncode( Buf & source, Buf & out, LPTSTR filename, long fulllen,
+extern void   yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len, 
                        int part, int lastpart, unsigned long &full_crc_val );
 #endif
 #if INCLUDE_NNTP
@@ -134,9 +134,9 @@ int collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize )
 
         // Get the path for opening file
         _tcscpy(path, attachfile[i]);
-        pathptr = _tcsrchr(path,__T('\\'));
+        pathptr = _tcsrchr(path, __T('\\'));
         if ( !pathptr )
-            pathptr = _tcsrchr(path,__T(':'));
+            pathptr = _tcsrchr(path, __T(':'));
 
         if ( pathptr ) {
             *(pathptr+1) = __T('\0');
@@ -147,43 +147,55 @@ int collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize )
         ihandle = FindFirstFile((LPTSTR)attachfile[i], &FindFileData);
         filewasfound = (ihandle != INVALID_HANDLE_VALUE);
         if ( !filewasfound ) {
+            printMsg(__T("No files found matching search string \"%s\".\n"), attachfile[i]);
             attachFoundFault = TRUE;
         }
 
         while ( filewasfound && !errorFound ) {
             if ( !(FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ) {
                 _tcscpy(attachedfile, path);
-                _tcscat(attachedfile,FindFileData.cFileName);
+                _tcscat(attachedfile, FindFileData.cFileName);
                 if ( fileh.OpenThisFile(attachedfile) ) {
                     // if ( fileh.IsDiskFile() && FindFileData.nFileSizeLow && !FindFileData.nFileSizeHigh ) {
-                    if ( fileh.IsDiskFile() && !FindFileData.nFileSizeHigh ) {
-                        DWORD tmpSize = totalsize;
+                    if ( fileh.IsDiskFile() ) {
+                        if ( FindFileData.nFileSizeHigh ) {
+                            printMsg(__T("Found \"%s\" matching search string \"%s\", but it is too large (>= 4GB), therefore will not be attached or sent.\n"), attachedfile, attachfile[i]);
+                        }
+                        else {
+                            DWORD tmpSize = totalsize;
 
-                        totalsize += FindFileData.nFileSizeLow;
-                        if ( totalsize < tmpSize ) {// If the size exceeded 4G
-                            totalsize  = 0;
-                            errorFound = TRUE;
-                        } else {
-                            if ( attachList == NULL ) {
-                                tmpNode = attachList = (NODES *) malloc( sizeof(NODES) );
+                            totalsize += FindFileData.nFileSizeLow;
+                            if ( totalsize < tmpSize ) {// If the size exceeded 4G
+                                totalsize  = 0;
+                                errorFound = TRUE;
                             } else {
-                                tmpNode->next = (NODES *) malloc( sizeof(NODES) );
-                                tmpNode = tmpNode->next;
+                                if ( attachList == NULL ) {
+                                    tmpNode = attachList = (NODES *) malloc( sizeof(NODES) );
+                                } else {
+                                    tmpNode->next = (NODES *) malloc( sizeof(NODES) );
+                                    tmpNode = tmpNode->next;
+                                }
+
+                                tmpNode->next = NULL;
+
+                                x = (_tcslen(attachedfile) + 1) * sizeof(_TCHAR);
+                                tmpNode->attachmentName = (LPTSTR) malloc( x );
+                                memcpy( tmpNode->attachmentName, attachedfile, x );
+
+                                tmpNode->fileType = attachtype[i];
+                                tmpNode->fileSize = FindFileData.nFileSizeLow;
+
+                                nbrOfFilesFound++;
                             }
-
-                            tmpNode->next = NULL;
-
-                            x = (_tcslen(attachedfile) + 1) * sizeof(_TCHAR);
-                            tmpNode->attachmentName = (LPTSTR) malloc( x );
-                            memcpy( tmpNode->attachmentName, attachedfile, x );
-
-                            tmpNode->fileType = attachtype[i];
-                            tmpNode->fileSize = FindFileData.nFileSizeLow;
-
-                            nbrOfFilesFound++;
                         }
                     }
+                    else {
+                        printMsg(__T("Found \"%s\" matching search string \"%s\", but it appears to not be a file that can be opened.\n"), attachedfile, attachfile[i]);
+                    }
                     fileh.Close();
+                }
+                else {
+                    printMsg(__T("Found \"%s\" matching search string \"%s\", but the file cannot be opened.\n"), attachedfile, attachfile[i]);
                 }
             }
             filewasfound = FindNextFile(ihandle, &FindFileData);
@@ -227,8 +239,8 @@ void getMaxMsgSize ( int buildSMTP, DWORD &length )
 }
 
 
-int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
-                         DWORD startOffset, DWORD &length,
+int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary, 
+                         DWORD startOffset, DWORD &length, 
                          int part, int totalparts, int attachNbr, int * prevAttachType )
 {
     int           yEnc_This;
@@ -273,17 +285,17 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
 
 #if defined(_UNICODE) || defined(UNICODE)
     {
- #if BLAT_LITE
- #else
+  #if BLAT_LITE
+  #else
         _TCHAR savedEightBitMimeRequested;
- #endif
+  #endif
         _TCHAR savedMime;
         int    savedUTF;
 
- #if BLAT_LITE
- #else
+  #if BLAT_LITE
+  #else
         savedEightBitMimeRequested = eightBitMimeRequested;
- #endif
+  #endif
         savedUTF  = utf;
         savedMime = mime;
 
@@ -291,10 +303,10 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
         checkInputForUnicode( shortNameBuf );
         utf = savedUTF;
         mime = savedMime;
- #if BLAT_LITE
- #else
+  #if BLAT_LITE
+  #else
         eightBitMimeRequested = savedEightBitMimeRequested;
- #endif
+  #endif
     }
 #endif
 
@@ -304,7 +316,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
 
         //get the text of the file into a string buffer
         if ( !fileh.OpenThisFile(attachName) ) {
-            printMsg(__T("error reading %s, aborting\n"),attachName);
+            printMsg(__T("error opening %s, aborting\n"), attachName);
             tmpstr2.Free();
             localHdr.Free();
             fileBuffer.Free();
@@ -326,12 +338,12 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
         }
         fileh.Close();
         tempUTF = 0;
-  #if BLAT_LITE
-  #else
+#if BLAT_LITE
+#else
         if ( eightBitMimeSupported )
             utfRequested = 8;
         else
-  #endif
+#endif
             utfRequested = 7;
         convertUnicode( fileBuffer, &tempUTF, localCharset, utfRequested );
         textFileBuffer = fileBuffer;
@@ -358,12 +370,12 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
         full_crc_val = (unsigned long)(-1L);
 
         if ( attachType == EMBED_ATTACHMENT )
-            printMsg(__T("Embedded binary file: %s\n"),attachName);
+            printMsg(__T("Embedded binary file: %s\n"), attachName);
         else
         if ( attachType == BINARY_ATTACHMENT )
-            printMsg(__T("Attached binary file: %s\n"),attachName);
+            printMsg(__T("Attached binary file: %s\n"), attachName);
         else
-            printMsg(__T("Attached text file: %s\n"),attachName);
+            printMsg(__T("Attached text file: %s\n"), attachName);
 
 #if BLAT_LITE
 #else
@@ -495,7 +507,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
     if ( (attachType == BINARY_ATTACHMENT) || (attachType == EMBED_ATTACHMENT) ) {
         //get the text of the file into a string buffer
         if ( !fileh.OpenThisFile(attachName) ) {
-            printMsg(__T("error reading %s, aborting\n"),attachName);
+            printMsg(__T("error opening %s, aborting\n"), attachName);
             textFileBuffer.Free();
             tmpstr2.Free();
             localHdr.Free();
@@ -507,7 +519,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
 #if SUPPORT_MULTIPART
         if ( startOffset ) {
             if ( !fileh.SetPosition( (LONG)startOffset, 0, FILE_BEGIN ) ) {
-                printMsg(__T("error reading %s, aborting\n"), attachName);
+                printMsg(__T("error accessing %s, aborting\n"), attachName);
                 fileh.Close();
                 textFileBuffer.Free();
                 tmpstr2.Free();
@@ -596,7 +608,7 @@ int add_attachments ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bound
     prevAttachType = -1;
     for ( attachNbr = 0; attachNbr < nbrOfAttachments; attachNbr++ ) {
         length = (DWORD)-1;
-        retval = add_one_attachment( messageBuffer, buildSMTP, attachment_boundary,
+        retval = add_one_attachment( messageBuffer, buildSMTP, attachment_boundary, 
                                      0, length, 1, 1, attachNbr, &prevAttachType );
         if ( retval )
             return retval;

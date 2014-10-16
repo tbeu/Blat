@@ -2218,17 +2218,17 @@ static int checkCharset ( int argc, LPTSTR * argv, int this_arg, int startargv )
     _tcsupr( charset );
     if ( _tcscmp( charset, __T("UTF-8") ) == 0 ) {
         utf = UTF_REQUESTED;
- #if BLAT_LITE
+#if BLAT_LITE
         mime = TRUE;
- #else
+#else
         eightBitMimeRequested = TRUE;
- #endif
+#endif
     } else
     if ( _tcscmp( charset, __T("UTF-7") ) == 0 ) {
         utf = UTF_REQUESTED;
- #if BLAT_LITE
+#if BLAT_LITE
         mime = TRUE;
- #endif
+#endif
     }
     return(1);
 }
