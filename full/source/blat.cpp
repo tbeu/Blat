@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.0.6")
+#define BLAT_VERSION    __T("3.0.7")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -395,7 +395,6 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             break;
     }
 
- #if 1
     for ( i = 1; i < argc; i++ ) {
         sourceText = argv[i];
         utf = 0;
@@ -429,12 +428,8 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 }
             }
         }
-    #if 01
-        _tprintf( __T("argv[%2i] = '%s'\n"), i, argv[i] );
-    #endif
         sourceText.Free();
     }
-  #endif
 #else
     _tcscpy( blatBuildDate, blatBuildDateA );
     _tcscpy( blatBuildTime, blatBuildTimeA );
