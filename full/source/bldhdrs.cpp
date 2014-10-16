@@ -696,11 +696,14 @@ void build_headers( BLDHDRS & bldHdrs )
         if ( retval == TIME_ZONE_ID_STANDARD ) {
             hours   += (int) tzinfo.StandardBias / 60;
             minutes += (int) tzinfo.StandardBias % 60;
-        } else {
+        } else
+        if ( retval == TIME_ZONE_ID_DAYLIGHT ) {
             hours   += (int) tzinfo.DaylightBias / 60;
             minutes += (int) tzinfo.DaylightBias % 60;
         }
 
+        // rfc2822 acceptable format
+        // Mon, 29 Jun 1994 02:15:23 UTC
         // rfc1036 & rfc822 acceptable format
         // Mon, 29 Jun 1994 02:15:23 GMT
         sprintf (tmpstr, "Date: %s, %.2d %s %.4d %.2d:%.2d:%.2d %+03d%02d\r\n",

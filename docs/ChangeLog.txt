@@ -5,6 +5,13 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+2.7.6
+[*] Make sure all uses of strncpy() properly terminate the target string, to
+    eliminate a potential memory overrun.
+[-] Attempt to fix a potential problem with time zone adjustments in the Date:
+    header for locations that do not have daylight savings time.
+[-] Fixed a memory leak in gensock_connect(), introduced at version 2.6.0.
+-------------------------------------------------------------------------------
 2.7.5
 [-] Fixed a problem with looking for default extension types.  The instruction
     ordering was backwards, causing a crash if the file type was not listed in

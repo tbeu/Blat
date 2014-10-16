@@ -28,8 +28,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 #ifdef _WIN64
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,7,5,0
- PRODUCTVERSION 2,7,5,0
+ FILEVERSION 2,7,6,0
+ PRODUCTVERSION 2,7,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -47,14 +47,14 @@ BEGIN
             VALUE "Comments", "Authors and contributors include P.Mendes, M.Neal, G.Vollant, T.Charron, T.Musson, H.Pesonen, A.Donchey, C.Hyde"
             VALUE "CompanyName", "http://www.blat.net/"
             VALUE "FileDescription", "A Win64 (AMD64) command line eMail tool"
-            VALUE "FileVersion", "2.7.5"
+            VALUE "FileVersion", "2.7.6"
             VALUE "InternalName", "blat"
             VALUE "LegalCopyright", "No copyright at all"
             VALUE "LegalTrademarks", ""
             VALUE "OriginalFilename", "blat.exe"
             VALUE "PrivateBuild", ""
             VALUE "ProductName", "Blat"
-            VALUE "ProductVersion", "2.7.5"
+            VALUE "ProductVersion", "2.7.6"
             VALUE "SpecialBuild", ""
         END
     END
@@ -65,8 +65,8 @@ BEGIN
 END
 #else
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,7,5,0
- PRODUCTVERSION 2,7,5,0
+ FILEVERSION 2,7,6,0
+ PRODUCTVERSION 2,7,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -84,14 +84,14 @@ BEGIN
             VALUE "Comments", "Authors and contributors include P.Mendes, M.Neal, G.Vollant, T.Charron, T.Musson, H.Pesonen, A.Donchey, C.Hyde"
             VALUE "CompanyName", "http://www.blat.net/"
             VALUE "FileDescription", "A Win32 command line eMail tool"
-            VALUE "FileVersion", "2.7.5"
+            VALUE "FileVersion", "2.7.6"
             VALUE "InternalName", "blat"
             VALUE "LegalCopyright", "No copyright at all"
             VALUE "LegalTrademarks", ""
             VALUE "OriginalFilename", "blat.exe"
             VALUE "PrivateBuild", ""
             VALUE "ProductName", "Blat"
-            VALUE "ProductVersion", "2.7.5"
+            VALUE "ProductVersion", "2.7.6"
             VALUE "SpecialBuild", ""
         END
     END

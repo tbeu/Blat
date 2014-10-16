@@ -459,7 +459,7 @@ int
                     char * p = new char[MAX_PRINTF_LENGTH + 2];
 
                     strncpy( p, pStr, MAX_PRINTF_LENGTH );
-                    p[MAX_PRINTF_LENGTH] = 0;
+                    p[MAX_PRINTF_LENGTH] = '\0';
                     pp = strrchr(p, '\n');
                     if ( pp ) {
                         pp++;
@@ -642,7 +642,7 @@ int
                 char * p = new char[MAX_PRINTF_LENGTH + 2];
 
                 strncpy( p, pStr, MAX_PRINTF_LENGTH );
-                p[MAX_PRINTF_LENGTH] = 0;
+                p[MAX_PRINTF_LENGTH] = '\0';
                 pp = strrchr(p, '\n');
                 if ( pp ) {
                     pp++;
@@ -951,8 +951,8 @@ int FAR
 
     retval = conn->get_connected (hostname, service);
     if ( retval ) {
-        gensock_close(conn);
-        delete conn;
+        if ( gensock_close(conn) )
+            delete conn;
         *pst = 0;
         return(retval);
     }

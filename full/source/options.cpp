@@ -370,6 +370,7 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
                 this_arg++;
                 startargv++;
                 strncpy( SMTPHost, argv[this_arg], sizeof(SMTPHost)-1 );
+                SMTPHost[sizeof(SMTPHost)-1] = '\0';
                 hostFound = TRUE;
                 argState = INSTALL_STATE_SERVER+1;
                 continue;
@@ -389,6 +390,7 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
                 this_arg++;
                 startargv++;
                 strncpy( Sender, argv[this_arg], sizeof(Sender)-1 );
+                Sender[sizeof(Sender)-1] = '\0';
                 senderFound = TRUE;
                 argState = INSTALL_STATE_SENDER+1;
                 continue;
@@ -404,6 +406,7 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
                 this_arg++;
                 startargv++;
                 strncpy( Try, argv[this_arg], sizeof(Try)-1 );
+                Try[sizeof(Try)-1] = '\0';
                 tryFound = TRUE;
                 argState = INSTALL_STATE_TRY+1;
                 continue;
@@ -424,6 +427,7 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
                 this_arg++;
                 startargv++;
                 strncpy( SMTPPort, argv[this_arg], sizeof(SMTPPort)-1 );
+                SMTPPort[sizeof(SMTPPort)-1] = '\0';
                 portFound = TRUE;
                 argState = INSTALL_STATE_PORT+1;
                 continue;
@@ -440,9 +444,10 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the profile.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the profile.
                     strncpy( Profile, argv[this_arg], sizeof(Profile)-1 );      // Keep the profile if not "-"
-
+                    Profile[sizeof(Profile)-1] = '\0';
+                }
                 profileFound = TRUE;
                 argState = INSTALL_STATE_PROFILE+1;
                 continue;
@@ -459,9 +464,10 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the login name.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the login name.
                     strncpy( AUTHLogin, argv[this_arg], sizeof(AUTHLogin)-1 );  // Keep the login name if not "-"
-
+                    AUTHLogin[sizeof(AUTHLogin)-1] = '\0';
+                }
                 loginFound = TRUE;
                 argState = INSTALL_STATE_LOGIN_ID+1;
                 continue;
@@ -479,9 +485,10 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the password.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the password.
                     strncpy( AUTHPassword, argv[this_arg], sizeof(AUTHPassword)-1 ); // Keep the password if not "-"
-
+                    AUTHPassword[sizeof(AUTHPassword)-1] = '\0';
+                }
                 pwdFound = TRUE;
                 argState = INSTALL_STATE_PASSWORD+1;
                 continue;
@@ -497,6 +504,7 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
             if ( !hostFound ) {
                 hostFound = TRUE;
                 strncpy( SMTPHost, argv[this_arg], sizeof(SMTPHost)-1 );
+                SMTPHost[sizeof(SMTPHost)-1] = '\0';
                 continue;
             }
 
@@ -505,6 +513,7 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
             if ( !senderFound ) {
                 senderFound = TRUE;
                 strncpy( Sender, argv[this_arg], sizeof(Sender)-1 );
+                Sender[sizeof(Sender)-1] = '\0';
                 continue;
             }
 
@@ -513,6 +522,7 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
             if ( !tryFound ) {
                 tryFound = TRUE;
                 strncpy( Try, argv[this_arg], sizeof(Try)-1 );
+                Try[sizeof(Try)-1] = '\0';
                 continue;
             }
 
@@ -521,6 +531,7 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
             if ( !portFound ) {
                 portFound = TRUE;
                 strncpy( SMTPPort, argv[this_arg], sizeof(SMTPPort)-1 );
+                SMTPPort[sizeof(SMTPPort)-1] = '\0';
                 continue;
             }
 
@@ -528,8 +539,10 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
             argState++;
             if ( !profileFound ) {
                 profileFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the profile.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the profile.
                     strncpy( Profile, argv[this_arg], sizeof(Profile)-1 );      // Keep the profile if not "-"
+                    Profile[sizeof(Profile)-1] = '\0';
+                }
                 continue;
             }
 
@@ -537,8 +550,10 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
             argState++;
             if ( !loginFound ) {
                 loginFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the login name.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the login name.
                     strncpy( AUTHLogin, argv[this_arg], sizeof(AUTHLogin)-1 );  // Keep the login name if not "-"
+                    AUTHLogin[sizeof(AUTHLogin)-1] = '\0';
+                }
                 continue;
             }
 
@@ -546,8 +561,10 @@ static int checkInstallOption ( int argc, char ** argv, int this_arg, int starta
             argState++;
             if ( !pwdFound ) {
                 pwdFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then delete the password.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then delete the password.
                     strncpy( AUTHPassword, argv[this_arg], sizeof(AUTHPassword)-1 ); // Keep the password if not "-"
+                    AUTHPassword[sizeof(AUTHPassword)-1] = '\0';
+                }
                 continue;
             }
         }
@@ -654,6 +671,7 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( NNTPHost, argv[this_arg], sizeof(NNTPHost)-1 );
+                NNTPHost[sizeof(NNTPHost)-1] = '\0';
                 hostFound = TRUE;
                 argState = INSTALL_STATE_SERVER+1;
                 continue;
@@ -672,6 +690,7 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( Sender, argv[this_arg], sizeof(Sender)-1 );
+                Sender[sizeof(Sender)-1] = '\0';
                 senderFound = TRUE;
                 argState = INSTALL_STATE_SENDER+1;
                 continue;
@@ -687,6 +706,7 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( Try, argv[this_arg], sizeof(Try)-1 );
+                Try[sizeof(Try)-1] = '\0';
                 tryFound = TRUE;
                 argState = INSTALL_STATE_TRY+1;
                 continue;
@@ -707,6 +727,7 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( NNTPPort, argv[this_arg], sizeof(NNTPPort)-1 );
+                NNTPPort[sizeof(NNTPPort)-1] = '\0';
                 portFound = TRUE;
                 argState = INSTALL_STATE_PORT+1;
                 continue;
@@ -723,9 +744,10 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the profile.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the profile.
                     strncpy( Profile, argv[this_arg], sizeof(Profile)-1 );      // Keep the profile if not "-"
-
+                    Profile[sizeof(Profile)-1] = '\0';
+                }
                 profileFound = TRUE;
                 argState = INSTALL_STATE_PROFILE+1;
                 continue;
@@ -742,9 +764,10 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the login name.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the login name.
                     strncpy( AUTHLogin, argv[this_arg], sizeof(AUTHLogin)-1 );    // Keep the login name if not "-"
-
+                    AUTHLogin[sizeof(AUTHLogin)-1] = '\0';
+                }
                 loginFound = TRUE;
                 argState = INSTALL_STATE_LOGIN_ID+1;
                 continue;
@@ -762,9 +785,10 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the password.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the password.
                     strncpy( AUTHPassword, argv[this_arg], sizeof(AUTHPassword)-1 ); // Keep the password if not "-"
-
+                    AUTHPassword[sizeof(AUTHPassword)-1] = '\0';
+                }
                 pwdFound = TRUE;
                 argState = INSTALL_STATE_PASSWORD+1;
                 continue;
@@ -780,6 +804,7 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
             if ( !hostFound ) {
                 hostFound = TRUE;
                 strncpy( NNTPHost, argv[this_arg], sizeof(NNTPHost)-1 );
+                NNTPHost[sizeof(NNTPHost)-1] = '\0';
                 continue;
             }
 
@@ -788,6 +813,7 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
             if ( !senderFound ) {
                 senderFound = TRUE;
                 strncpy( Sender, argv[this_arg], sizeof(Sender)-1 );
+                Sender[sizeof(Sender)-1] = '\0';
                 continue;
             }
 
@@ -796,6 +822,7 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
             if ( !tryFound ) {
                 tryFound = TRUE;
                 strncpy( Try, argv[this_arg], sizeof(Try)-1 );
+                Try[sizeof(Try)-1] = '\0';
                 continue;
             }
 
@@ -804,6 +831,7 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
             if ( !portFound ) {
                 portFound = TRUE;
                 strncpy( NNTPPort, argv[this_arg], sizeof(NNTPPort)-1 );
+                NNTPPort[sizeof(NNTPPort)-1] = '\0';
                 continue;
             }
 
@@ -811,8 +839,10 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
             argState++;
             if ( !profileFound ) {
                 profileFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the profile.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the profile.
                     strncpy( Profile, argv[this_arg], sizeof(Profile)-1 );      // Keep the profile if not "-"
+                    Profile[sizeof(Profile)-1] = '\0';
+                }
                 continue;
             }
 
@@ -820,8 +850,10 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
             argState++;
             if ( !loginFound ) {
                 loginFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the login name.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the login name.
                     strncpy( AUTHLogin, argv[this_arg], sizeof(AUTHLogin)-1 );    // Keep the login name if not "-"
+                    AUTHLogin[sizeof(AUTHLogin)-1] = '\0';
+                }
                 continue;
             }
 
@@ -829,8 +861,10 @@ static int checkNNTPInstall ( int argc, char ** argv, int this_arg, int startarg
             argState++;
             if ( !pwdFound ) {
                 pwdFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then delete the password.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then delete the password.
                     strncpy( AUTHPassword, argv[this_arg], sizeof(AUTHPassword)-1 ); // Keep the password if not "-"
+                    AUTHPassword[sizeof(AUTHPassword)-1] = '\0';
+                }
                 continue;
             }
         }
@@ -886,6 +920,7 @@ static int checkNNTPSrvr ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( NNTPHost, argv[this_arg+1], sizeof(NNTPHost)-1 );
+    NNTPHost[sizeof(NNTPHost)-1] = '\0';
 
     return(1);
 }
@@ -896,6 +931,7 @@ static int checkNNTPPort ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( NNTPPort, argv[this_arg+1], sizeof(NNTPPort)-1 );
+    NNTPPort[sizeof(NNTPPort)-1] = '\0';
 
     return(1);
 }
@@ -976,6 +1012,7 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( POP3Host, argv[this_arg], sizeof(POP3Host)-1 );
+                POP3Host[sizeof(POP3Host)-1] = '\0';
                 hostFound = TRUE;
                 argState = INSTALL_STATE_SERVER+1;
                 continue;
@@ -994,6 +1031,7 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( Sender, argv[this_arg], sizeof(Sender)-1 );
+                Sender[sizeof(Sender)-1] = '\0';
                 senderFound = TRUE;
                 argState = INSTALL_STATE_SENDER+1;
                 continue;
@@ -1009,6 +1047,7 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( Try, argv[this_arg], sizeof(Try)-1 );
+                Try[sizeof(Try)-1] = '\0';
                 tryFound = TRUE;
                 argState = INSTALL_STATE_TRY+1;
                 continue;
@@ -1029,6 +1068,7 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( POP3Port, argv[this_arg], sizeof(POP3Port)-1 );
+                POP3Port[sizeof(POP3Port)-1] = '\0';
                 portFound = TRUE;
                 argState = INSTALL_STATE_PORT+1;
                 continue;
@@ -1045,9 +1085,10 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the profile.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the profile.
                     strncpy( Profile, argv[this_arg], sizeof(Profile)-1 );      // Keep the profile if not "-"
-
+                    Profile[sizeof(Profile)-1] = '\0';
+                }
                 profileFound = TRUE;
                 argState = INSTALL_STATE_PROFILE+1;
                 continue;
@@ -1069,9 +1110,10 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the login name.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the login name.
                     strncpy( POP3Login, argv[this_arg], sizeof(POP3Login)-1 );    // Keep the login name if not "-"
-
+                    POP3Login[sizeof(POP3Login)-1] = '\0';
+                }
                 loginFound = TRUE;
                 argState = INSTALL_STATE_LOGIN_ID+1;
                 continue;
@@ -1094,9 +1136,10 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the password.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the password.
                     strncpy( POP3Password, argv[this_arg], sizeof(POP3Password)-1 ); // Keep the password if not "-"
-
+                    POP3Password[sizeof(POP3Password)-1] = '\0';
+                }
                 pwdFound = TRUE;
                 argState = INSTALL_STATE_PASSWORD+1;
                 continue;
@@ -1112,6 +1155,7 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
             if ( !hostFound ) {
                 hostFound = TRUE;
                 strncpy( POP3Host, argv[this_arg], sizeof(POP3Host)-1 );
+                POP3Host[sizeof(POP3Host)-1] = '\0';
                 continue;
             }
 
@@ -1130,6 +1174,7 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
             if ( !portFound ) {
                 portFound = TRUE;
                 strncpy( POP3Port, argv[this_arg], sizeof(POP3Port)-1 );
+                POP3Port[sizeof(POP3Port)-1] = '\0';
                 continue;
             }
 
@@ -1137,8 +1182,10 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
             argState++;
             if ( !profileFound ) {
                 profileFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the profile.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the profile.
                     strncpy( Profile, argv[this_arg], sizeof(Profile)-1 );      // Keep the profile if not "-"
+                    Profile[sizeof(Profile)-1] = '\0';
+                }
                 continue;
             }
 
@@ -1146,8 +1193,10 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
             argState++;
             if ( !loginFound ) {
                 loginFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the login name.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the login name.
                     strncpy( POP3Login, argv[this_arg], sizeof(POP3Login)-1 );    // Keep the login name if not "-"
+                    POP3Login[sizeof(POP3Login)-1] = '\0';
+                }
                 continue;
             }
 
@@ -1155,8 +1204,10 @@ static int checkPOP3Install ( int argc, char ** argv, int this_arg, int startarg
             argState++;
             if ( !pwdFound ) {
                 pwdFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then delete the password.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then delete the password.
                     strncpy( POP3Password, argv[this_arg], sizeof(POP3Password)-1 ); // Keep the password if not "-"
+                    POP3Password[sizeof(POP3Password)-1] = '\0';
+                }
                 continue;
             }
         }
@@ -1206,6 +1257,7 @@ static int checkPOP3Srvr ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( POP3Host, argv[this_arg+1], sizeof(POP3Host)-1 );
+    POP3Host[sizeof(POP3Host)-1] = '\0';
 
     return(1);
 }
@@ -1216,6 +1268,7 @@ static int checkPOP3Port ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( POP3Port, argv[this_arg+1], sizeof(POP3Port)-1 );
+    POP3Port[sizeof(POP3Port)-1] = '\0';
 
     return(1);
 }
@@ -1270,6 +1323,7 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( IMAPHost, argv[this_arg], sizeof(IMAPHost)-1 );
+                IMAPHost[sizeof(IMAPHost)-1] = '\0';
                 hostFound = TRUE;
                 continue;
             }
@@ -1287,6 +1341,7 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( Sender, argv[this_arg], sizeof(Sender)-1 );
+                Sender[sizeof(Sender)-1] = '\0';
                 senderFound = TRUE;
                 continue;
             }
@@ -1301,6 +1356,7 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( Try, argv[this_arg], sizeof(Try)-1 );
+                Try[sizeof(Try)-1] = '\0';
                 tryFound = TRUE;
                 continue;
             }
@@ -1320,6 +1376,7 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
                 this_arg++;
                 startargv++;
                 strncpy( IMAPPort, argv[this_arg], sizeof(IMAPPort)-1 );
+                IMAPPort[sizeof(IMAPPort)-1] = '\0';
                 portFound = TRUE;
                 continue;
             }
@@ -1335,9 +1392,10 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the profile.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the profile.
                     strncpy( Profile, argv[this_arg], sizeof(Profile)-1 );      // Keep the profile if not "-"
-
+                    Profile[sizeof(Profile)-1] = '\0';
+                }
                 profileFound = TRUE;
                 continue;
             }
@@ -1358,9 +1416,10 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the login name.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the login name.
                     strncpy( IMAPLogin, argv[this_arg], sizeof(IMAPLogin)-1 );    // Keep the login name if not "-"
-
+                    IMAPLogin[sizeof(IMAPLogin)-1] = '\0';
+                }
                 loginFound = TRUE;
                 continue;
             }
@@ -1382,9 +1441,10 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the password.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the password.
                     strncpy( IMAPPassword, argv[this_arg], sizeof(IMAPPassword)-1 ); // Keep the password if not "-"
-
+                    IMAPPassword[sizeof(IMAPPassword)-1] = '\0';
+                }
                 pwdFound = TRUE;
                 continue;
             }
@@ -1399,6 +1459,7 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
             if ( !hostFound ) {
                 hostFound = TRUE;
                 strncpy( IMAPHost, argv[this_arg], sizeof(IMAPHost)-1 );
+                IMAPHost[sizeof(IMAPHost)-1] = '\0';
                 continue;
             }
 
@@ -1417,6 +1478,7 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
             if ( !portFound ) {
                 portFound = TRUE;
                 strncpy( IMAPPort, argv[this_arg], sizeof(IMAPPort)-1 );
+                IMAPPort[sizeof(IMAPPort)-1] = '\0';
                 continue;
             }
 
@@ -1424,8 +1486,10 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
             argState++;
             if ( !profileFound ) {
                 profileFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the profile.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the profile.
                     strncpy( Profile, argv[this_arg], sizeof(Profile)-1 );      // Keep the profile if not "-"
+                    Profile[sizeof(Profile)-1] = '\0';
+                }
                 continue;
             }
 
@@ -1433,8 +1497,10 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
             argState++;
             if ( !loginFound ) {
                 loginFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then skip the login name.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then skip the login name.
                     strncpy( IMAPLogin, argv[this_arg], sizeof(IMAPLogin)-1 );    // Keep the login name if not "-"
+                    IMAPLogin[sizeof(IMAPLogin)-1] = '\0';
+                }
                 continue;
             }
 
@@ -1442,8 +1508,10 @@ static int checkIMAPInstall ( int argc, char ** argv, int this_arg, int startarg
             argState++;
             if ( !pwdFound ) {
                 pwdFound = TRUE;
-                if ( strcmp(argv[this_arg], "-") )          // If "-" found, then delete the password.
+                if ( strcmp(argv[this_arg], "-") ) {        // If "-" found, then delete the password.
                     strncpy( IMAPPassword, argv[this_arg], sizeof(IMAPPassword)-1 ); // Keep the password if not "-"
+                    IMAPPassword[sizeof(IMAPPassword)-1] = '\0';
+                }
                 continue;
             }
         }
@@ -1493,6 +1561,7 @@ static int checkIMAPSrvr ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( IMAPHost, argv[this_arg+1], sizeof(IMAPHost)-1 );
+    IMAPHost[sizeof(IMAPHost)-1] = '\0';
 
     return(1);
 }
@@ -1503,6 +1572,7 @@ static int checkIMAPPort ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( IMAPPort, argv[this_arg+1], sizeof(IMAPPort)-1 );
+    IMAPPort[sizeof(IMAPPort)-1] = '\0';
 
     return(1);
 }
@@ -1516,9 +1586,10 @@ static int checkOptionFile ( int argc, char ** argv, int this_arg, int startargv
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    if ( !optionsFile[0] )
+    if ( !optionsFile[0] ) {
         strncpy( optionsFile, argv[this_arg+1], _MAX_PATH - 1);
-
+        optionsFile[sizeof(optionsFile)-1] = '\0';
+    }
     return(1);
 }
 #endif
@@ -1643,6 +1714,7 @@ static int checkSubjectOption ( int argc, char ** argv, int this_arg, int starta
     startargv = startargv;
 
     strncpy( subject, argv[this_arg+1], sizeof(subject)-1 );
+    subject[sizeof(subject)-1] = '\0';
 
     return(1);
 }
@@ -1680,7 +1752,7 @@ static int checkSubjectFile ( int argc, char ** argv, int this_arg, int startarg
         }
     } else {
         strncpy(subject, argv[this_arg+1], SUBJECT_SIZE-1);
-        subject[SUBJECT_SIZE-1] = 0x00;
+        subject[SUBJECT_SIZE-1] = '\0';
     }
 
     return(1);
@@ -1719,7 +1791,7 @@ static int checkBodyFile ( int argc, char ** argv, int this_arg, int startargv )
         return(-1);
 
     strncpy(bodyFilename, argv[this_arg+1], sizeof(bodyFilename)-1 );
-    bodyFilename[sizeof(bodyFilename)-1] = 0;
+    bodyFilename[sizeof(bodyFilename)-1] = '\0';
 
     return(1);
 }
@@ -1803,6 +1875,7 @@ static int checkProfileToUse ( int argc, char ** argv, int this_arg, int startar
     startargv = startargv;
 
     strncpy( Profile, argv[this_arg+1], sizeof(Profile)-1 );
+    Profile[sizeof(Profile)-1] = '\0';
 
     return(1);
 }
@@ -1814,6 +1887,7 @@ static int checkServerOption ( int argc, char ** argv, int this_arg, int startar
     startargv = startargv;
 
     strncpy( SMTPHost, argv[this_arg+1], sizeof(SMTPHost)-1 );
+    SMTPHost[sizeof(SMTPHost)-1] = '\0';
 
     return(1);
 }
@@ -1824,6 +1898,7 @@ static int checkFromOption ( int argc, char ** argv, int this_arg, int startargv
     startargv = startargv;
 
     strncpy( loginname, argv[this_arg+1], sizeof(loginname)-1 );
+    loginname[sizeof(loginname)-1] = '\0';
 
     return(1);
 }
@@ -1834,6 +1909,7 @@ static int checkImpersonate ( int argc, char ** argv, int this_arg, int startarg
     startargv = startargv;
 
     strncpy( senderid, argv[this_arg+1], sizeof(senderid)-1 );
+    senderid[sizeof(senderid)-1] = '\0';
     impersonating = TRUE;
 
     return(1);
@@ -1845,6 +1921,7 @@ static int checkPortOption ( int argc, char ** argv, int this_arg, int startargv
     startargv = startargv;
 
     strncpy( SMTPPort, argv[this_arg+1], sizeof(SMTPPort)-1 );
+    SMTPPort[sizeof(SMTPPort)-1] = '\0';
 
     return(1);
 }
@@ -1855,6 +1932,7 @@ static int checkUserIDOption ( int argc, char ** argv, int this_arg, int startar
     startargv = startargv;
 
     strncpy( AUTHLogin, argv[this_arg+1], sizeof(AUTHLogin)-1 );
+    AUTHLogin[sizeof(AUTHLogin)-1] = '\0';
 
     return(1);
 }
@@ -1865,6 +1943,7 @@ static int checkPwdOption ( int argc, char ** argv, int this_arg, int startargv 
     startargv = startargv;
 
     strncpy( AUTHPassword, argv[this_arg+1], sizeof(AUTHPassword)-1 );
+    AUTHPassword[sizeof(AUTHPassword)-1] = '\0';
 
     return(1);
 }
@@ -1876,6 +1955,7 @@ static int checkPop3UIDOption ( int argc, char ** argv, int this_arg, int starta
     startargv = startargv;
 
     strncpy( POP3Login, argv[this_arg+1], sizeof(POP3Login)-1 );
+    POP3Login[sizeof(POP3Login)-1] = '\0';
 
     return(1);
 }
@@ -1886,6 +1966,7 @@ static int checkPop3PwdOption ( int argc, char ** argv, int this_arg, int starta
     startargv = startargv;
 
     strncpy( POP3Password, argv[this_arg+1], sizeof(POP3Password)-1 );
+    POP3Password[sizeof(POP3Password)-1] = '\0';
 
     return(1);
 }
@@ -1898,6 +1979,7 @@ static int checkImapUIDOption ( int argc, char ** argv, int this_arg, int starta
     startargv = startargv;
 
     strncpy( IMAPLogin, argv[this_arg+1], sizeof(IMAPLogin)-1 );
+    IMAPLogin[sizeof(IMAPLogin)-1] = '\0';
 
     return(1);
 }
@@ -1908,6 +1990,7 @@ static int checkImapPwdOption ( int argc, char ** argv, int this_arg, int starta
     startargv = startargv;
 
     strncpy( IMAPPassword, argv[this_arg+1], sizeof(IMAPPassword)-1 );
+    IMAPPassword[sizeof(IMAPPassword)-1] = '\0';
 
     return(1);
 }
@@ -1923,6 +2006,7 @@ static int checkGssapiMutual (int argc, char **argv, int this_arg, int startargv
 
 #if SUBMISSION_PORT
     strncpy(SMTPPort, SubmissionPort, sizeof(SMTPPort)-1);
+    SMTPPort[sizeof(SMTPPort)-1] = '\0';
 #endif
     authgssapi = TRUE;
     mutualauth = TRUE;
@@ -1938,6 +2022,7 @@ static int checkGssapiClient (int argc, char **argv, int this_arg, int startargv
 
 #if SUBMISSION_PORT
     strncpy(SMTPPort, SubmissionPort, sizeof(SMTPPort)-1 );
+    SMTPPort[sizeof(SMTPPort)-1] = '\0';
 #endif
     authgssapi = TRUE;
     mutualauth = FALSE;
@@ -1950,6 +2035,8 @@ static int checkServiceName (int argc, char **argv, int this_arg, int startargv 
     startargv = startargv;
 
     strncpy( servicename, argv[this_arg+1], sizeof(servicename)-1 );
+    servicename[sizeof(servicename)-1] = '\0';
+
     return(1);
 }
 
@@ -1996,6 +2083,7 @@ static int checkOrgOption ( int argc, char ** argv, int this_arg, int startargv 
     startargv = startargv;
 
     strncpy( organization, argv[this_arg+1], sizeof(organization)-1 );
+    organization[sizeof(organization)-1] = '\0';
 
     return(1);
 }
@@ -2102,6 +2190,7 @@ static int checkCharset ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( charset, argv[this_arg+1], sizeof(charset)-1 );
+    charset[sizeof(charset)-1] = '\0';
 
     return(1);
 }
@@ -2288,7 +2377,8 @@ static int addToAttachments ( char ** argv, int this_arg, char aType )
 
             if ( i == attach ) {
                 attachtype[attach] = aType;
-                strncpy( (char *)attachfile[attach++], srcptr, sizeof(attachfile[0])-1 );
+                strncpy( (char *)attachfile[attach], srcptr, sizeof(attachfile[0])-1 );
+                attachfile[attach++][sizeof(attachfile[0])-1] = '\0';
             } else {
                 for ( int j = 63; j > i; j-- ) {
                     attachtype[j] = attachtype[j-1];
@@ -2296,6 +2386,7 @@ static int addToAttachments ( char ** argv, int this_arg, char aType )
                 }
                 attachtype[i] = aType;
                 strncpy( (char *)attachfile[i], srcptr, sizeof(attachfile[0])-1 );
+                attachfile[i][sizeof(attachfile[0])-1] = '\0';
                 attach++;
             }
 
@@ -2488,7 +2579,7 @@ static int checkLogMessages ( int argc, char ** argv, int this_arg, int startarg
         return(-1);
 
     strncpy( logFile, argv[this_arg+1], sizeof(logFile) - 1 );
-    logFile[sizeof(logFile) - 1] = 0;
+    logFile[sizeof(logFile) - 1] = '\0';
 
     if ( logFile[0] ) {
         if ( clearLogFirst )
@@ -2549,6 +2640,7 @@ static int checkAttempts ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( Try, argv[this_arg+1], sizeof(Try)-1 );
+    Try[sizeof(Try)-1] = '\0';
 
     return(1);
 }
@@ -2571,6 +2663,7 @@ static int checkHostname ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( my_hostname_wanted, argv[this_arg+1], sizeof(my_hostname_wanted)-1 );
+    my_hostname_wanted[sizeof(my_hostname_wanted)-1] = '\0';
 
     return(1);
 }
@@ -2581,6 +2674,7 @@ static int checkMailFrom ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( loginname, argv[this_arg+1], sizeof(loginname)-1 );
+    loginname[sizeof(loginname)-1] = '\0';
 
     return(1);
 }
@@ -2591,6 +2685,7 @@ static int checkWhoFrom ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( fromid, argv[this_arg+1], sizeof(fromid)-1 );
+    fromid[sizeof(fromid)-1] = '\0';
 
     return(1);
 }
@@ -2601,6 +2696,7 @@ static int checkReplyTo ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( replytoid, argv[this_arg+1], sizeof(replytoid)-1 );
+    replytoid[sizeof(replytoid)-1] = '\0';
 
     return(1);
 }
@@ -2611,6 +2707,7 @@ static int checkReturnPath ( int argc, char ** argv, int this_arg, int startargv
     startargv = startargv;
 
     strncpy( returnpathid, argv[this_arg+1], sizeof(returnpathid)-1 );
+    returnpathid[sizeof(returnpathid)-1] = '\0';
 
     return(1);
 }
@@ -2621,6 +2718,7 @@ static int checkSender ( int argc, char ** argv, int this_arg, int startargv )
     startargv = startargv;
 
     strncpy( sendername, argv[this_arg+1], sizeof(sendername)-1 );
+    sendername[sizeof(sendername)-1] = '\0';
 
     return(1);
 }
@@ -2646,6 +2744,7 @@ static int checkA1Headers ( int argc, char ** argv, int this_arg, int startargv 
     startargv = startargv;
 
     strncpy( aheaders1, argv[this_arg+1], DEST_SIZE );
+    aheaders1[DEST_SIZE] = '\0';
 
     return(1);
 }
@@ -2656,6 +2755,7 @@ static int checkA2Headers ( int argc, char ** argv, int this_arg, int startargv 
     startargv = startargv;
 
     strncpy( aheaders2, argv[this_arg+1], DEST_SIZE );
+    aheaders2[DEST_SIZE] = '\0';
 
     return(1);
 }
@@ -2681,9 +2781,10 @@ static int checkAltTextFile ( int argc, char ** argv, int this_arg, int startarg
 
     parseCommaDelimitString( argv[this_arg+1], tmpstr, TRUE );
     srcptr = tmpstr.Get();
-    if ( srcptr )
+    if ( srcptr ) {
         strncpy( alternateTextFile, srcptr, sizeof(alternateTextFile)-1 );  // Copy only the first filename.
-
+        alternateTextFile[sizeof(alternateTextFile)-1] = '\0';
+    }
     tmpstr.Free();
 
     if ( !atf.OpenThisFile(alternateTextFile) ) {
@@ -2986,34 +3087,34 @@ static int checkSuperDebugT ( int argc, char ** argv, int this_arg, int startarg
 #define CGI_HIDDEN  (char *)1
 
 /*    optionString     szCgiEntry       preProcess                       usageText
-                                                additionArgC           
-                                                   initFunction        
-*/                                                                     
-_BLATOPTIONS blatOptionsList[] = {                                     
-#if BLAT_LITE                                                          
+                                                additionArgC
+                                                   initFunction
+*/
+_BLATOPTIONS blatOptionsList[] = {
+#if BLAT_LITE
     {           NULL ,             NULL, FALSE, 0, NULL                , "Blat lite v%s%s (build : %s %s)\n" },
-#else                                                                  
+#else
     {           NULL ,             NULL, FALSE, 0, NULL                , "Blat "   "v%s%s (build : %s %s)\n" },
-#endif                                                                 
+#endif
     {           NULL ,             NULL, FALSE, 0, NULL                , "" },
-#if BLAT_LITE | !INCLUDE_NNTP                                          
+#if BLAT_LITE | !INCLUDE_NNTP
     {           NULL ,             NULL, FALSE, 0, NULL                , WIN_32_STR " console utility to send mail via SMTP" },
-#else                                                                  
+#else
     {           NULL ,             NULL, FALSE, 0, NULL                , WIN_32_STR "  console utility to send mail via SMTP or post to usenet via NNTP" },
-#endif                                                                 
+#endif
     {           NULL ,             NULL, FALSE, 0, NULL                , "by P.Mendes,M.Neal,G.Vollant,T.Charron,T.Musson,H.Pesonen,A.Donchey,C.Hyde" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "  http://www.blat.net" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "syntax:" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "  Blat <filename> -to <recipient> [optional switches (see below)]" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "" },
-#if BLAT_LITE                                                          
+#if BLAT_LITE
     {           NULL ,             NULL, FALSE, 0, NULL                , "  Blat -SaveSettings -sender <sender email addy> -server <server addr>" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "       [-port <port>] [-try <try>] [-u <login id>] [-pw <password>]" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "  or" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "  Blat -install <server addr> <sender's email addr> [<try>[<port>]] [-q]" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "  Blat -profile [-q]" },
-#else                                                                  
+#else
     {           NULL ,             NULL, FALSE, 0, NULL                , "  Blat -SaveSettings -f <sender email addy> -server <server addr>" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "       [-port <port>] [-try <try>] [-profile <profile>]" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "       [-u <login id>] [-pw <password>]" },
@@ -3021,89 +3122,89 @@ _BLATOPTIONS blatOptionsList[] = {
     {           NULL ,             NULL, FALSE, 0, NULL                , "  Blat -install <server addr> <sender's addr> [<try>[<port>[<profile>]]] [-q]" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "  Blat -profile [-delete | \"<default>\"] [profile1] [profileN] [-q]" },
-#endif                                                                 
+#endif
     {           NULL ,             NULL, FALSE, 0, NULL                , "  Blat -h" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "-------------------------------- Installation ---------------------------------" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { strInstallSMTP , CGI_HIDDEN      , FALSE, 1, checkInstallOption  , NULL },
-#endif                                                                 
-#if INCLUDE_NNTP                                                       
+#endif
+#if INCLUDE_NNTP
     { strInstallNNTP , CGI_HIDDEN      , FALSE, 1, checkNNTPInstall    , NULL },
-#endif                                                                 
-#if INCLUDE_POP3                                                       
+#endif
+#if INCLUDE_POP3
     { strInstallPOP3 , CGI_HIDDEN      , FALSE, 1, checkPOP3Install    , NULL },
-#endif                                                                 
-#if INCLUDE_IMAP                                                       
+#endif
+#if INCLUDE_IMAP
     { strInstallIMAP , CGI_HIDDEN      , FALSE, 1, checkIMAPInstall    , NULL },
-#endif                                                                 
-/*                                                                     
+#endif
+/*
 -install[SMTP|NNTP|POP3|IMAP] <server addr> <sender email addr> [<try n times>
- */                                                                    
+ */
     { strSaveSettings, CGI_HIDDEN      , FALSE, 0, checkInstallOption  ,              "   : store common settings to the Windows Registry.  Takes the" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "                  same parameters as -install, and is only for SMTP settings." },
     { strInstall     , CGI_HIDDEN      , FALSE, 1, checkInstallOption  ,
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
                                                                                  "[SMTP"
-  #if INCLUDE_NNTP                                                     
+  #if INCLUDE_NNTP
                                                                                       "|NNTP"
-  #endif                                                               
-  #if INCLUDE_POP3                                                     
+  #endif
+  #if INCLUDE_POP3
                                                                                            "|POP3"
-  #endif                                                               
-  #if INCLUDE_IMAP                                                     
+  #endif
+  #if INCLUDE_IMAP
                                                                                                 "|IMAP"
-  #endif                                                               
+  #endif
                                                                                                      "]"
-#endif                                                                 
+#endif
                                                                                                       " <server addr> <sender email addr> [<try n times>"
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
                                                                                                                                                        },
     {           NULL ,             NULL, FALSE, 0, NULL                , "                [<port> [<profile> [<username> [<password>]]]"
-#endif                                                                 
+#endif
                                                                                                  "]]" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "                : set server, sender, number of tries and port"
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
                                                                                                                                        " for profile"
-#endif                                                                 
+#endif
                                                                                                                                                       },
     {           NULL ,             NULL, FALSE, 0, NULL                , "                  (<try n times> and <port> may be replaced by '-')" },
-#if INCLUDE_NNTP | INCLUDE_POP3 | INCLUDE_IMAP                         
+#if INCLUDE_NNTP | INCLUDE_POP3 | INCLUDE_IMAP
     {           NULL ,             NULL, FALSE, 0, NULL                , "                  port defaults are SMTP=25"
-  #if INCLUDE_NNTP                                                     
+  #if INCLUDE_NNTP
                                                                                                                     ", NNTP=119"
-  #endif                                                               
-  #if INCLUDE_POP3                                                     
+  #endif
+  #if INCLUDE_POP3
                                                                                                                               ", POP3=110"
-  #endif                                                               
-  #if INCLUDE_IMAP                                                     
+  #endif
+  #if INCLUDE_IMAP
                                                                                                                                         ", IMAP=143"
-  #endif                                                               
+  #endif
                                                                                                                                            },
-#else                                                                  
+#else
     {           NULL ,             NULL, FALSE, 0, NULL                , "                  port default is 25" },
-#endif                                                                 
-#if BLAT_LITE                                                          
-#else                                                                  
+#endif
+#if BLAT_LITE
+#else
     {           NULL ,             NULL, FALSE, 0, NULL                , "                  default profile can be specified with a '-'" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "                  username and/or password may be stored to the registry" },
-#endif                                                                 
+#endif
     {           NULL ,             NULL, FALSE, 0, NULL                , "                  order of options is specific" },
-#if INCLUDE_NNTP                                                       
+#if INCLUDE_NNTP
     {           NULL ,             NULL, FALSE, 0, NULL                , "                  use -installNNTP for storing NNTP information" },
-#endif                                                                 
-#if INCLUDE_POP3                                                       
+#endif
+#if INCLUDE_POP3
     {           NULL ,             NULL, FALSE, 0, NULL                , "                  use -installPOP3 for storing POP3 information" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "                      (sender and try are ignored, use '-' in place of these)" },
-#endif                                                                 
-#if INCLUDE_IMAP                                                       
+#endif
+#if INCLUDE_IMAP
     {           NULL ,             NULL, FALSE, 0, NULL                , "                  use -installIMAP for storing IMAP information" },
     {           NULL ,             NULL, FALSE, 0, NULL                , "                      (sender and try are ignored, use '-' in place of these)" },
-#endif                                                                 
+#endif
     {           NULL ,             NULL, 0    , 0, NULL                , "" },
     {           NULL ,             NULL, 0    , 0, NULL                , "--------------------------------- The Basics ----------------------------------" },
     {           NULL ,             NULL, 0    , 0, NULL                , "<filename>      : file with the message body to be sent" },
@@ -3111,152 +3212,152 @@ _BLATOPTIONS blatOptionsList[] = {
     {           NULL ,             NULL, 0    , 0, NULL                , "                  as your first argument, and -body followed by your message" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  if your message will come from the console/keyboard, use the" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  hyphen as your first argument, but do not use -body option." },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-@"           ,             NULL, TRUE , 1, checkOptionFile     , NULL },
     { "-optionfile"  ,             NULL, TRUE , 1, checkOptionFile     , NULL },
     { "-of"          ,             NULL, TRUE , 1, checkOptionFile     ,    " <file>      : text file containing more options (also -optionfile)" },
-#endif                                                                 
+#endif
     { "-t"           ,             NULL, FALSE, 1, checkToOption       , NULL },
     { "-to"          ,             NULL, FALSE, 1, checkToOption       ,    " <recipient> : recipient list (also -t) (comma separated)" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-tf"          ,             NULL, FALSE, 1, checkToFileOption   ,    " <file>      : recipient list filename" },
-#endif                                                                 
+#endif
     { "-c"           ,             NULL, FALSE, 1, checkCcOption       , NULL },
     { "-cc"          ,             NULL, FALSE, 1, checkCcOption       ,    " <recipient> : carbon copy recipient list (also -c) (comma separated)" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-cf"          ,             NULL, FALSE, 1, checkCcFileOption   ,    " <file>      : cc recipient list filename" },
-#endif                                                                 
+#endif
     { "-b"           ,             NULL, FALSE, 1, checkBccOption      , NULL },
     { "-bcc"         ,             NULL, FALSE, 1, checkBccOption      ,     " <recipient>: blind carbon copy recipient list (also -b)" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  (comma separated)" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-bf"          ,             NULL, FALSE, 1, checkBccFileOption  ,    " <file>      : bcc recipient list filename" },
     { "-maxNames"    ,             NULL, FALSE, 1, checkMaxNames       ,          " <x>   : send to groups of <x> number of recipients" },
-#endif                                                                 
+#endif
     { "-ur"          ,             NULL, FALSE, 0, checkUnDisROption   ,    "             : set To: header to Undisclosed Recipients if not using the" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  -to and -cc options" },
     { "-s"           ,             NULL, FALSE, 1, checkSubjectOption  , NULL },
     { "-subject"     ,             NULL, FALSE, 1, checkSubjectOption  ,         " <subj> : subject line, surround with quotes to include spaces(also -s)" },
     { "-ss"          ,             NULL, FALSE, 0, checkSkipSubject    ,    "             : suppress subject line if not defined" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-sf"          ,             NULL, FALSE, 1, checkSubjectFile    ,    " <file>      : file containing subject line" },
-#endif                                                                 
+#endif
     { "-bodyF"       ,             NULL, FALSE, 1, checkBodyFile       ,       " <file>   : file containing the message body" },
     { "-body"        ,             NULL, FALSE, 1, checkBodyText       ,      " <text>    : message body, surround with quotes (\") to include spaces" },
-#if SUPPORT_SIGNATURES                                                 
+#if SUPPORT_SIGNATURES
     { "-sigfile"     ,             NULL, FALSE, 1, checkSigFile        , NULL },
     { "-sig"         ,             NULL, FALSE, 1, checkSigFile        ,     " <file>     : text file containing your email signature" },
-#endif                                                                 
-#if SUPPORT_TAGLINES                                                   
+#endif
+#if SUPPORT_TAGLINES
     { "-tagfile"     ,             NULL, FALSE, 1, checkTagFile        , NULL },
     { "-tag"         ,             NULL, FALSE, 1, checkTagFile        ,     " <file>     : text file containing taglines, to be randomly chosen" },
-#endif                                                                 
-#if SUPPORT_POSTSCRIPTS                                                
+#endif
+#if SUPPORT_POSTSCRIPTS
     { "-ps"          ,             NULL, FALSE, 1, checkPostscript     ,    " <file>      : final message text, possibly for unsubscribe instructions" },
-#endif                                                                 
+#endif
     {           NULL ,             NULL, 0    , 0, NULL                , "" },
     {           NULL ,             NULL, 0    , 0, NULL                , "----------------------------- Registry overrides ------------------------------" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { strP           ,             NULL, TRUE , 1, checkProfileToUse   ,   " <profile>    : send with server, user, and port defined in <profile>" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                : use username and password if defined in <profile>" },
-#endif                                                                 
+#endif
     { strProfile     , CGI_HIDDEN      , FALSE, 0, checkProfileEdit    ,         "        : list all profiles in the Registry" },
     { strServer      ,             NULL, FALSE, 1, checkServerOption   ,        " <addr>  : specify SMTP server to be used (optionally, addr:port)" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { strServerSMTP  , CGI_HIDDEN      , FALSE, 1, checkServerOption   ,            " <addr>" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                : same as -server" },
-  #if INCLUDE_NNTP                                                     
+  #if INCLUDE_NNTP
     { strServerNNTP  , CGI_HIDDEN      , FALSE, 1, checkNNTPSrvr       ,            " <addr>" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                : specify NNTP server to be used (optionally, addr:port)" },
-  #endif                                                               
-  #if INCLUDE_POP3                                                     
+  #endif
+  #if INCLUDE_POP3
     { strServerPOP3  , CGI_HIDDEN      , FALSE, 1, checkPOP3Srvr       ,            " <addr>" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                : specify POP3 server to be used (optionally, addr:port)" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  when POP3 access is required before sending email" },
-  #endif                                                               
-  #if INCLUDE_IMAP                                                     
+  #endif
+  #if INCLUDE_IMAP
     { strServerIMAP  , CGI_HIDDEN      , FALSE, 1, checkIMAPSrvr       ,            " <addr>" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                : specify IMAP server to be used (optionally, addr:port)" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  when IMAP access is required before sending email" },
-  #endif                                                               
-#endif                                                                 
+  #endif
+#endif
     { strF           , "sender"        , FALSE, 1, checkFromOption     ,   " <sender>     : override the default sender address (must be known to server)" },
     { strI           , "from"          , FALSE, 1, checkImpersonate    ,   " <addr>       : a 'From:' address, not necessarily known to the server" },
     { strPort        ,             NULL, FALSE, 1, checkPortOption     ,      " <port>    : port to be used on the SMTP server, defaults to SMTP (25)" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { strPortSMTP    , CGI_HIDDEN      , FALSE, 1, checkPortOption     ,          " <port>: same as -port" },
-  #if INCLUDE_NNTP                                                     
+  #if INCLUDE_NNTP
     { strPortNNTP    , CGI_HIDDEN      , FALSE, 1, checkNNTPPort       ,          " <port>: port to be used on the NNTP server, defaults to NNTP (119)" },
-  #endif                                                               
-  #if INCLUDE_POP3                                                     
+  #endif
+  #if INCLUDE_POP3
     { strPortPOP3    , CGI_HIDDEN      , FALSE, 1, checkPOP3Port       ,          " <port>: port to be used on the POP3 server, defaults to POP3 (110)" },
-  #endif                                                               
-  #if INCLUDE_IMAP                                                     
+  #endif
+  #if INCLUDE_IMAP
     { strPortIMAP    , CGI_HIDDEN      , FALSE, 1, checkIMAPPort       ,          " <port>: port to be used on the IMAP server, defaults to IMAP (110)" },
-  #endif                                                               
-#endif                                                                 
+  #endif
+#endif
     { strUsername    ,             NULL, FALSE, 1, checkUserIDOption   , NULL },
     { strU           ,             NULL, FALSE, 1, checkUserIDOption   ,   " <username>   : username for AUTH LOGIN (use with -pw)" },
-#if SUPPORT_GSSAPI                                                     
+#if SUPPORT_GSSAPI
     {           NULL ,             NULL, 0    , 0, NULL                , "                  or for AUTH GSSAPI with -k" },
-#endif                                                                 
+#endif
     { strPassword    ,             NULL, FALSE, 1, checkPwdOption      , NULL },
     { strPwd         ,             NULL, FALSE, 1, checkPwdOption      , NULL },
     { strPw          ,             NULL, FALSE, 1, checkPwdOption      ,    " <password>  : password for AUTH LOGIN (use with -u)" },
-#if INCLUDE_POP3                                                       
+#if INCLUDE_POP3
     { strPop3Username,             NULL, FALSE, 1, checkPop3UIDOption  , NULL },
     { strPop3U       ,             NULL, FALSE, 1, checkPop3UIDOption  ,    " <username>  : username for POP3 LOGIN (use with -ppw)" },
     { strPop3Password,             NULL, FALSE, 1, checkPop3PwdOption  , NULL },
     { strPop3Pw      ,             NULL, FALSE, 1, checkPop3PwdOption  ,     " <password> : password for POP3 LOGIN (use with -pu)" },
-#endif                                                                 
-#if INCLUDE_IMAP                                                       
+#endif
+#if INCLUDE_IMAP
     { strImapUsername,             NULL, FALSE, 1, checkImapUIDOption  , NULL },
     { strImapU       ,             NULL, FALSE, 1, checkImapUIDOption  ,    " <username>  : username for IMAP LOGIN (use with -ppw)" },
     { strImapPassword,             NULL, FALSE, 1, checkImapPwdOption  , NULL },
     { strImapPw      ,             NULL, FALSE, 1, checkImapPwdOption  ,     " <password> : password for IMAP LOGIN (use with -pu)" },
-#endif                                                                 
-#if SUPPORT_GSSAPI                                                     
+#endif
+#if SUPPORT_GSSAPI
     { "-k"           ,             NULL, FALSE, 0, checkGssapiMutual   ,   "              : Use " MECHTYPE " mutual authentication and AUTH GSSAPI" },
     { "-kc"          ,             NULL, FALSE, 0, checkGssapiClient   ,    "             : Use " MECHTYPE " client-only authentication and AUTH GSSAPI" },
     { "-service"     ,             NULL, FALSE, 1, checkServiceName    ,         " <name> : Set GSSAPI service name (use with -k), default \"smtp@server\"" },
     { "-level"       ,             NULL, FALSE, 1, checkProtectionLevel,        "<lev>    : Set GSSAPI protection level to <lev>, which should be one of" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                : None, Integrity, or Privacy (default GSSAPI level is Privacy)"},
-#endif                                                                 
-#if BLAT_LITE                                                          
-#else                                                                  
+#endif
+#if BLAT_LITE
+#else
     { "-nomd5"       ,             NULL, FALSE, 0, checkBypassCramMD5  ,       "          : Do NOT use CRAM-MD5 authentication.  Use this in cases where"},
     {           NULL ,             NULL, 0    , 0, NULL                , "                  the server's CRAM-MD5 is broken, such as Network Solutions."},
-#endif                                                                 
+#endif
     {           NULL ,             NULL, 0    , 0, NULL                , "" },
     {           NULL ,             NULL, 0    , 0, NULL                , "---------------------- Miscellaneous RFC header switches ----------------------" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-o"           ,             NULL, FALSE, 1, checkOrgOption      , NULL },
     { "-org"         ,             NULL, FALSE, 1, checkOrgOption      , NULL },
     { "-organization", "organisation"  , FALSE, 1, checkOrgOption      ,              " <organization>" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                : Organization field (also -o and -org)" },
-#endif                                                                 
+#endif
     { "-ua"          ,             NULL, FALSE, 0, checkUserAgent      ,    "             : include User-Agent header line instead of X-Mailer" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-x"           , "xheader"       , FALSE, 1, checkXHeaders       ,   " <X-Header: detail>" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                : custom 'X-' header.  eg: -x \"X-INFO: Blat is Great!\"" },
     { "-noh"         ,             NULL, FALSE, 0, checkNoHeaders      ,     "            : prevent X-Mailer/User-Agent header from showing Blat homepage" },
     { "-noh2"        ,             NULL, FALSE, 0, checkNoHeaders2     ,      "           : prevent X-Mailer header entirely" },
     { "-d"           , "notify"        , FALSE, 0, checkDisposition    ,   "              : request disposition notification" },
     { "-r"           , "requestreceipt", FALSE, 0, checkReadReceipt    ,   "              : request return receipt" },
-#endif                                                                 
+#endif
     { "-charset"     ,             NULL, FALSE, 1, checkCharset        ,         " <cs>   : user defined charset.  The default is iso-8859-1" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-a1"          ,             NULL, FALSE, 1, checkA1Headers      ,    " <header>    : add custom header line at the end of the regular headers" },
     { "-a2"          ,             NULL, FALSE, 1, checkA2Headers      ,    " <header>    : same as -a1, for a second custom header line" },
     { "-dsn"         ,             NULL, FALSE, 1, checkDeliveryStat   ,     " <nsfd>     : use Delivery Status Notifications (RFC 3461)" },
@@ -3264,7 +3365,7 @@ _BLATOPTIONS blatOptionsList[] = {
     {           NULL ,             NULL, 0    , 0, NULL                , "                  can be used together, however N takes precedence" },
     { "-hdrencb"     ,             NULL, FALSE, 0, checkHdrEncB        ,         "        : use base64 for encoding headers, if necessary" },
     { "-hdrencq"     ,             NULL, FALSE, 0, checkHdrEncQ        ,         "        : use quoted-printable for encoding headers, if necessary" },
-#endif                                                                 
+#endif
     { "-priority"    ,             NULL, FALSE, 1, checkPriority       ,          " <pr>  : set message priority 0 for low, 1 for high" },
     { "-sensitivity" ,             NULL, FALSE, 1, checkSensitivity    ,             " <s>: set message sensitivity 0 for personal, 1 for private," },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  2 for company-confidential" },
@@ -3273,8 +3374,8 @@ _BLATOPTIONS blatOptionsList[] = {
     { "-attach"      , CGI_HIDDEN      , FALSE, 1, checkBinFileAttach  ,        " <file>  : attach binary file(s) to message (filenames comma separated)" },
     { "-attacht"     , CGI_HIDDEN      , FALSE, 1, checkTxtFileAttach  ,         " <file> : attach text file(s) to message (filenames comma separated)" },
     { "-attachi"     , CGI_HIDDEN      , FALSE, 1, checkInlineAttach   ,         " <file> : attach text file(s) as INLINE (filenames comma separated)" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-embed"       , CGI_HIDDEN      , FALSE, 1, checkBinFileEmbed   ,       " <file>   : embed file(s) in HTML.  Object tag in HTML must specify" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  content-id using cid: tag.  eg: <img src=\"cid:image.jpg\">" },
     { "-af"          ,             NULL, FALSE, 1, checkBinFileAttFil  ,    " <file>      : file containing list of binary file(s) to attach (comma" },
@@ -3288,49 +3389,49 @@ _BLATOPTIONS blatOptionsList[] = {
     { "-uuencode"    ,             NULL, FALSE, 0, checkUUEncode       ,          "       : send binary files UUEncoded" },
     { "-enriched"    ,             NULL, FALSE, 0, checkEnriched       ,          "       : send an enriched text message (Content-Type=text/enriched)" },
     { "-unicode"     ,             NULL, FALSE, 0, checkUnicode        ,         "        : message body is in 16- or 32-bit Unicode format" },
-#endif                                                                 
+#endif
     { "-html"        ,             NULL, FALSE, 0, checkHTML           ,      "           : send an HTML message (Content-Type=text/html)" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-alttext"     ,             NULL, FALSE, 1, checkAltText        ,         " <text> : plain text for use as alternate text" },
     { "-althtml"     ,             NULL, FALSE, 1, checkAltTextFile    , NULL },
     { "-htmaltf"     ,             NULL, FALSE, 1, checkAltTextFile    , NULL },
     { "-alttextf"    ,             NULL, FALSE, 1, checkAltTextFile    ,          " <file>: plain text file for use as alternate text" },
-#endif                                                                 
+#endif
     { "-mime"        ,             NULL, FALSE, 0, checkMime           ,      "           : MIME Quoted-Printable Content-Transfer-Encoding" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-8bitmime"    ,             NULL, FALSE, 0, check8bitMime       ,          "       : ask for 8bit data support when sending MIME" },
-#endif                                                                 
-#if SUPPORT_YENC                                                       
+#endif
+#if SUPPORT_YENC
     { "-yenc"        ,             NULL, FALSE, 0, check_yEnc          ,      "           : send binary files encoded with yEnc" },
-#endif                                                                 
-#if SUPPORT_MULTIPART                                                  
+#endif
+#if SUPPORT_MULTIPART
     { "-mps"         ,             NULL, FALSE, 0, checkMultiPartSize  , NULL },
     { "-multipart"   ,             NULL, FALSE, 0, checkMultiPartSize  ,           " <size>" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                : send multipart messages, breaking attachments on <size>" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  KB boundaries, where <size> is per 1000 bytes" },
     { "-nomps"       ,             NULL, FALSE, 0, checkDisableMPS     ,       "          : do not allow multipart messages" },
-#endif                                                                 
-#if BLAT_LITE                                                          
-#else                                                                  
+#endif
+#if BLAT_LITE
+#else
     { "-contentType" ,             NULL, FALSE, 1, checkUserContType   ,             " <string>" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                : use <string> in the ContentType header for attachments that" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  do not have a registered content type for the extension" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  For example: -contenttype \"text/calendar\"" },
-#endif                                                                 
+#endif
     {           NULL ,             NULL, 0    , 0, NULL                , "" },
-#if INCLUDE_NNTP                                                       
+#if INCLUDE_NNTP
     {           NULL ,             NULL, 0    , 0, NULL                , "---------------------------- NNTP specific options ----------------------------" },
     { "-group"       , CGI_HIDDEN      , FALSE, 1, checkNNTPGroups     , NULL },
     { "-groups"      , CGI_HIDDEN      , FALSE, 1, checkNNTPGroups     ,        " <usenet groups>" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                : list of newsgroups (comma separated)" },
     {           NULL ,             NULL, 0    , 0, NULL                , "" },
-#endif                                                                 
+#endif
     {           NULL ,             NULL, 0    , 0, NULL                , "-------------------------------- Other options --------------------------------" },
-#if INCLUDE_POP3                                                       
+#if INCLUDE_POP3
     { "-xtndxmit"    ,             NULL, 0    , 0, checkXtndXmit       ,          "       : Attempt to use POP3 to transmit when accessing POP3 first" },
-#endif                                                                 
+#endif
     { "/h"           , CGI_HIDDEN      , FALSE, 0, checkHelp           , NULL },
     { "/?"           , CGI_HIDDEN      , FALSE, 0, checkHelp           , NULL },
     { "-?"           , CGI_HIDDEN      , FALSE, 0, checkHelp           , NULL },
@@ -3351,21 +3452,21 @@ _BLATOPTIONS blatOptionsList[] = {
     {           NULL ,             NULL, 0    , 0, NULL                , "                  this is typically your local machine name" },
     { "-penguin"     ,             NULL, FALSE, 0, checkRaw            , NULL },
     { "-raw"         ,             NULL, FALSE, 0, checkRaw            ,     "            : do not add CR/LF after headers" },
-#if BLAT_LITE                                                          
-#else                                                                  
+#if BLAT_LITE
+#else
     { "-delay"       ,             NULL, FALSE, 1, checkDelayTime      ,       " <x>      : wait x seconds between messages being sent when used with" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  -maxnames"
-  #if SUPPORT_MULTIPART                                                
+  #if SUPPORT_MULTIPART
                                                                                   " or -multipart"
-  #endif                                                               
+  #endif
                                                                                                    },
     { "-comment"     ,             NULL, TRUE , 1, checkCommentChar    ,         " <char> : use this character to mark the start of comments in" },
     {           NULL ,             NULL, 0    , 0, NULL                , "                  options files and recipient list files.  The default is ;" },
-#endif                                                                 
-#if INCLUDE_SUPERDEBUG                                                 
+#endif
+#if INCLUDE_SUPERDEBUG
     { "-superdebug"  ,             NULL, TRUE , 0, checkSuperDebug     ,            "     : hex/ascii dump the data between Blat and the server" },
     { "-superdebugT" ,             NULL, TRUE , 0, checkSuperDebugT    ,             "    : ascii dump the data between Blat and the server" },
-#endif                                                                 
+#endif
     {           NULL ,             NULL, 0    , 0, NULL                , "-------------------------------------------------------------------------------" },
     {           NULL ,             NULL, 0    , 0, NULL                , "" },
     {           NULL ,             NULL, 0    , 0, NULL                , "Note that if the '-i' option is used, <sender> is included in 'Reply-to:'" },

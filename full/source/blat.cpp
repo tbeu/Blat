@@ -24,7 +24,7 @@
 #endif
 
 
-#define BLAT_VERSION    "2.7.5"
+#define BLAT_VERSION    "2.7.6"
 // Major revision level  *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level    *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level      *  Update this when bugs are fixed, but no other user experience changes.
@@ -647,8 +647,10 @@ int main( int argc,             /* Number of strings in array argv          */
 #endif
 
     // get file name from argv[1]
-    if ( (argv[1][0] != '-') && (argv[1][0] != '/') )
+    if ( (argv[1][0] != '-') && (argv[1][0] != '/') ) {
         strncpy( bodyFilename, argv[1], _MAX_PATH-1 );
+        bodyFilename[_MAX_PATH-1] = '\0';
+    }
 
     bodyFilename[_MAX_PATH-1] = 0;
     regerr = GetRegEntry( Profile );
