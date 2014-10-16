@@ -7,7 +7,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "blat.h"
@@ -87,7 +86,7 @@ _TCHAR boundaryPosted;
 _TCHAR needBoundary;
 
 
-int add_message_body ( Buf &messageBuffer, int msgBodySize, Buf &multipartHdrs, int buildSMTP,
+int add_message_body ( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdrs, int buildSMTP,
                        LPTSTR attachment_boundary, DWORD startOffset, int part,
                        int attachNbr )
 {
@@ -196,7 +195,7 @@ int add_message_body ( Buf &messageBuffer, int msgBodySize, Buf &multipartHdrs, 
                             if ( !pp1 )
                                 break;
 
-                            fileBuffer.Add( pp, (int)(pp1 - pp) );
+                            fileBuffer.Add( pp, (size_t)(pp1 - pp) );
                             fileBuffer.Add( __T("\r\n") );
                             pp = pp1 + 1;
                         }
@@ -230,7 +229,7 @@ int add_message_body ( Buf &messageBuffer, int msgBodySize, Buf &multipartHdrs, 
                                             // with a recommended length of no more than 66.
                             for ( ; pp1 > pp; ) {
                                 if ( *(pp1-1) == __T(' ') ) {
-                                    fileBuffer.Add( pp, (int)(pp1 - pp) );
+                                    fileBuffer.Add( pp, (size_t)(pp1 - pp) );
                                     fileBuffer.Add( __T("\r\n") );
                                     pp = pp1;
                                     lineBreakFound = TRUE;
@@ -243,7 +242,7 @@ int add_message_body ( Buf &messageBuffer, int msgBodySize, Buf &multipartHdrs, 
 
                             pp1 = _tcschr( pp, __T('\n') );
                         }
-                        fileBuffer.Add( pp, (int)(pp1 + 1 - pp) );
+                        fileBuffer.Add( pp, (size_t)(pp1 + 1 - pp) );
                         pp = pp1 + 1;
                     }
                     fileBuffer.Add( pp );

@@ -7,7 +7,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "blat.h"
@@ -105,7 +104,7 @@ void yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len,
 
     if ( !part || ((part == 1) && (lastpart == 1)) ) {  // SinglePart message
         full_crc_val = (unsigned long)(-1L);
-        _stprintf( tmpstr, __T("=ybegin line=%ld size=%ld name=%s\r\n"),
+        _stprintf( tmpstr, __T("=ybegin line=%u size=%lu name=%s\r\n"),
                            YENC_LINELENGTH, filesize, shortNameBuf.Get() );
     } else {            // Multipart message
         if ( part == 1 ) {
@@ -116,8 +115,8 @@ void yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len,
             pend   = pend + filesize;
         }
 
-        _stprintf( tmpstr, __T("=ybegin part=%d total=%d line=%ld size=%ld name=%s\r\n") \
-                           __T("=ypart begin=%ld end=%ld\r\n"),
+        _stprintf( tmpstr, __T("=ybegin part=%d total=%d line=%u size=%ld name=%s\r\n") \
+                           __T("=ypart begin=%lu end=%lu\r\n"),
                            part, lastpart, YENC_LINELENGTH, full_len, shortNameBuf.Get(),
                            pbegin, pend);
     }
@@ -159,9 +158,9 @@ void yEncode( Buf & source, Buf & out, LPTSTR filename, long full_len,
 
     partial_crc_val ^= (unsigned long)(-1L);
     if ( !part || ((part == 1) && (lastpart == 1)) )    // Single part message
-        _stprintf( tmpstr, __T("=yend size=%ld crc32=%08lX\r\n"), filesize, partial_crc_val );
+        _stprintf( tmpstr, __T("=yend size=%lu crc32=%08lX\r\n"), filesize, partial_crc_val );
     else {          // Multipart message
-        _stprintf( tmpstr, __T("=yend size=%ld part=%d pcrc32=%08lX"), filesize, part, partial_crc_val );
+        _stprintf( tmpstr, __T("=yend size=%lu part=%d pcrc32=%08lX"), filesize, part, partial_crc_val );
         out.Add( tmpstr );
         tmpstr[0]= __T('\0');
 

@@ -7,7 +7,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "blat.h"
@@ -100,18 +99,19 @@ void releaseAttachmentInfo ( void )
 }
 
 
-int collectAttachmentInfo ( DWORD & totalsize, int msgBodySize )
+int collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize )
 {
-    int     i, x;
-    HANDLE  ihandle;
-    int     filewasfound;
-    _TCHAR  path[MAX_PATH+1];
-    LPTSTR  pathptr;
-    int     nbrOfFilesFound;
-    WinFile fileh;
-    NODES * tmpNode;
-    _TCHAR  attachedfile[MAX_PATH+1];
-    int     errorFound;
+    int      i;
+    size_t   x;
+    HANDLE   ihandle;
+    int      filewasfound;
+    _TCHAR   path[MAX_PATH+1];
+    LPTSTR   pathptr;
+    int      nbrOfFilesFound;
+    WinFile  fileh;
+    NODES *  tmpNode;
+    _TCHAR   attachedfile[MAX_PATH+1];
+    int      errorFound;
 
     attachList = NULL;
     tmpNode    = NULL;
@@ -165,7 +165,7 @@ int collectAttachmentInfo ( DWORD & totalsize, int msgBodySize )
 
                             tmpNode->next = NULL;
 
-                            x = (int)(_tcslen(attachedfile) + 1) * sizeof(_TCHAR);
+                            x = (_tcslen(attachedfile) + 1) * sizeof(_TCHAR);
                             tmpNode->attachmentName = (LPTSTR) malloc( x );
                             memcpy( tmpNode->attachmentName, attachedfile, x );
 
@@ -470,7 +470,7 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
 
             p++;
         }
-        length = (int)(p - fileBuffer.Get());
+        length = (DWORD)(p - fileBuffer.Get());
     }
 
     tmpstr2.Free();

@@ -22,7 +22,9 @@
 
 #include <tchar.h>
 #include <string.h>
-#include <stdint.h>
+#ifndef DWORD
+#define DWORD unsigned long int
+#endif
 
 #include "md5.h"
 
@@ -30,15 +32,15 @@
 extern "C" {
 #endif
 
-#define GET_UINT32(n,b,i)                               \
+#define GET_DWORD(n,b,i)                               \
 {                                                       \
-    (n) = ( (uint32_t) ( (b)[(i)    ] & 0x0FF)       )  \
-        | ( (uint32_t) ( (b)[(i) + 1] & 0x0FF) <<  8 )  \
-        | ( (uint32_t) ( (b)[(i) + 2] & 0x0FF) << 16 )  \
-        | ( (uint32_t) ( (b)[(i) + 3] & 0x0FF) << 24 ); \
+    (n) = ( (DWORD) ( (b)[(i)    ] & 0x0FF)       )  \
+        | ( (DWORD) ( (b)[(i) + 1] & 0x0FF) <<  8 )  \
+        | ( (DWORD) ( (b)[(i) + 2] & 0x0FF) << 16 )  \
+        | ( (DWORD) ( (b)[(i) + 3] & 0x0FF) << 24 ); \
 }
 
-#define PUT_UINT32(n,b,i)                               \
+#define PUT_DWORD(n,b,i)                               \
 {                                                       \
     (b)[(i)    ] = (_TUCHAR) (( (n)       ) & 0x0FF);   \
     (b)[(i) + 1] = (_TUCHAR) (( (n) >>  8 ) & 0x0FF);   \
@@ -59,25 +61,25 @@ void _cdecl md5_starts( md5_context *ctx )
 
 void md5_process( md5_context *ctx, _TUCHAR data[64] )
 {
-    uint32_t X[16];
-    uint32_t A, B, C, D;
+    DWORD X[16];
+    DWORD A, B, C, D;
 
-    GET_UINT32( X[0],  data,  0 );
-    GET_UINT32( X[1],  data,  4 );
-    GET_UINT32( X[2],  data,  8 );
-    GET_UINT32( X[3],  data, 12 );
-    GET_UINT32( X[4],  data, 16 );
-    GET_UINT32( X[5],  data, 20 );
-    GET_UINT32( X[6],  data, 24 );
-    GET_UINT32( X[7],  data, 28 );
-    GET_UINT32( X[8],  data, 32 );
-    GET_UINT32( X[9],  data, 36 );
-    GET_UINT32( X[10], data, 40 );
-    GET_UINT32( X[11], data, 44 );
-    GET_UINT32( X[12], data, 48 );
-    GET_UINT32( X[13], data, 52 );
-    GET_UINT32( X[14], data, 56 );
-    GET_UINT32( X[15], data, 60 );
+    GET_DWORD( X[0],  data,  0 );
+    GET_DWORD( X[1],  data,  4 );
+    GET_DWORD( X[2],  data,  8 );
+    GET_DWORD( X[3],  data, 12 );
+    GET_DWORD( X[4],  data, 16 );
+    GET_DWORD( X[5],  data, 20 );
+    GET_DWORD( X[6],  data, 24 );
+    GET_DWORD( X[7],  data, 28 );
+    GET_DWORD( X[8],  data, 32 );
+    GET_DWORD( X[9],  data, 36 );
+    GET_DWORD( X[10], data, 40 );
+    GET_DWORD( X[11], data, 44 );
+    GET_DWORD( X[12], data, 48 );
+    GET_DWORD( X[13], data, 52 );
+    GET_DWORD( X[14], data, 56 );
+    GET_DWORD( X[15], data, 60 );
 
 #define S(x,n) ((x << n) | ((x & 0xFFFFFFFFul) >> (32 - n)))
 
@@ -181,9 +183,9 @@ void md5_process( md5_context *ctx, _TUCHAR data[64] )
     ctx->state[3] += D;
 }
 
-void _cdecl md5_update( md5_context *ctx, _TUCHAR *input, uint32_t length )
+void _cdecl md5_update( md5_context *ctx, _TUCHAR *input, size_t length )
 {
-    uint32_t left, fill;
+    DWORD left, fill;
 
     if( ! length ) return;
 
@@ -230,32 +232,31 @@ static _TUCHAR md5_padding[64] =
 
 void _cdecl md5_finish( md5_context *ctx, _TUCHAR digest[16] )
 {
-    uint32_t  last, padn;
-    uint32_t  high, low;
+    DWORD  last, padn;
+    DWORD  high, low;
     _TUCHAR msglen[8];
 
-    high = ( ctx->total[0] >> 29 )
-         | ( ctx->total[1] <<  3 );
-    low  = ( ctx->total[0] <<  3 );
+    high = (DWORD)( ctx->total[0] >> 29 )
+         | (DWORD)( ctx->total[1] <<  3 );
+    low  = (DWORD)( ctx->total[0] <<  3 );
 
-    PUT_UINT32( low,  msglen, 0 );
-    PUT_UINT32( high, msglen, 4 );
+    PUT_DWORD( low,  msglen, 0 );
+    PUT_DWORD( high, msglen, 4 );
 
-    last = ctx->total[0] & 0x3F;
+    last = (DWORD)(ctx->total[0] & 0x3F);
     padn = ( last < 56 ) ? ( 56 - last ) : ( 120 - last );
 
     md5_update( ctx, md5_padding, padn );
     md5_update( ctx, msglen, 8 );
 
-    PUT_UINT32( ctx->state[0], digest,  0 );
-    PUT_UINT32( ctx->state[1], digest,  4 );
-    PUT_UINT32( ctx->state[2], digest,  8 );
-    PUT_UINT32( ctx->state[3], digest, 12 );
+    PUT_DWORD( ctx->state[0], digest,  0 );
+    PUT_DWORD( ctx->state[1], digest,  4 );
+    PUT_DWORD( ctx->state[2], digest,  8 );
+    PUT_DWORD( ctx->state[3], digest, 12 );
 }
 
 #ifdef TEST
 
-#include <stdlib.h>
 #include <stdio.h>
 
 /*
@@ -307,7 +308,7 @@ int _tmain( int argc, LPTSTR* argv )
 
             for( j = 0; j < 16; j++ )
             {
-                _stprintf( output + j * 2, __T("%02x"), md5sum[j] );
+                _stprintf( output + j * 2, __T("%02") _TCHAR_PRINTF_FORMAT __T("x"), md5sum[j] );
             }
 
             if( memcmp( output, val[i], 32 ) )
@@ -340,7 +341,7 @@ int _tmain( int argc, LPTSTR* argv )
 
         for( j = 0; j < 16; j++ )
         {
-            _tprintf( __T("%02x"), md5sum[j] );
+            _tprintf( __T("%02") _TCHAR_PRINTF_FORMAT __T("x"), md5sum[j] );
         }
 
         _tprintf( __T("  %s\n"), argv[1] );

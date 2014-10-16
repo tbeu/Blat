@@ -7,7 +7,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
 
@@ -266,9 +265,9 @@ int get_server_response( Buf * responseStr, int * validateResp  )
             if ( _istdigit(*index++) && (*index++ == __T('.')) &&
                  _istdigit(*index++) && (*index++ == __T('.')) &&
                  _istdigit(*index++) ) {
-                int x, y, z;
-                _stscanf( received.Get() + 4, __T("%u.%u.%u"), &x, &y, &z );
-                *validateResp = (x * 100) + (y * 10) + z;
+                unsigned hundredsDigit, tensDigit, onesDigit;
+                _stscanf( received.Get() + 4, __T("%u.%u.%u"), &hundredsDigit, &tensDigit, &onesDigit );
+                *validateResp = (hundredsDigit * 100) + (tensDigit * 10) + onesDigit;
             }
         }
     }
@@ -439,7 +438,7 @@ int get_imap_untagged_server_response( Buf * responseStr  )
 
             textMsg = __T("in_data =");
             for ( x = 0; index > &in_data[x]; x++ ) {
-                _stprintf(str, __T(" %02X"), in_data[x] );
+                _stprintf(str, __T(" %02") _TCHAR_PRINTF_FORMAT __T("X"), in_data[x] );
                 textMsg.Add(str);
             }
             printMsg(__T("%s\n"), textMsg.Get() );
@@ -538,7 +537,7 @@ int get_imap_tagged_server_response( Buf * responseStr, LPTSTR tag  )
 
             textMsg = __T("in_data =");
             for ( x = 0; index > &in_data[x]; x++ ) {
-                _stprintf(str, __T(" %02X"), in_data[x] );
+                _stprintf(str, __T(" %02") _TCHAR_PRINTF_FORMAT __T("X"), in_data[x] );
                 textMsg.Add(str);
             }
             printMsg(__T("%s\n"), textMsg.Get() );
@@ -769,12 +768,14 @@ int send_edit_data (LPTSTR message, int expected_response, Buf * responseStr )
 // Convert the entry "n of try" to a numeric, defaults to 1
 int noftry()
 {
-    int n_of_try;
-    int i;
-    n_of_try = 0;
+    int    n_of_try;
+    int    i;
+    size_t len;
 
-    for ( i = 0; i < (int)_tcslen(Try); i++ )
-        Try[i] = (char) _totupper(Try[i]);
+    n_of_try = 0;
+    len = _tcslen(Try);
+    for ( i = 0; (unsigned)i < len; i++ )
+        Try[i] = (_TCHAR) _totupper(Try[i]);
 
     if ( !_tcscmp(Try, __T("ONCE")    ) ) n_of_try = 1;
     if ( !_tcscmp(Try, __T("TWICE")   ) ) n_of_try = 2;

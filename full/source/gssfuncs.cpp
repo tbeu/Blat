@@ -10,7 +10,6 @@ gssfuncs.cpp
 
 #include <tchar.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
 
@@ -41,7 +40,7 @@ extern void   printMsg( LPTSTR p, ... );
 extern void   server_error (LPTSTR message);
 extern _TCHAR debug;
 
-extern void base64_encode(_TUCHAR * in, int length, LPTSTR out, int inclCrLf);
+extern void base64_encode(_TUCHAR * in, size_t length, LPTSTR out, int inclCrLf);
 extern int  base64_decode(_TUCHAR * in, LPTSTR out);
 
 // Turn results from the server into an integer representing the return code.
@@ -446,7 +445,7 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
 
         if (send_token.length)
         {
-            base64_encode((_TUCHAR *)send_token.uchar_value, (int)send_token.length, buf1, FALSE);
+            base64_encode((_TUCHAR *)send_token.uchar_value, (size_t)send_token.length, buf1, FALSE);
             my_gss_release_buffer(&min_stat, &send_token);
             _stprintf (out_data, __T("%s\r\n"), buf1);
             if (!(putline(out_data))) {
@@ -537,7 +536,7 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
                  (server_conf_flags & GSSAUTH_P_NONE)      ? __T("GSSAUTH_P_NONE ")      : __T(""),
                  (server_conf_flags & GSSAUTH_P_INTEGRITY) ? __T("GSSAUTH_P_INTEGRITY ") : __T(""),
                  (server_conf_flags & GSSAUTH_P_PRIVACY)   ? __T("GSSAUTH_P_PRIVACY")    : __T(""));
-        printMsg(__T("\nMaximum GSS token size is %ld after wrapping\n"),buf_size);
+        printMsg(__T("\nMaximum GSS token size is %lu after wrapping\n"),buf_size);
     }
 
     /* now respond in kind */
@@ -552,7 +551,7 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
             throw GssNonzeroStatus(maj_stat,min_stat,__T("Error determining maxmimum pre-wrapped token size."));
         }
         if (debug)
-            printMsg(__T("Maximum GSS token size is %u before wrapping\n"),max_prewrapped);
+            printMsg(__T("Maximum GSS token size is %lu before wrapping\n"),max_prewrapped);
 
     }
 
@@ -573,7 +572,7 @@ void GssSession::Authenticate(BOOL (*getline) (LPTSTR), BOOL (*putline) (LPTSTR)
         throw GssNonzeroStatus(maj_stat, min_stat, __T("Error creating security level request."));
     }
 
-    base64_encode((_TUCHAR *)send_token.uchar_value, (int)send_token.length, buf1, FALSE);
+    base64_encode((_TUCHAR *)send_token.uchar_value, (size_t)send_token.length, buf1, FALSE);
     my_gss_release_buffer(&min_stat, &send_token);
 
     if (debug) {
@@ -686,7 +685,7 @@ Buf GssSession::Decrypt(Buf& msg)
     {
         Cleanup();
         _TCHAR szMsg[1024];
-        _stprintf(szMsg,__T("Encrypted response size mismatch: the server claims the message is %d bytes, but actually sent %d bytes."),
+        _stprintf(szMsg,__T("Encrypted response size mismatch: the server claims the message is %lu bytes, but actually sent %lu bytes."),
                   claimed_len,actual_len);
         throw GssException(szMsg);
     }

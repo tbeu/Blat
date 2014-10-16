@@ -21,7 +21,7 @@ static unsigned int encodedLineLength;
 extern void fixupFileName ( LPTSTR filename, Buf & outString, int headerLen, int linewrap );
 
 
-  #define UU_Mask(Ch) (char) ((((Ch) - 1) & 0x3F) + 0x21)
+  #define UU_Mask(Ch) (_TCHAR) ((((Ch) - 1) & 0x3F) + 0x21)
 
 void douuencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart)
 {
@@ -65,7 +65,7 @@ void douuencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart
         if ( bytes_out == 0 )
             tmpstr[ bytes_out++ ] = UU_Mask((filesize > uuencodeBytesLine) ? uuencodeBytesLine : filesize);
 
-        bitStream = (p[0] << 16) | (p[1] << 8) | p[2];
+        bitStream = (unsigned long)(p[0] << 16) | (unsigned long)(p[1] << 8) | p[2];
         tmpstr[ bytes_out++ ] = UU_Mask( bitStream >> 18 );
         tmpstr[ bytes_out++ ] = UU_Mask( bitStream >> 12 );
         tmpstr[ bytes_out++ ] = UU_Mask( bitStream >>  6 );
@@ -88,7 +88,7 @@ void douuencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart
         if ( bytes_out == 0 )
             tmpstr[ bytes_out++ ] = UU_Mask( filesize );
 
-        bitStream = (p[0] << 8) | p[1];
+        bitStream = (unsigned long)((p[0] << 8) | p[1]);
         tmpstr[ bytes_out++ ] = UU_Mask( bitStream >> 10 );
         tmpstr[ bytes_out++ ] = UU_Mask( bitStream >>  4 );
 

@@ -11,7 +11,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "blat.h"
@@ -102,7 +101,7 @@ void parseCommaDelimitString ( LPTSTR source, Buf & parsed_strings, int pathName
             len -= 2;
             srcptr++;
         }
-        parsed_strings.Add( srcptr, (int)len + 1 );
+        parsed_strings.Add( srcptr, len + 1 );
     }
 
     parsed_strings.Add( __T('\0') ); // The end of strings is identified by a null.

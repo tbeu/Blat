@@ -6,11 +6,11 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
 
 #include "blat.h"
+#include "buf.h"
 #include "winfile.h"
 
 /***************************************************************************/
@@ -137,7 +137,7 @@ void ReadPostData(Buf &buf)
     Buf   lpszContentLength;
 
     GetEnv(__T("CONTENT_LENGTH"), lpszContentLength);
-    dwTotalBytes = _tstol(lpszContentLength.Get());
+    dwTotalBytes = (DWORD)_tstol(lpszContentLength.Get());
     buf.AllocExact(dwTotalBytes + 1);
     buf.Clear();
 
@@ -173,7 +173,7 @@ static void url_decode( LPTSTR cp )
             *cp = __T(' ');
         else
         if ( *cp == __T('%') ) {
-            *cp = (char)(hextoint(*(cp+1)) * 16 + hextoint(*(cp+2)));
+            *cp = (_TCHAR)(hextoint(*(cp+1)) * 16 + hextoint(*(cp+2)));
             memmove( cp+1, cp+3, (_tcslen(cp+3)+1)*sizeof(_TCHAR) );
         }
     }
@@ -439,7 +439,7 @@ DWORD WINAPI ReadCommandLine(LPTSTR szParcLine, int & argc, LPTSTR* &argv)
     if ( dwCurCol > 0 )
         dwCurLigne++;
 
-    argc = dwCurLigne;
+    argc = (int)dwCurLigne;
     return dwCurLigne;
 }
 

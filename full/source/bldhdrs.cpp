@@ -7,7 +7,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #ifdef __WATCOMC__
 #include <mapi.h>
@@ -171,7 +170,7 @@ void addStringToHeaderNoQuoting(LPTSTR string, Buf & outS, int & headerLen, int 
         if ( !pStr )
             break;
 
-        outS.Add( pStr2, (int)(pStr - pStr2) );
+        outS.Add( pStr2, (size_t)(pStr - pStr2) );
         outS.Add( __T("\r\n ") );
         headerLen = 1;
         pStr++;
@@ -265,35 +264,80 @@ void fixup( LPTSTR string, Buf * outString, int headerLen, int linewrap )
             fixupString.Add((LPTSTR)defaultCharset);
 
         if ( doBase64 ) {
+            _TCHAR c;
+            LPTSTR pStr;
+
             fixupString.Add( __T("?b?") );
-            base64_encode(tempstring, tmpstr, FALSE, TRUE);
+            outS.Add(fixupString);
+            if ( linewrap && ((fixupString.Length() + bLen) > (size_t)(73-headerLen)) ) { // minimum fixup length too long?
+                int room;
+
+                pStr = string;
+                for ( ; *pStr != __T('\0'); ) {
+                    room = (int)((73-headerLen-fixupString.Length()) * 3) / 4;
+                    for ( i = 0; i < room; i++ ) {
+                        if ( pStr[i] == __T('\0') )
+                            break;
+                    }
+                    if ( pStr[i] == __T('\0') ) {
+                        tempstring.Clear();
+                        tempstring.Add( pStr );
+                        tmpstr.Clear();
+                        base64_encode(tempstring, tmpstr, FALSE, TRUE);
+                        pStr += i;
+                        // break;
+                    } else {
+                        while ( i ) {
+                            if ( pStr[i-1] == __T(' ') )
+                                break;
+                            i--;
+                        }
+                        if ( i == 0 ) {
+                            i = room;
+                        }
+                        c = pStr[i];
+                        pStr[i] = __T('\0');
+                        tempstring.Clear();
+                        tempstring.Add( pStr );
+                        tmpstr.Clear();
+                        base64_encode(tempstring, tmpstr, FALSE, TRUE);
+                        outS.Add( tmpstr.Get() );
+                        outS.Add( __T("?=\r\n ") );
+                        outS.Add( fixupString );
+                        pStr[i] = c;
+                        pStr += i;
+                    }
+                    headerLen = 1;
+                }
+            } else {
+                base64_encode(tempstring, tmpstr, FALSE, TRUE);
+            }
         } else {
             fixupString.Add( __T("?q?") );
             ConvertToQuotedPrintable(tempstring, tmpstr, TRUE );
+
+            outS.Add(fixupString);
+            for ( ; linewrap && ((fixupString.Length() + tmpstr.Length()) > (size_t)(73-headerLen)); ) { // minimum fixup length too long?
+                size_t x = 73-headerLen-fixupString.Length();
+
+                pStr = tmpstr.Get();
+                if ( doBase64 )
+                    x &= ~3;
+                else
+                if ( pStr[x-2] == __T('=') )
+                    x -= 2;
+                else
+                if ( pStr[x-1] == __T('=') )
+                    x -= 1;
+
+                outS.Add( tmpstr.Get(), x );
+                _tcscpy( tmpstr.Get(), (LPTSTR)(pStr+x) );
+                tmpstr.SetLength();
+                outS.Add( __T("?=\r\n ") );
+                outS.Add( fixupString );
+                headerLen = 1;
+            }
         }
-
-        outS.Add(fixupString);
-        for ( ; linewrap && ((int)(fixupString.Length() + tmpstr.Length()) > (73-headerLen)); ) { // minimum fixup length too long?
-            int x = 73-headerLen-(int)fixupString.Length();
-
-            pStr = tmpstr.Get();
-            if ( doBase64 )
-                x &= ~3;
-            else
-            if ( pStr[x-2] == __T('=') )
-                x -= 2;
-            else
-            if ( pStr[x-1] == __T('=') )
-                x -= 1;
-
-            outS.Add( tmpstr.Get(), x );
-            _tcscpy( tmpstr.Get(), (LPTSTR)(pStr+x) );
-            tmpstr.SetLength();
-            outS.Add( __T("?=\r\n ") );
-            outS.Add( fixupString );
-            headerLen = 1;
-        }
-
         outS.Add( tmpstr );
         outS.Add( __T("?=") );
 
@@ -488,7 +532,7 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
                 outS.Add( fixupString );
                 headerLen += (int)fixupString.Length();
                 for ( ; linewrap && ((int)tmpstr.Length() > (73-headerLen)); ) { // minimum fixup length too long?
-                    int x = 73-headerLen;
+                    size_t x = (size_t)(73-headerLen);
 
                     pStr1 = tmpstr.Get();
                     if ( doBase64 )
@@ -571,7 +615,7 @@ void fixupEmailHeaders(LPTSTR string, Buf * outString, int headerLen, int linewr
 
                 outS.Add(fixupString);
                 for ( ; linewrap && ((int)(fixupString.Length() + tmpstr.Length()) > (73-headerLen)); ) { // minimum fixup length too long?
-                    int x = 73-headerLen-(int)fixupString.Length();
+                    size_t x = 73-headerLen-fixupString.Length();
 
                     pStr1 = tmpstr.Get();
                     if ( doBase64 )
@@ -676,7 +720,7 @@ void build_headers( BLDHDRS & bldHdrs )
     SYSTEMTIME            curtime;
     TIME_ZONE_INFORMATION tzinfo;
     DWORD                 retval;
-    unsigned long         cpuTime;
+    DWORD                 cpuTime;
     Buf                   fixedFromId;
     Buf                   fixedSenderId;
     Buf                   fixedLoginName;
@@ -800,7 +844,7 @@ void build_headers( BLDHDRS & bldHdrs )
         // Mon, 29 Jun 1994 02:15:23 UTC
         // rfc1036 & rfc822 acceptable format
         // Mon, 29 Jun 1994 02:15:23 GMT
-        _stprintf (tmpstr, __T("Date: %s, %.2d %s %.4d %.2d:%.2d:%.2d %+03d%02d\r\n"),
+        _stprintf (tmpstr, __T("Date: %s, %.2hu %s %.4hu %.2hu:%.2hu:%.2hu %+03d%02d\r\n"),
                    days[curtime.wDayOfWeek],
                    curtime.wDay,
                    months[curtime.wMonth - 1],
@@ -822,7 +866,7 @@ void build_headers( BLDHDRS & bldHdrs )
 
         // now add the Received: from x.x.x.x by y.y.y.y with HTTP;
         if ( bldHdrs.lpszFirstReceivedData->Length() ) {
-            _stprintf(tmpstr, __T("%s%s, %.2d %s %.2d %.2d:%.2d:%.2d %+03d%02d\r\n"),
+            _stprintf(tmpstr, __T("%s%s, %.2hu %s %.2hu %.2hu:%.2hu:%.2hu %+03d%02d\r\n"),
                       bldHdrs.lpszFirstReceivedData->Get(),
                       days[curtime.wDayOfWeek],
                       curtime.wDay,
@@ -831,7 +875,8 @@ void build_headers( BLDHDRS & bldHdrs )
                       curtime.wHour,
                       curtime.wMinute,
                       curtime.wSecond,
-                      -hours, -minutes);
+                      -hours,
+                      -minutes);
             bldHdrs.header->Add( tmpstr);
         }
 
@@ -1037,7 +1082,7 @@ void build_headers( BLDHDRS & bldHdrs )
     GetSystemTimeAsFileTime( &today );
 
 #if defined(_WIN64)
-    cpuTime = rand();
+    cpuTime = (DWORD)rand();
 #else
     __asm {
         pushad
@@ -1088,7 +1133,7 @@ void build_headers( BLDHDRS & bldHdrs )
                     x /= 10;
                     sizeFactor++;
                 }
-                _stprintf( tmpstr, __T(" %0*u of %u"), sizeFactor, bldHdrs.attachNbr+1, bldHdrs.nbrOfAttachments );
+                _stprintf( tmpstr, __T(" %0*d of %d"), sizeFactor, bldHdrs.attachNbr+1, bldHdrs.nbrOfAttachments );
                 newSubject.Add( tmpstr );
                 mpSubject.Add(  tmpstr );
             }
@@ -1107,7 +1152,7 @@ void build_headers( BLDHDRS & bldHdrs )
                 } else
   #endif
                 {
-                    _stprintf( tmpstr, __T(" %u yEnc bytes"), bldHdrs.attachSize );
+                    _stprintf( tmpstr, __T(" %lu yEnc bytes"), bldHdrs.attachSize );
                     newSubject.Add( tmpstr );
                 }
             }
@@ -1121,7 +1166,7 @@ void build_headers( BLDHDRS & bldHdrs )
                     x /= 10;
                     sizeFactor++;
                 }
-                _stprintf( tmpstr, __T(" [%0*u/%u]"), sizeFactor, bldHdrs.part, bldHdrs.totalparts );
+                _stprintf( tmpstr, __T(" [%0*d/%d]"), sizeFactor, bldHdrs.part, bldHdrs.totalparts );
                 newSubject.Add( tmpstr );
             }
 #endif
@@ -1325,7 +1370,7 @@ void build_headers( BLDHDRS & bldHdrs )
         bldHdrs.header->Add(     __T("Content-Type:") );
         bldHdrs.header->Add(     __T(" message/partial;\r\n") );
         _stprintf( tmpstr, __T("    id=\"%s\";\r\n") \
-                           __T("    number=%u; total=%u;\r\n") \
+                           __T("    number=%d; total=%d;\r\n") \
                            __T("    boundary=\"") BOUNDARY_MARKER __T("%s"),  // Include a boundary= incase it is not included above.
                    bldHdrs.multipartID, bldHdrs.part, bldHdrs.totalparts, boundary2 );
         bldHdrs.header->Add( tmpstr );

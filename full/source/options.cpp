@@ -7,7 +7,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "blat.h"
@@ -23,11 +22,27 @@
   extern BOOL    bSuppressGssOptionsAtRuntime;
 #endif
 
+extern _TCHAR    fileCreateAttribute[];
+extern _TCHAR    fileAppendAttribute[];
+
+#ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
+#if defined(__cplusplus)
+extern "C" {
+#endif
+extern void (*pMyPrintDLL)(LPTSTR);
+#if defined(__cplusplus)
+}
+#endif
+#else
+#define pMyPrintDLL _tprintf
+#endif
+
 extern int  CreateRegEntry( int useHKCU );
 extern int  DeleteRegEntry( LPTSTR pstrProfile, int useHKCU );
 extern void ShowRegHelp( void );
 extern void ListProfiles( LPTSTR pstrProfile );
 extern void parseCommaDelimitString ( LPTSTR source, Buf & parsed_addys, int pathNames );
+extern void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequested );
 
 extern void printMsg( LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
 
@@ -1717,6 +1732,19 @@ static int checkSubjectFile ( int argc, LPTSTR * argv, int this_arg, int startar
         memset(subject, 0x00, SUBJECT_SIZE*sizeof(_TCHAR));
         _fgetts(subject, SUBJECT_SIZE, infile);    //lint !e534 ignore return
         fclose(infile);
+
+  #if defined(_UNICODE) || defined(UNICODE)
+        Buf    sourceText;
+        int    utf;
+
+        utf = 0;
+        sourceText.Add( subject, SUBJECT_SIZE );
+        convertUnicode( sourceText, &utf, NULL, 8 );
+        if ( utf )
+            _tcscpy( subject, sourceText.Get() );
+
+        sourceText.Free();
+  #endif
         for ( x = 0; subject[x]; x++ ) {
             if ( (subject[x] == __T('\n')) || (subject[x] == __T('\t')) )
                 subject[x] = __T(' ');   // convert LF and tabs to spaces
@@ -1775,6 +1803,7 @@ static int checkBodyText ( int argc, LPTSTR * argv, int this_arg, int startargv 
             newbody.Add( (_TCHAR)0xFEFF );          /* Prepend a UTF-16 BOM */
             newbody.Add( (LPTSTR)pStr, length );    /* Now add the user's Unicode message */
             bodyparameter = newbody;
+            newbody.Free();
 
             utf = UTF_REQUESTED;
 #if BLAT_LITE
@@ -2585,9 +2614,9 @@ static int checkLogMessages ( int argc, LPTSTR * argv, int this_arg, int startar
 
     if ( logFile[0] ) {
         if ( clearLogFirst )
-            logOut = _tfopen(logFile, __T("w, ccs=UTF-8"));
+            logOut = _tfopen(logFile, fileCreateAttribute);
         else
-            logOut = _tfopen(logFile, __T("a, ccs=UTF-8"));
+            logOut = _tfopen(logFile, fileAppendAttribute);
     }
 
     // if all goes well the file is closed normally
@@ -2608,7 +2637,7 @@ static int checkLogOverwrite ( int argc, LPTSTR * argv, int this_arg, int starta
     if ( logOut )
     {
         fclose( logOut );
-        logOut = _tfopen(logFile, __T("w, ccs=UTF-8"));
+        logOut = _tfopen(logFile, fileCreateAttribute);
     }
 
     return(0);
@@ -2857,7 +2886,7 @@ static int checkTagFile ( int argc, LPTSTR * argv, int this_arg, int startargv )
     WinFile fileh;
     DWORD   tagsize;
     DWORD   count;
-    int     selectedTag;
+    DWORD   selectedTag;
     LPTSTR  p;
     Buf     tmpBuf;
 
@@ -3092,16 +3121,10 @@ static int checkSuperDebugT ( int argc, LPTSTR * argv, int this_arg, int startar
                                                                  initFunction
 */
 _BLATOPTIONS blatOptionsList[] = {
-#if BLAT_LITE
-    {                  NULL ,              NULL      , FALSE, 0, NULL                , __T("Blat lite v%s%s (build : %s %s)\n") },
-#else
-    {                  NULL ,              NULL      , FALSE, 0, NULL                , __T("Blat ")   __T("v%s%s (build : %s %s)\n") },
-#endif
-    {                  NULL ,              NULL      , FALSE, 0, NULL                , __T("") },
 #if BLAT_LITE | !INCLUDE_NNTP
-    {                  NULL ,              NULL      , FALSE, 0, NULL                , WIN_32_STR __T(" console utility to send mail via SMTP") },
+    {                  NULL ,              NULL      , FALSE, 0, NULL                , __T("Windows console utility to send mail via SMTP") },
 #else
-    {                  NULL ,              NULL      , FALSE, 0, NULL                , WIN_32_STR __T(" console utility to send mail via SMTP or post to usenet via NNTP") },
+    {                  NULL ,              NULL      , FALSE, 0, NULL                , __T("Windows console utility to send mail via SMTP or post to usenet via NNTP") },
 #endif
     {                  NULL ,              NULL      , FALSE, 0, NULL                , __T("by P.Mendes,M.Neal,G.Vollant,T.Charron,T.Musson,H.Pesonen,A.Donchey,C.Hyde") },
     {                  NULL ,              NULL      , FALSE, 0, NULL                , __T("  http://www.blat.net") },
@@ -3489,15 +3512,38 @@ _BLATOPTIONS blatOptionsList[] = {
     {                  NULL ,              NULL      , 0    , 0, NULL                , NULL } };
 
 
+#ifdef _WIN64
+#define BIT_SIZE        __T("64")
+#else
+#define BIT_SIZE        __T("32")
+#endif
+
+#if BLAT_LITE
+#define FEATURES_TEXT   __T("Lite")
+#elif BASE_SMTP_ONLY
+#define FEATURES_TEXT   __T("SMTP only")
+#elif SUPPORT_YENC
+#define FEATURES_TEXT   __T("Full, yEnc")
+#else
+#define FEATURES_TEXT   __T("Full")
+#endif
+#if defined(_UNICODE) || defined(UNICODE)
+#define UNICODE_TEXT    __T(", Unicode")
+#else
+#define UNICODE_TEXT    __T("")
+#endif
+
 void printTitleLine( int quiet )
 {
     static int titleLinePrinted = FALSE;
     _TCHAR     tmpstr[1024];
 
-    _stprintf( tmpstr, blatOptionsList[0].usageText, blatVersion, blatVersionSuf, blatBuildDate, blatBuildTime );
+
+
     if ( !titleLinePrinted ) {
+        _stprintf( tmpstr, __T("Blat v%s%s (build : %s %s)\n") BIT_SIZE __T("-bit Windows, ") FEATURES_TEXT UNICODE_TEXT __T("\n\n"), blatVersion, blatVersionSuf, blatBuildDate, blatBuildTime );
         if ( !quiet )
-            _tprintf( __T("%s\n"), tmpstr );
+            pMyPrintDLL( tmpstr );
 
         if ( logOut )
             printMsg( __T("%s"), tmpstr );
@@ -3542,13 +3588,15 @@ void print_usage_line( LPTSTR pUsageLine )
             memcpy( beginning, pUsageLine, match - pUsageLine );
             beginning[match - pUsageLine] = __T('\0');
 
-            _tprintf(__T("%s%s%s"), beginning, mechtype, match + _tcslen(MECHTYPE) );
+            pMyPrintDLL(beginning);
+            pMyPrintDLL(mechtype);
+            pMyPrintDLL(match + _tcslen(MECHTYPE));
             fflush(stdout);
             return;
         }
     }
 #endif
-    _tprintf(__T("%s"), pUsageLine);
+    pMyPrintDLL(pUsageLine);
     fflush(stdout);
 }
 
@@ -3561,7 +3609,7 @@ int printUsage( int optionPtr )
     printTitleLine( FALSE );
 
     if ( !optionPtr ) {
-        for ( i = 1; ;  ) {
+        for ( i = 0; ;  ) {
             if ( !blatOptionsList[i].optionString &&
                  !blatOptionsList[i].preprocess   &&
                  !blatOptionsList[i].additionArgC &&
@@ -3583,7 +3631,7 @@ int printUsage( int optionPtr )
         }
     } else
     if ( optionPtr == TRUE ) {
-        for ( i = 1; ; i++ ) {
+        for ( i = 0; ; i++ ) {
             if ( !blatOptionsList[i].optionString &&
                  !blatOptionsList[i].preprocess   &&
                  !blatOptionsList[i].additionArgC &&
@@ -3595,11 +3643,14 @@ int printUsage( int optionPtr )
                 _stprintf( printLine, __T("%s%s\n"),
                            blatOptionsList[i].optionString ? blatOptionsList[i].optionString : __T(""),
                            blatOptionsList[i].usageText );
-                print_usage_line( printLine );
+                if ( printLine[0] != __T('\0') )
+                    print_usage_line( printLine );
             }
         }
     } else {
-        _tprintf( __T("Blat found fault with: %s\n\n"), blatOptionsList[optionPtr].optionString );
+        pMyPrintDLL( __T("Blat found fault with: ") );
+        pMyPrintDLL( blatOptionsList[optionPtr].optionString );
+        pMyPrintDLL( __T("\n\n") );
         for ( ; !blatOptionsList[optionPtr].usageText; optionPtr++ )
             ;
 
@@ -3664,8 +3715,11 @@ int processOptions( int argc, LPTSTR * argv, int startargv, int preprocessing )
             argv[this_arg][0] = __T('-');
 
 #if INCLUDE_SUPERDEBUG
-        if ( superDebug )
-            _tprintf( __T("Checking option %s\n"), argv[this_arg] );
+        if ( superDebug ) {
+            pMyPrintDLL( __T("Checking option ") );
+            pMyPrintDLL( argv[this_arg] );
+            pMyPrintDLL( __T("\n") );
+        }
 #endif
 
         for ( i = 0; ; i++ ) {

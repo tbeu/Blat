@@ -61,7 +61,7 @@ private:
         if (p) {
             while( len ) {
                 --len;
-                buffer[len]= p[len];
+                buffer[len] = (_TCHAR)p[len];
                 }
             buffer[buflen] = __T('\0');
             }
@@ -78,7 +78,7 @@ private:
             len = buflen;
             while( len ) {
                 --len;
-                buffer[len]= p[len];
+                buffer[len] = (_TCHAR)p[len];
                 }
             buffer[buflen] = __T('\0');;
             }
@@ -208,7 +208,7 @@ public:
             Alloc(newlen + 1);
             while( textlen ) {
                 textlen--;
-                buffer[buflen+textlen] = text[textlen];
+                buffer[buflen+textlen] = (_TCHAR)text[textlen];
                 }
             buffer[newlen] = __T('\0');
             buflen = newlen;

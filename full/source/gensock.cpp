@@ -14,7 +14,6 @@
 #include <tchar.h>
 // #include <windows.h> Is included by the Winsock include files.
 #include <stdio.h>
-#include <stdlib.h>
 #include <ctype.h>
 
 extern "C" {
@@ -186,7 +185,7 @@ static void convertHostnameUsingPunycode( LPTSTR _Thostname, char * punycodeName
     tmpBuf = _Thostname;
     there  = tmpBuf.Get();
     start  = there;
-    CharLower(there);
+    _tcslwr(there);
     finishedURL.Clear();
     needPunycode = 0;
     for (;;) {
@@ -300,7 +299,7 @@ int
         serventry = getservbyname (service, "tcp");
 
         if ( serventry )
-            our_port = serventry->s_port;
+            our_port = (unsigned short)serventry->s_port;
         else {
             retval = WSAGetLastError();
             // Chicago beta is throwing a WSANO_RECOVERY here...
@@ -333,7 +332,7 @@ int
             return(ERR_CANT_RESOLVE_HOSTNAME);
         }
         ip_list_ptr = hostentry->h_addr_list;
-        sa_in.sin_addr.s_addr = *(long far *)hostentry->h_addr;
+        sa_in.sin_addr.s_addr = *(ULONG far *)hostentry->h_addr;
 #if INCLUDE_SUPERDEBUG
         if ( superDebug ) {
             Buf      _tprtline;
@@ -341,7 +340,7 @@ int
             _TCHAR   savedQuiet = quiet;
 
             quiet = FALSE;
-            printMsg( __T("superDebug: Hostname <%s> resolved to ip address %u.%u.%u.%u\n"),
+            printMsg( __T("superDebug: Hostname <%s> resolved to ip address %hhu.%hhu.%hhu.%hhu\n"),
                       _Thostname, sa_in.sin_addr.S_un.S_un_b.s_b1,
                                   sa_in.sin_addr.S_un.S_un_b.s_b2,
                                   sa_in.sin_addr.S_un.S_un_b.s_b3,
@@ -368,7 +367,7 @@ int
         if ( superDebug ) {
             _TCHAR savedQuiet = quiet;
             quiet = FALSE;
-            printMsg( __T("superDebug: Attempting to connect to ip address %u.%u.%u.%u\n"),
+            printMsg( __T("superDebug: Attempting to connect to ip address %hhu.%hhu.%hhu.%hhu\n"),
                       sa_in.sin_addr.S_un.S_un_b.s_b1,
                       sa_in.sin_addr.S_un.S_un_b.s_b2,
                       sa_in.sin_addr.S_un.S_un_b.s_b3,
@@ -406,7 +405,7 @@ int
             if ( superDebug ) {
                 _TCHAR savedQuiet = quiet;
                 quiet = FALSE;
-                printMsg( __T("superDebug: ::connect() returned error %d, retry count remaining is %u\n"),
+                printMsg( __T("superDebug: ::connect() returned error %d, retry count remaining is %d\n"),
                           WSAGetLastError(), tryCount - 1 );
                 quiet = savedQuiet;
             }
@@ -480,7 +479,7 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
     _TCHAR        _tprtline[MAX_PRINTF_LENGTH + 2];
     unsigned      tx;
     BYTE          buf[68];
-    int           x;
+    unsigned long x;
     unsigned long y;
     unsigned long offset;
     BYTE        * pStr;
@@ -510,7 +509,7 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
                 if ( pp ) {
                     pp++;
                     *pp = '\0';
-                    x    -= (int)(pp - p);
+                    x    -= (unsigned long)(pp - p);
                     pStr += (int)(pp - p);
                 } else {
                     x    -= MAX_PRINTF_LENGTH;
@@ -542,7 +541,7 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
             offset = 0;
             y = 0;
             for ( x = 0; y < length; x++, y++ ) {
-                c = pData[y];
+                c = (BYTE)pData[y];
 
                 if ( x == 16 ) {
                     buf[66] = '\0';
@@ -555,7 +554,7 @@ void debugOutputThisData( char * pData, unsigned long length, LPTSTR msg )
                     offset += 16;
                 }
 
-                sprintf( tmpstr, " %02X", c );
+                sprintf( tmpstr, " %02hhX", c );
                 memcpy( &buf[x * 3], tmpstr, 3);
                 if ( (c < 0x20) || (c > 0x7e) )
                     c = '.';
@@ -658,7 +657,7 @@ int
     }
 #if INCLUDE_SUPERDEBUG
     else {
-        debugOutputThisData( pInBuffer, bytes_read, __T("superDebug: Received %u bytes:\n") );
+        debugOutputThisData( pInBuffer, (unsigned long)bytes_read, __T("superDebug: Received %lu bytes:\n") );
     }
 #endif
 
@@ -666,7 +665,7 @@ int
     if ( bytes_read == SOCKET_ERROR )
         bytes_read = 0;
 
-    in_buffer_total = bytes_read;
+    in_buffer_total = (unsigned int)bytes_read;
     in_index = 0;
 
 #if SUPPORT_GSSAPI
@@ -808,7 +807,7 @@ int
     timeout.tv_sec = globaltimeout;
 
 #if INCLUDE_SUPERDEBUG
-    debugOutputThisData( pData, length, __T("superDebug: Attempting to send %u bytes:\n") );
+    debugOutputThisData( pData, length, __T("superDebug: Attempting to send %lu bytes:\n") );
 #endif
 
     while ( length > 0 ) {
@@ -917,7 +916,7 @@ int
             }
 
             // send this buffer...
-            retval = put_data (pOutBuffer, buffer_size);
+            retval = put_data (pOutBuffer, (unsigned long)buffer_size);
             if ( retval )
                 return(retval);
 
@@ -1225,7 +1224,7 @@ LPTSTR
     if ( pDomainName ) {
         pTDomainName = _Thostname;
         for ( x = 0; x < (MAX_HOSTNAME_LENGTH-1); x++ ) {
-            _Thostname[x] = pDomainName[x];
+            _Thostname[x] = (_TCHAR)pDomainName[x];
             if ( pDomainName[x] == '\0' )
                 break;
         }
@@ -1252,7 +1251,7 @@ int
         if ( !name[retval] )
             break;
 
-        pName[retval] = name[retval];
+        pName[retval] = (_TCHAR)name[retval];
     }
     pName[retval] = __T('\0');
     return(0);
@@ -1292,6 +1291,7 @@ static LPTSTR errorName(int WinSockErrorCode )
 {
     switch( WinSockErrorCode )
     {
+        case 0                 :  return __T("NO_ERROR");
         case WSABASEERR        :  return __T("WSABASEERR");
         case WSAEINTR          :  return __T("WSAEINTR");
         case WSAEBADF          :  return __T("WSAEBADF");

@@ -6,7 +6,6 @@
 
 #include <tchar.h>
 #include <windows.h>
-#include <stdlib.h>
 #include <ctype.h>
 
 TCHAR commentChar = __T(';');
@@ -192,7 +191,7 @@ size_t make_argv( LPTSTR arglist,                /* argument list               
                                 }
 
                                 z--;
-                                nextarg[ y ] = (char)hexValue;
+                                nextarg[ y ] = (_TCHAR)hexValue;
                                 break;
                             }
 

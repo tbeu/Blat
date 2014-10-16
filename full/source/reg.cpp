@@ -7,13 +7,24 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "blat.h"
 
 
-extern void base64_encode(_TUCHAR * in, int length, LPTSTR out, int inclCrLf);
+#ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
+#if defined(__cplusplus)
+extern "C" {
+#endif
+extern void (*pMyPrintDLL)(LPTSTR);
+#if defined(__cplusplus)
+}
+#endif
+#else
+#define pMyPrintDLL _tprintf
+#endif
+
+extern void base64_encode(_TUCHAR * in, size_t length, LPTSTR out, int inclCrLf);
 extern int  base64_decode(_TUCHAR * in, LPTSTR out);
 extern void printMsg( LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
 
@@ -116,7 +127,7 @@ static void encodeThis( _TUCHAR * in, LPTSTR out, int inclCrLf )
     byteCount = tmpStr.Length();
     if ( byteCount ) {
         msg.AllocExact( (byteCount+1) * 3 );
-        base64_encode( (_TUCHAR *)tmpStr.Get(), (int)byteCount, msg.Get(), inclCrLf );
+        base64_encode( (_TUCHAR *)tmpStr.Get(), (size_t)byteCount, msg.Get(), inclCrLf );
         _tcscpy( out, msg.Get() );
     }
 
@@ -216,7 +227,7 @@ static void encodeThis( _TUCHAR * in, LPTSTR out, int inclCrLf )
 //}
 //
 #else
-#define encodeThis(s,o,crlf) base64_encode((s), (int)_tcslen((char *)(s)), (LPTSTR)(o), (crlf))
+#define encodeThis(s,o,crlf) base64_encode((s), _tcslen((char *)(s)), (LPTSTR)(o), (crlf))
 #endif
 #define decodeThis(s,o)      base64_decode((_TUCHAR *)(s), (o))
 
@@ -261,11 +272,11 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
     /* if we failed, note it, and leave */
     if ( lRetCode != ERROR_SUCCESS ) {
-        if ( ! quiet ) {
+        if ( !quiet ) {
             if ( (lRetCode == ERROR_CANTWRITE) || (lRetCode == ERROR_ACCESS_DENIED) )
-                _tprintf ( __T("Write access to the registry was denied.\n") );
+                pMyPrintDLL( __T("Write access to the registry was denied.\n") );
             else
-                _tprintf ( __T("Error in creating blat key in the registry\n") );
+                pMyPrintDLL( __T("Error in creating blat key in the registry\n") );
         }
 
         return(10);
@@ -282,7 +293,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting SMTP server value in the registry\n"));
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting SMTP server value in the registry\n"));
             return(11);
         }
 
@@ -291,7 +302,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting port value in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
             return(11);
         }
 
@@ -300,7 +311,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting number of try value in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting number of try value in the registry\n") );
             return(11);
         }
 
@@ -317,7 +328,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting sender address value in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting sender address value in the registry\n") );
             return(11);
         }
     }
@@ -334,7 +345,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting NNTP server value in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting NNTP server value in the registry\n") );
             return(11);
         }
 
@@ -343,7 +354,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting port value in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
             return(11);
         }
 
@@ -352,7 +363,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting number of try value in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting number of try value in the registry\n") );
             return(11);
         }
 
@@ -369,7 +380,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting sender address value in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting sender address value in the registry\n") );
             return(11);
         }
     }
@@ -387,7 +398,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting POP3 server value in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting POP3 server value in the registry\n") );
             return(11);
         }
 
@@ -396,7 +407,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting port value in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
             return(11);
         }
 
@@ -421,7 +432,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting IMAP server value in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting IMAP server value in the registry\n") );
             return(11);
         }
 
@@ -430,7 +441,7 @@ static int CreateRegEntry( HKEY rootKeyLevel )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in setting port value in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
             return(11);
         }
 
@@ -528,7 +539,11 @@ static int DeleteRegTree( HKEY rootKeyLevel, LPTSTR pstrProfile )
         if ( lRetCode == 0 ) {
             lRetCode = RegDeleteKey( hKey1, Profile );
             if ( lRetCode != ERROR_SUCCESS ) {
-                if ( ! quiet )  _tprintf ( __T("Error in deleting profile %s in the registry\n"), pstrProfile);
+                if ( !quiet ) {
+                    pMyPrintDLL( __T("Error in deleting profile ") );
+                    pMyPrintDLL( pstrProfile);
+                    pMyPrintDLL( __T(" in the registry\n") );
+                }
                 return(11);
             }
             dwIndex--;
@@ -569,7 +584,7 @@ int DeleteRegEntry( LPTSTR pstrProfile, int useHKCU )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in finding blat default profile in the registry\n") );
+            if ( !quiet )  pMyPrintDLL( __T("Error in finding blat default profile in the registry\n") );
             return(10);
         }
 
@@ -593,7 +608,11 @@ int DeleteRegEntry( LPTSTR pstrProfile, int useHKCU )
             if ( lRetCode == 0 ) {
                 lRetCode = RegDeleteValue( hKey1, Profile );
                 if ( lRetCode != ERROR_SUCCESS ) {
-                    if ( ! quiet )  _tprintf ( __T("Error in deleting profile %s in the registry\n"), pstrProfile);
+                    if ( !quiet ) {
+                        pMyPrintDLL( __T("Error in deleting profile ") );
+                        pMyPrintDLL( pstrProfile);
+                        pMyPrintDLL( __T(" in the registry\n") );
+                    }
                     return(11);
                 }
                 dwIndex--;
@@ -628,7 +647,11 @@ int DeleteRegEntry( LPTSTR pstrProfile, int useHKCU )
 
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in deleting profile %s in the registry\n"), pstrProfile);
+            if ( !quiet ) {
+                pMyPrintDLL( __T("Error in deleting profile ") );
+                pMyPrintDLL( pstrProfile);
+                pMyPrintDLL( __T(" in the registry\n") );
+            }
             return(11);
         }
 
@@ -639,7 +662,11 @@ int DeleteRegEntry( LPTSTR pstrProfile, int useHKCU )
         }
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
-            if ( ! quiet )  _tprintf ( __T("Error in finding blat profile %s in the registry\n"), pstrProfile);
+            if ( !quiet ) {
+                pMyPrintDLL( __T("Error in finding blat profile ") );
+                pMyPrintDLL( pstrProfile);
+                pMyPrintDLL( __T(" in the registry\n") );
+            }
             return(10);
         }
 

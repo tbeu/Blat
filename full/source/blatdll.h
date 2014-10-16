@@ -15,12 +15,20 @@
 #  define lcszBlatFunctionName_SetPrintFunc "SetPrintFuncA"
 #endif
 
-extern "C" __declspec(dllexport) int APIENTRY Send( LPCTSTR sCmd );
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
-extern "C" __declspec(dllexport) int _stdcall Blat( int argc, LPTSTR argv[] );
+extern __declspec(dllexport) int APIENTRY Send( LPCTSTR sCmd );
 
-extern "C" __declspec(dllexport) void _stdcall SetPrintFunc( void (__stdcall *func)(LPTSTR) );
+extern __declspec(dllexport) int _stdcall Blat( int argc, LPTSTR argv[] );
 
-extern "C" __declspec(dllexport) int __cdecl cSend ( LPCTSTR sCmd );
+extern __declspec(dllexport) void _stdcall SetPrintFunc( void (__stdcall *func)(LPTSTR) );
+
+extern __declspec(dllexport) int __cdecl cSend ( LPCTSTR sCmd );
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif          /* #if !defined(__BLATDLL_H__) */

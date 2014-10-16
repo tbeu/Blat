@@ -1,6 +1,10 @@
 #ifndef BLAT_H
 #define BLAT_H
 
+#if !defined(is64Bit)
+#define is64Bit     0
+#endif
+
 #if !defined(__WATCOMC__) && is64Bit && !defined(_WIN64)
     #define _WIN64
 #endif
@@ -19,8 +23,12 @@
     #define FALSE               false
 #endif
 
+#if !defined(BLAT_LITE)
 #define BLAT_LITE               TRUE
+#endif
+#if !defined(BASE_SMTP_ONLY)
 #define BASE_SMTP_ONLY          FALSE
+#endif
 
 #if BLAT_LITE || BASE_SMTP_ONLY
     #define INCLUDE_NNTP        FALSE   // Must be FALSE for the compiler to work and deliver
@@ -49,6 +57,11 @@
     #define INCLUDE_SUPERDEBUG  TRUE
     #define SUPPORT_GSSAPI      TRUE    // Change to FALSE if you do not want GSSAPI support
     #define INCLUDE_IMAP        TRUE
+#endif
+
+#ifdef _WIN64
+    #undef  SUPPORT_GSSAPI
+    #define SUPPORT_GSSAPI      FALSE
 #endif
 
 #if SUPPORT_GSSAPI  //Added 2003-11-07 Joseph Calzaretta
@@ -97,12 +110,20 @@
 #endif
 
 #ifdef _WIN64
-    #define WIN_32_STR __T("Win64 (AMD64)")
+    #define WIN_32_STR              __T("Win64 (AMD64)")
 #else
-    #define WIN_32_STR __T("Win32")
+    #define WIN_32_STR              __T("Win32")
 #endif
 
-#define BOUNDARY_MARKER     __T("=_BlatBoundary-")
+#define BOUNDARY_MARKER             __T("=_BlatBoundary-")
+
+#if defined(_UNICODE) || defined(UNICODE)
+    #define _TCHAR_PRINTF_FORMAT    __T("h")
+#else
+    #define _TCHAR_PRINTF_FORMAT    __T("hh")
+#endif
+
+#pragma pack(1)
 
 typedef struct _BLDHDRS {
     Buf  * messageBuffer;
@@ -134,5 +155,16 @@ typedef struct BLATOPTIONS {
     int (* initFunction)( int argc, LPTSTR* argv, int this_arg, int startargv );
     LPTSTR usageText;
 } _BLATOPTIONS;
+
+#pragma pack()
+
+#if !defined(_tstol)
+ #define _tstol      _ttol      // fix for older VC
+#endif
+
+#if !defined(_tstoi)
+ #define _tstoi      _ttoi      // fix for older VC
+#endif
+
 
 #endif

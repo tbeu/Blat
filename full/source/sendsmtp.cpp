@@ -7,7 +7,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "blat.h"
@@ -29,7 +28,7 @@
 #endif
 
 extern void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
-extern void base64_encode(_TUCHAR * in, int length, LPTSTR out, int inclCrLf);
+extern void base64_encode(_TUCHAR * in, size_t length, LPTSTR out, int inclCrLf);
 extern int  base64_decode(_TUCHAR * in, LPTSTR out);
 extern int  open_server_socket( LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR portName );
 extern int  get_server_response( Buf * responseStr, int * enhancedStatusCode );
@@ -57,7 +56,7 @@ extern int  add_one_attachment( Buf & messageBuffer, int buildSMTP, LPTSTR attac
 extern void getAttachmentInfo( int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType );
 extern void getMaxMsgSize( int buildSMTP, DWORD & length );
 #endif
-extern int  add_message_body( Buf & messageBuffer, int msgBodySize, Buf & multipartHdrs, int buildSMTP,
+extern int  add_message_body( Buf & messageBuffer, size_t msgBodySize, Buf & multipartHdrs, int buildSMTP,
                               LPTSTR attachment_boundary, DWORD startOffset, int part, int attachNbr );
 extern int  add_attachments( Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary, int nbrOfAttachments );
 extern void add_msg_boundary( Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary );
@@ -126,7 +125,7 @@ LPTSTR               defaultSMTPPort     = __T("25");
 #if INCLUDE_POP3
 LPTSTR               defaultPOP3Port     = __T("110");
 #endif
-#if SUBMISSION_PORT
+#if defined(SUBMISSION_PORT) && SUBMISSION_PORT
 LPTSTR               SubmissionPort      = __T("587");
 #endif
 #if INCLUDE_IMAP
@@ -243,7 +242,7 @@ void find_and_strip_salutation ( Buf &email_addresses )
                         if ( *(pp2-1) != __T(' ') )
                             break;
                     }
-                    new_addresses.Add( srcptr, (int)(pp2 - srcptr)/sizeof(_TCHAR) );
+                    new_addresses.Add( srcptr, (size_t)(pp2 - srcptr)/sizeof(_TCHAR) );
                     new_addresses.Add( __T("\" "), 2 );
                     new_addresses.Add( pp );
                 } else
@@ -383,7 +382,7 @@ void find_and_strip_salutation ( Buf &email_addresses )
                             if ( *(pp2-1) != __T(' ') )
                                 break;
                         }
-                        new_addresses.Add( srcptr, (int)(pp2 - srcptr) );
+                        new_addresses.Add( srcptr, (size_t)(pp2 - srcptr) );
                         new_addresses.Add( __T("\" "), 2 );
                         new_addresses.Add( pp );
                         //_tprintf( __T("1 new_addresses.Add() = '%s' )\n"), new_addresses.Get() );
@@ -458,7 +457,7 @@ void parse_email_addresses ( LPTSTR email_addresses, Buf & parsed_addys )
             if ( pp2 )
                 *pp2 = __T('\0');
         }
-        parsed_addys.Add( pp, (int)_tcslen(pp) + 1 );
+        parsed_addys.Add( pp, _tcslen(pp) + 1 );
         srcptr += len + 1;
     }
 
@@ -494,7 +493,7 @@ void searchReplaceEmailKeyword (Buf & email_addresses)
         if ( email_addresses.Length() )
             email_addresses.Add( __T(',') );
 
-        email_addresses.Add( pp, (int)_tcslen(pp) );
+        email_addresses.Add( pp, _tcslen(pp) );
         srcptr += len + 1;
     }
     tmpstr.Free();
@@ -524,7 +523,7 @@ static int say_hello ( LPTSTR wanted_hostname, BOOL bAgain = FALSE)
             if ( superDebug ) {
                 _TCHAR savedQuiet = quiet;
                 quiet = FALSE;
-                printMsg( __T("superDebug: ::say_hello() failed to connect, retry count remaining is %u\n"),
+                printMsg( __T("superDebug: ::say_hello() failed to connect, retry count remaining is %d\n"),
                           no_of_try - tryCount );
                 quiet = savedQuiet;
             }
@@ -771,8 +770,8 @@ static void cram_md5( Buf &challenge, _TCHAR str[] )
     md5_context   ctx;
     _TUCHAR       k_ipad[65];    /* inner padding - key XORd with ipad */
     _TUCHAR       k_opad[65];    /* outer padding - key XORd with opad */
-    int           x;
-    int           i;
+    size_t        x;
+    unsigned      i;
     _TUCHAR       digest[16];
     Buf           decodedResponse;
     Buf           tmp;
@@ -781,7 +780,7 @@ static void cram_md5( Buf &challenge, _TCHAR str[] )
     decodedResponse.Alloc( challenge.Length() + 65 );
     base64_decode( (_TUCHAR *)challenge.Get(), decodedResponse.Get() );
     decodedResponse.SetLength();
-    x = (int)_tcslen(AUTHPassword.Get());
+    x = _tcslen(AUTHPassword.Get());
     tmp.Alloc( x + 65 );
     if ( *decodedResponse.Get() == __T('\"') ) {
         LPTSTR pStr = _tcschr( decodedResponse.Get()+1, __T('\"') );
@@ -802,7 +801,7 @@ static void cram_md5( Buf &challenge, _TCHAR str[] )
         md5_context tctx;
 
         md5_starts( &tctx );
-        md5_update( &tctx, (_TUCHAR *)tmp.Get(), x );
+        md5_update( &tctx, (_TUCHAR *)tmp.Get(), (uint32_t)x );
         md5_finish( &tctx, digest );
 
         x = 16;
@@ -834,7 +833,7 @@ static void cram_md5( Buf &challenge, _TCHAR str[] )
      */
     md5_starts( &ctx );                 /* initialize context for first pass */
     md5_update( &ctx, k_ipad, 64 );     /* start with inner pad */
-    md5_update( &ctx, (_TUCHAR *)decodedResponse.Get(), (DWORD)decodedResponse.Length() );
+    md5_update( &ctx, (_TUCHAR *)decodedResponse.Get(), (uint32_t)decodedResponse.Length() );
                                         /* then text of datagram */
     md5_finish( &ctx, digest );         /* finish up 1st pass */
     /*
@@ -846,10 +845,10 @@ static void cram_md5( Buf &challenge, _TCHAR str[] )
     md5_finish( &ctx, digest );         /* finish up 2nd pass */
 
     _tcscpy( out_data, AUTHLogin.Get() );
-    x = (int)_tcslen( out_data );
+    x = _tcslen( out_data );
     out_data[x++] = __T(' ');
     for ( i = 0; i < 16; i++ ) {
-        _stprintf( &out_data[x], __T("%02x"), digest[i] );
+        _stprintf( &out_data[x], __T("%02") _TCHAR_PRINTF_FORMAT __T("x"), digest[i] );
         x +=2;
     }
 
@@ -960,7 +959,7 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
         _tcscpy(out, pwdAuth);
         while ( *out ) out++;
 
-        base64_encode((_TUCHAR *)&str[11], (int)(out - outstart), outstart, FALSE);
+        base64_encode((_TUCHAR *)&str[11], (size_t)(out - outstart), outstart, FALSE);
         _tcscat(str, __T("\r\n"));
 
         if ( put_message_line( ServerSocket, str ) )
@@ -1034,7 +1033,7 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
         return(0);
     }
 
-    base64_encode((_TUCHAR *)loginAuth, (int)_tcslen(loginAuth), out_data, FALSE);
+    base64_encode((_TUCHAR *)loginAuth, _tcslen(loginAuth), out_data, FALSE);
     _tcscat(out_data, __T("\r\n"));
     if ( put_message_line( ServerSocket, out_data ) )
         return(-1);
@@ -1044,7 +1043,7 @@ static int authenticate_smtp_user(LPTSTR loginAuth, LPTSTR pwdAuth)
         return(0);
 
     if ( retval == 334 ) {
-        base64_encode((_TUCHAR *)pwdAuth, (int)_tcslen(pwdAuth), out_data, FALSE);
+        base64_encode((_TUCHAR *)pwdAuth, _tcslen(pwdAuth), out_data, FALSE);
         _tcscat(out_data, __T("\r\n"));
         if ( put_message_line( ServerSocket, out_data ) )
             return(-1);
@@ -1375,8 +1374,8 @@ static int prefetch_smtp_info(LPTSTR wanted_hostname)
             close_server_socket();
 
             if ( delayBetweenMsgs ) {
-                printMsg( __T("*** Delay %u seconds...\n"), delayBetweenMsgs );
-                Sleep( delayBetweenMsgs * 1000 );   // Delay user requested seconds.
+                printMsg( __T("*** Delay %d seconds...\n"), delayBetweenMsgs );
+                Sleep( delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
             }
         }
         quiet = saved_quiet;
@@ -1598,7 +1597,7 @@ static int prefetch_smtp_info(LPTSTR wanted_hostname)
 }
 
 
-int send_email( int msgBodySize,
+int send_email( size_t msgBodySize,
                 Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
                 LPTSTR attachment_boundary, LPTSTR multipartID,
                 int nbrOfAttachments, DWORD totalsize )
@@ -1607,7 +1606,7 @@ int send_email( int msgBodySize,
     Buf     multipartHdrs;
     Buf     varHeaders;
     Buf     header;
-    Buf     tmpBuf, tmpBuf2;
+    Buf     tmpBuf;
     int     n_of_try;
     int     retcode=0;
     int     k;
@@ -1616,7 +1615,6 @@ int send_email( int msgBodySize,
     int     namesFound, namesProcessed;
     int     serverOpen;
     BLDHDRS bldHdrs;
-    int     utf;
     int     userAuthenticated;
 
     if ( !SMTPHost[0] || !Recipients.Length() )
@@ -1652,6 +1650,10 @@ int send_email( int msgBodySize,
     xtnd_xmit_supported = FALSE;
 #endif
 
+#if defined(_UNICODE) || defined(UNICODE)
+    Buf tmpBuf2;
+    int utf;
+
     tmpBuf.Clear();
     tmpBuf2 = AUTHLogin;
     utf = NATIVE_16BIT_UTF;
@@ -1666,7 +1668,7 @@ int send_email( int msgBodySize,
     if ( utf )
         AUTHPassword = tmpBuf;
 
-#if INCLUDE_POP3
+ #if INCLUDE_POP3
     tmpBuf.Clear();
     tmpBuf2 = POP3Login;
     utf = NATIVE_16BIT_UTF;
@@ -1680,9 +1682,9 @@ int send_email( int msgBodySize,
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
     if ( utf )
         POP3Password = tmpBuf;
-#endif
+ #endif
 
-#if INCLUDE_IMAP
+ #if INCLUDE_IMAP
     tmpBuf.Clear();
     tmpBuf2 = IMAPLogin;
     utf = NATIVE_16BIT_UTF;
@@ -1696,6 +1698,9 @@ int send_email( int msgBodySize,
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
     if ( utf )
         IMAPPassword = tmpBuf;
+ #endif
+
+    tmpBuf2.Free();
 #endif
 
     retcode = prefetch_smtp_info( my_hostname_wanted );
@@ -1747,21 +1752,21 @@ int send_email( int msgBodySize,
         return 14;
     }
 
-    int totalParts = (int)(totalsize / msgSize);
+    size_t totalParts = (size_t)(totalsize / msgSize);
     if ( totalsize % msgSize )
         totalParts++;
 
     if ( totalParts > 1 ) {
         // send multiple messages, one attachment per message.
-        int     attachNbr;
-        DWORD   attachSize;
-        int     attachType, prevAttachType;
-        LPTSTR  attachName;
-        int     thisPart, partsCount;
-        DWORD   startOffset;
+        int      attachNbr;
+        DWORD    attachSize;
+        int      attachType, prevAttachType;
+        LPTSTR   attachName;
+        int      thisPart, partsCount;
+        DWORD    startOffset;
 
         if ( totalParts > 1 )
-            printMsg( __T("Sending %u parts for this message.\n"), totalParts );
+            printMsg( __T("Sending %lu parts for this message.\n"), totalParts );
 
         prevAttachType = -1;
         partsCount = 0;
@@ -1802,8 +1807,8 @@ int send_email( int msgBodySize,
                     serverOpen = 0;
                     userAuthenticated = FALSE;
                 }
-                printMsg( __T("*** Delay %u seconds...\n"), delayBetweenMsgs );
-                Sleep( delayBetweenMsgs * 1000 );   // Delay user requested seconds.
+                printMsg( __T("*** Delay %d seconds...\n"), delayBetweenMsgs );
+                Sleep( delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
             }
 
             n_of_try = noftry();
@@ -1884,8 +1889,8 @@ int send_email( int msgBodySize,
                     Buf holdingBuf;
 
                     if ( namesProcessed && delayBetweenMsgs ) {
-                        printMsg( __T("*** Delay %u seconds...\n"), delayBetweenMsgs );
-                        Sleep( delayBetweenMsgs * 1000 );   // Delay user requested seconds.
+                        printMsg( __T("*** Delay %d seconds...\n"), delayBetweenMsgs );
+                        Sleep( delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
                     }
 
                     if ( maxNames <= 0 )
@@ -1919,7 +1924,7 @@ int send_email( int msgBodySize,
 
                         if ( 0 == retcode ) {
                             if ( partsCount > 1 )
-                                printMsg( __T("Sending part %u of %u\n"), thisPart, partsCount );
+                                printMsg( __T("Sending part %d of %d\n"), thisPart, partsCount );
 
                             retcode = send_edit_data( messageBuffer.Get(), 250, NULL );
                             if ( 0 == retcode ) {
@@ -1978,7 +1983,7 @@ int send_email( int msgBodySize,
 
 //        printMsg( __T(" ... calling build_headers()\n") );
         build_headers( bldHdrs );
-//        printMsg( __T(" ... calling add_message_body(), body size = %d\n"), msgBodySize );
+//        printMsg( __T(" ... calling add_message_body(), body size = %lu\n"), msgBodySize );
         retcode = add_message_body( messageBuffer, msgBodySize, multipartHdrs, TRUE,
                                     attachment_boundary, 0, 0, 0 );
 //        printMsg( __T(" ... add_message_body() returned %d\n"), retcode );
@@ -2016,8 +2021,8 @@ int send_email( int msgBodySize,
                     serverOpen = 0;
                     userAuthenticated = FALSE;
                 }
-                printMsg( __T("*** Delay %u seconds...\n"), delayBetweenMsgs );
-                Sleep( delayBetweenMsgs * 1000 );   // Delay user requested seconds.
+                printMsg( __T("*** Delay %d seconds...\n"), delayBetweenMsgs );
+                Sleep( delayBetweenMsgs * 1000ul ); // Delay user requested seconds.
             }
 
             holdingBuf.Clear();
@@ -2112,7 +2117,6 @@ int send_email( int msgBodySize,
     salutation.Free();
 #endif
 
-    tmpBuf2.Free();
     tmpBuf.Free();
     header.Free();
     varHeaders.Free();

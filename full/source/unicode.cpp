@@ -7,7 +7,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "blat.h"
@@ -209,12 +208,12 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, L
                     int x = 11;
 
                     if ( (localutf & 7) == NATIVE_16BIT_UTF ) {  /* 16-bit Unicode? */
-                        if ( (value & ~0x03FF) == 0xD800 ) {          /* high half of surrogate pair? */
+                        if ( (value & ~0x03FFul) == 0xD800ul ) {      /* high half of surrogate pair? */
                             unsigned short secondVal;
 
                             secondVal = pp[1];
                             if ( (secondVal & ~0x03FF) == 0xDC00 ) {  /* low half of surrogate pair? */
-                                value = 0x10000L + ((value & 0x03FF) * 0x400l) + (secondVal & 0x03FF);
+                                value = 0x10000ul + ((value & 0x03FFul) * 0x400ul) + (secondVal & 0x03FFul);
                                 pp += incrementor;
                                 bufL--;
                             }
@@ -249,7 +248,6 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, L
                 bufL--;
             }
         }
-        outputText = outputText;
     }
     if ( utf ) {
         if ( utf8Found )
@@ -435,7 +433,12 @@ void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequeste
             }
             sourceText = outputText;
             localutf = 0;
-
+            if ( utf ) {
+                if ( utf8Found )
+                    *utf = UTF_REQUESTED;
+                else
+                    *utf = FALSE;
+            }
         } else
         if ( (pp[0] == 0xFF) && (pp[1] == 0xFE) && (pp[2] == 0x00) && (pp[3] == 0x00) && !(sourceText.Length() & 3) ) {
             BOM_found = TRUE;
@@ -476,7 +479,7 @@ void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequeste
 
         holdingPen.Clear();
 
-        incrementor = (localutf & 0x07);
+        incrementor = (unsigned)(localutf & 0x07);
         value = 0x0000FEFFl;
         holdingPen.Add( (LPTSTR)&value, incrementor /sizeof(_TCHAR) );
 
@@ -490,12 +493,12 @@ void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequeste
                 value = ((unsigned long)pp[3] << 24) + ((unsigned long)pp[2] << 16) + ((unsigned long)pp[1] << 8) + (unsigned long)pp[0];
             } else
             if ( localutf == NATIVE_16BIT_UTF ) {
-                value = (pp[1] << 8) + pp[0];
+                value = (unsigned long)((pp[1] << 8) + pp[0]);
             } else
             if ( localutf == NON_NATIVE_32BIT_UTF ) {
                 value = ((unsigned long)pp[0] << 24) + ((unsigned long)pp[1] << 16) + ((unsigned long)pp[2] << 8) + (unsigned long)pp[3];
             } else {
-                value = (pp[0] << 8) + pp[1];
+                value = (unsigned long)((pp[0] << 8) + pp[1]);
             }
             holdingPen.Add( (LPTSTR)&value, incrementor /sizeof(_TCHAR) );
             pp += incrementor;
@@ -505,12 +508,6 @@ void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequeste
         convertPackedUnicodeToUTF( holdingPen, outputText, utf, charset, utfRequested );
         sourceText = outputText;
         holdingPen.Free();
-    }
-    if ( utf ) {
-        if ( utf8Found )
-            *utf = UTF_REQUESTED;
-        else
-            *utf = FALSE;
     }
 
     outputText.Free();

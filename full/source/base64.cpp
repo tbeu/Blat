@@ -96,16 +96,16 @@ int base64_decode( _TUCHAR * in, LPTSTR out )
 }
 
 
-#define B64_Mask(Ch) (_TUCHAR) base64table[ (Ch) & 0x3F ]
+#define B64_Mask(Ch) (_TCHAR) base64table[ (Ch) & 0x3F ]
 
 void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad )
 {
-    size_t          length;
-    size_t          tempLength;
-    _TUCHAR *       in;
-    int             bytes_out;
-    _TCHAR          tmpstr[80];
-    unsigned long   bitStream;
+    size_t    length;
+    size_t    tempLength;
+    _TUCHAR * in;
+    int       bytes_out;
+    _TCHAR    tmpstr[80];
+    DWORD     bitStream;
 
     in = (_TUCHAR *) source.Get();
     if ( !in )
@@ -129,7 +129,7 @@ void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad )
                 out.Add( __T("\r\n") );
         }
 
-        bitStream = (in[0] << 16) | (in[1] << 8) | in[2];
+        bitStream = (DWORD)(in[0] << 16) | (DWORD)(in[1] << 8) | in[2];
         tmpstr[ bytes_out++ ] = B64_Mask( bitStream >> 18 );
         tmpstr[ bytes_out++ ] = B64_Mask( bitStream >> 12 );
         tmpstr[ bytes_out++ ] = B64_Mask( bitStream >>  6 );
@@ -150,7 +150,7 @@ void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad )
             bytes_out = 0;
         }
 
-        bitStream = (in[0] << 8) | in[1];
+        bitStream = (DWORD)((in[0] << 8) | in[1]);
         tmpstr[ bytes_out++ ] = B64_Mask( bitStream >> 10 );
         tmpstr[ bytes_out++ ] = B64_Mask( bitStream >>  4 );
 
@@ -174,7 +174,7 @@ void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad )
 }
 
 
-void base64_encode(_TUCHAR * in, int length, LPTSTR out, int inclCrLf)
+void base64_encode(_TUCHAR * in, size_t length, LPTSTR out, int inclCrLf)
 {
     Buf inBuf;
     Buf outBuf;

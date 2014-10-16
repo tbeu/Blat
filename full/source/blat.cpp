@@ -7,7 +7,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
 #include <string.h>
 //#include <vld.h>
@@ -15,21 +14,19 @@
 #include "blat.h"
 #include "winfile.h"
 
-#ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
-#include "blatdll.h"
-#endif
+#define VERSION_SUFFIX  __T("")
 
 /* generic socket DLL support */
 #include "gensock.h"
 #if SUPPORT_GSSAPI
 #include "gssfuncs.h" // Please read the comments here for information about how to use GssSession
-#define VERSION_SUFFIX  __T(" w/GSS encryption")
+//#undef  VERSION_SUFFIX
+//#define VERSION_SUFFIX  __T(" w/GSS encryption")
 #else
-#define VERSION_SUFFIX  __T("")
 #endif
 
 
-#define BLAT_VERSION    __T("3.0.0")
+#define BLAT_VERSION    __T("3.0.1")
 // Major revision level        *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level          *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level            *  Update this when bugs are fixed, but no other user experience changes.
@@ -41,16 +38,16 @@ extern "C" int _tmain( int argc, LPTSTR *argv, LPTSTR *envp );
 extern BOOL DoCgiWork(int &argc, LPTSTR* &argv,   Buf &lpszMessage,
                       Buf &lpszCgiSuccessUrl,     Buf &lpszCgiFailureUrl,
                       Buf &lpszFirstReceivedData, Buf &lpszOtherHeader);
-extern int  collectAttachmentInfo ( DWORD & totalsize, int msgBodySize );
+extern int  collectAttachmentInfo ( DWORD & totalsize, size_t msgBodySize );
 extern void releaseAttachmentInfo ( void );
 
 extern void searchReplaceEmailKeyword (Buf & email_addresses);
-extern int  send_email( int msgBodySize, Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
+extern int  send_email( size_t msgBodySize, Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
                         LPTSTR attachment_boundary, LPTSTR multipartID,
                         int nbrOfAttachments, DWORD totalsize );
 
 #if INCLUDE_NNTP
-extern int  send_news( int msgBodySize, Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
+extern int  send_news( size_t msgBodySize, Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
                        LPTSTR attachment_boundary, LPTSTR multipartID,
                        int nbrOfAttachments, DWORD totalsize );
 #endif
@@ -120,6 +117,14 @@ _TCHAR  blatBuildTime[64];
 
 char    blatBuildDateA[] = __DATE__;
 char    blatBuildTimeA[] = __TIME__;
+
+#if defined(_UNICODE) || defined(UNICODE)
+_TCHAR  fileCreateAttribute[] = __T("w, ccs=UTF-8");
+_TCHAR  fileAppendAttribute[] = __T("a, ccs=UTF-8");
+#else
+_TCHAR  fileCreateAttribute[] = __T("w");
+_TCHAR  fileAppendAttribute[] = __T("a");
+#endif
 
 #if INCLUDE_POP3
 _TCHAR  POP3Host[SERVER_SIZE+1];
@@ -344,15 +349,19 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
 
 #if defined(_UNICODE) || defined(UNICODE)
-    for ( unsigned ix = 0; ; ) {
-        blatBuildDate[ix] = (_TCHAR)blatBuildDateA[ix];
-        if ( !blatBuildDateA[ix++] )
-            break;
-    }
-    for ( unsigned ix = 0; ; ) {
-        blatBuildTime[ix] = (_TCHAR)blatBuildTimeA[ix];
-        if ( !blatBuildTimeA[ix++] )
-            break;
+    {
+        unsigned ix;
+
+        for ( ix = 0; ; ) {
+            blatBuildDate[ix] = (_TCHAR)blatBuildDateA[ix];
+            if ( !blatBuildDateA[ix++] )
+                break;
+        }
+        for ( ix = 0; ; ) {
+            blatBuildTime[ix] = (_TCHAR)blatBuildTimeA[ix];
+            if ( !blatBuildTimeA[ix++] )
+                break;
+        }
     }
 #else
     _tcscpy( blatBuildDate, blatBuildDateA );
@@ -633,6 +642,18 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
                 bufPtr = _fgetts( buffer, BUFFER_SIZE, optsFile );
                 if ( bufPtr ) {
+  #if defined(_UNICODE) || defined(UNICODE)
+                    Buf    sourceText;
+                    int    utf;
+
+                    utf = 0;
+                    sourceText.Add( buffer, BUFFER_SIZE );
+                    convertUnicode( sourceText, &utf, NULL, 8 );
+                    if ( utf )
+                        _tcscpy( buffer, sourceText.Get() );
+
+                    sourceText.Free();
+  #endif
                     for ( ;; ) {
                         i = (int)_tcslen(buffer) - 1;
                         if ( buffer[ i ] == __T('\n') ) {
@@ -822,11 +843,11 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
             fh = CreateFile( bodyFilename, FILE_READ_DATA, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
             if ( fh == INVALID_HANDLE_VALUE ) {
-                int lastError = GetLastError();
-                if ( lastError == 0 )
-                    printMsg(__T("%s does not exist\n"),bodyFilename);
+                DWORD lastError = GetLastError();
+                if ( lastError )
+                    printMsg(__T("unknown error code %lu when trying to open %s\n"), lastError, bodyFilename);
                 else
-                    printMsg(__T("unknown error code %d when trying to open %s\n"), lastError, bodyFilename);
+                    printMsg(__T("%s does not exist\n"), bodyFilename);
 
                 printMsg( NULL );
                 if ( logOut )
@@ -1148,6 +1169,10 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
 #define BLATDLL_API __declspec(dllexport)
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 static int localSend (LPCTSTR sCmd)
 {
     LPTSTR* argv;
@@ -1201,7 +1226,7 @@ static int localSend (LPCTSTR sCmd)
 
     return iResult;
 }
-extern "C"
+
 BLATDLL_API int APIENTRY SendW (LPCWSTR sCmd)
 {
     int     iResult;
@@ -1210,11 +1235,12 @@ BLATDLL_API int APIENTRY SendW (LPCWSTR sCmd)
     iResult = localSend( sCmd );
 #else
     iResult = 0;
-    DWORD byteCount = WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, sCmd, -1, NULL, -1, NULL, NULL );
+
+    int byteCount = WideCharToMultiByte( CP_UTF8, 0, sCmd, -1, NULL, 0, NULL, NULL );
     if ( byteCount > 1 ) {
         char * pCharCmd = (char *) new char[byteCount+1];
         if ( pCharCmd ) {
-            WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, sCmd, -1, pCharCmd, (int)byteCount, NULL, NULL );
+            WideCharToMultiByte( CP_UTF8, 0, sCmd, -1, pCharCmd, byteCount, NULL, NULL );
 
             iResult = localSend( (LPCSTR)pCharCmd );
         }
@@ -1224,18 +1250,19 @@ BLATDLL_API int APIENTRY SendW (LPCWSTR sCmd)
 
     return iResult;
 }
-extern "C"
+
 BLATDLL_API int APIENTRY SendA (LPCSTR sCmd)
 {
     int     iResult;
 
 #if defined(_UNICODE) || defined(UNICODE)
     iResult = 0;
-    DWORD byteCount = MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, sCmd, -1, NULL, 0 );
+
+    int byteCount = MultiByteToWideChar( CP_OEMCP, 0, sCmd, -1, NULL, 0 );
     if ( byteCount > 1 ) {
-        wchar_t * pWCharCmd = (wchar_t *) new wchar_t[byteCount+1];
+        wchar_t * pWCharCmd = (wchar_t *) new wchar_t[(size_t)byteCount+1];
         if ( pWCharCmd ) {
-            MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, sCmd, -1, pWCharCmd, (int)byteCount );
+            MultiByteToWideChar( CP_OEMCP, 0, sCmd, -1, pWCharCmd, byteCount );
 
             iResult = localSend( (LPCWSTR)pWCharCmd );
         }
@@ -1247,18 +1274,16 @@ BLATDLL_API int APIENTRY SendA (LPCSTR sCmd)
     return iResult;
 }
 
-extern "C"
 BLATDLL_API int __cdecl cSendW (LPCWSTR sCmd)
 {
     return SendW (sCmd);
 }
-extern "C"
+
 BLATDLL_API int __cdecl cSendA (LPCSTR sCmd)
 {
     return SendA (sCmd);
 }
 
-extern "C"
 BOOL APIENTRY DllMain( HANDLE hModule,
                        DWORD  ul_reason_for_call,
                        LPVOID lpReserved
@@ -1280,7 +1305,6 @@ BOOL APIENTRY DllMain( HANDLE hModule,
     return TRUE;
 }
 
-extern "C"
 BLATDLL_API int _stdcall BlatW(int argc, LPWSTR argv[]) {
 
 #if defined(_UNICODE) || defined(UNICODE)
@@ -1289,7 +1313,7 @@ BLATDLL_API int _stdcall BlatW(int argc, LPWSTR argv[]) {
     int     iResult;
     char ** newArgv;
     int     x;
-    DWORD   byteCount;
+    int     byteCount;
 
 
     iResult = 0;
@@ -1297,11 +1321,11 @@ BLATDLL_API int _stdcall BlatW(int argc, LPWSTR argv[]) {
     if ( newArgv ) {
         ZeroMemory( newArgv, sizeof(char *) * (argc+1) );
         for ( x = 0; x < argc; x++ ) {
-            byteCount = WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, argv[x], -1, NULL, -1, NULL, NULL );
-            if ( byteCount ) {
+            byteCount = WideCharToMultiByte( CP_UTF8, 0, argv[x], -1, NULL, 0, NULL, NULL );
+            if ( byteCount > 1 ) {
                 newArgv[x] = (char *) new char[byteCount+1];
                 if ( newArgv[x] ) {
-                    WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, argv[x], -1, newArgv[x], (int)byteCount, NULL, NULL );
+                    WideCharToMultiByte( CP_UTF8, 0, argv[x], -1, newArgv[x], byteCount, NULL, NULL );
                 }
             }
             if ( !newArgv[x] )
@@ -1320,14 +1344,14 @@ BLATDLL_API int _stdcall BlatW(int argc, LPWSTR argv[]) {
     return iResult;
 #endif
 }
-extern "C"
+
 BLATDLL_API int _stdcall BlatA(int argc, LPSTR argv[]) {
 
 #if defined(_UNICODE) || defined(UNICODE)
     int        iResult;
     wchar_t ** newArgv;
     int        x;
-    DWORD      byteCount;
+    int        byteCount;
 
 
     iResult = 0;
@@ -1335,11 +1359,11 @@ BLATDLL_API int _stdcall BlatA(int argc, LPSTR argv[]) {
     if ( newArgv ) {
         ZeroMemory( newArgv, sizeof(wchar_t *) * (argc+1) );
         for ( x = 0; x < argc; x++ ) {
-            byteCount = MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, argv[x], -1, NULL, 0 );
+            byteCount = MultiByteToWideChar( CP_OEMCP, 0, argv[x], -1, NULL, 0 );
             if ( byteCount > 1 ) {
-                newArgv[x] = (wchar_t *) new wchar_t[byteCount+1];
+                newArgv[x] = (wchar_t *) new wchar_t[(size_t)byteCount+1];
                 if ( newArgv[x] ) {
-                    MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, argv[x], -1, newArgv[x], (int)byteCount );
+                    MultiByteToWideChar( CP_OEMCP, 0, argv[x], -1, newArgv[x], byteCount );
                 }
             }
             if ( !newArgv[x] )
@@ -1379,58 +1403,87 @@ static void (__stdcall *pPrintDLL)(LPTSTR) = 0;
 
 static void printDLLW(LPTSTR pString) {
 
+    if (pPrintDLL) {
 #if defined(_UNICODE) || defined(UNICODE)
-    if (pPrintDLL)
         pPrintDLL( (LPTSTR)pString );
 #else
-    DWORD byteCount = MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, (LPSTR)pString, -1, NULL, 0 );
-    if ( byteCount > 1 ) {
-        LPWSTR pWCharString = (LPWSTR) new wchar_t[byteCount+1];
-        if ( pWCharString ) {
-            MultiByteToWideChar( CP_ACP, MB_PRECOMPOSED, (LPSTR)pString, -1, pWCharString, (int)byteCount );
+        int byteCount = MultiByteToWideChar( CP_OEMCP, 0, (LPSTR)pString, -1, NULL, 0 );
+        if ( byteCount > 1 ) {
+            LPWSTR pWCharString = (LPWSTR) new wchar_t[byteCount+1];
+            if ( pWCharString ) {
+                MultiByteToWideChar( CP_OEMCP, 0, (LPSTR)pString, -1, pWCharString, byteCount );
 
-            if (pPrintDLL)
                 pPrintDLL( (LPTSTR)pWCharString );
+            }
+            delete [] pWCharString;
         }
-        delete [] pWCharString;
-    }
 #endif
+    }
+    else
+        _fputts( pString, stdout );
 }
 
 static void printDLLA(LPTSTR pString) {
 
+    if (pPrintDLL) {
 #if defined(_UNICODE) || defined(UNICODE)
-    DWORD byteCount = WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, (LPWSTR)pString, -1, NULL, -1, NULL, NULL );
-    if ( byteCount > 1 ) {
-        LPSTR pCharString = (LPSTR) new char[byteCount+1];
-        if ( pCharString ) {
-            WideCharToMultiByte( CP_ACP, WC_COMPOSITECHECK|WC_SEPCHARS, (LPWSTR)pString, -1, pCharString, (int)byteCount, NULL, NULL );
+        int byteCount = WideCharToMultiByte( CP_UTF8, 0, (LPWSTR)pString, -1, NULL, 0, NULL, NULL );
+        if ( byteCount > 1 ) {
+            LPSTR pCharString = (LPSTR) new char[(size_t)byteCount+1];
+            if ( pCharString ) {
+                WideCharToMultiByte( CP_UTF8, 0, (LPWSTR)pString, -1, pCharString, byteCount, NULL, NULL );
 
-            if (pPrintDLL)
                 pPrintDLL( (LPTSTR)pCharString );
+            }
+            delete [] pCharString;
         }
-        delete [] pCharString;
-    }
 #else
-    if (pPrintDLL)
         pPrintDLL( (LPTSTR)pString );
 #endif
+    }
+    else
+        _fputts( pString, stdout );
 }
 
-static void (*pMyPrintDLL)(LPTSTR) = printDLL;
+void (*pMyPrintDLL)(LPTSTR) = printDLL;
 
-extern "C"
+
 BLATDLL_API void _stdcall SetPrintFuncW(void (__stdcall *func)(LPTSTR)) {
     pPrintDLL = func;
     pMyPrintDLL = printDLLW;
 }
-extern "C"
+
 BLATDLL_API void _stdcall SetPrintFuncA(void (__stdcall *func)(LPTSTR)) {
     pPrintDLL = func;
     pMyPrintDLL = printDLLA;
 }
 
+
+BLATDLL_API int APIENTRY Send (LPCSTR sCmd)
+{
+    return SendA (sCmd);
+}
+
+BLATDLL_API void _stdcall SetPrintFunc(void (__stdcall *func)(LPTSTR)) {    /* For compatibility with Blat.dll 2.x */
+    SetPrintFuncA( func );
+}
+
+BLATDLL_API int _stdcall Blat(int argc, LPSTR argv[])   /* For compatibility with Blat.dll 2.x */
+{
+    return BlatA( argc, argv );
+}
+
+BLATDLL_API int __cdecl cSend (LPCSTR sCmd) /* For compatibility with Blat.dll 2.x */
+{
+    return cSendA (sCmd);
+}
+
+
+#if defined(__cplusplus)
+}
 #endif
+
+#endif  // #ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
 
 /*
      Added 23 Aug 2000, Craig Morrison
@@ -1471,7 +1524,7 @@ void printMsg(LPTSTR p, ... )
     if ( !localT )
         _tcscpy( timeBuffer, __T("Date/Time not available") );
     else
-        _stprintf( timeBuffer, __T("%04u.%02u.%02u %02u:%02u:%02u (%3s)"),
+        _stprintf( timeBuffer, __T("%04d.%02d.%02d %02d:%02d:%02d (%3s)"),
                    localT->tm_year+1900,
                    localT->tm_mon +1,
                    localT->tm_mday,
@@ -1488,13 +1541,87 @@ void printMsg(LPTSTR p, ... )
             _ftprintf( logOut, __T("%s-------------End of Session------------------\n"), timeBuffer );
             fflush( logOut );
             fclose( logOut );
-            logOut = _tfopen(logFile, __T("a, ccs=UTF-8"));
+            logOut = _tfopen(logFile, fileAppendAttribute);
             delimiterPrinted = FALSE;
         }
         return;
     }
 
     _vstprintf( buf, p, args );
+
+#if defined(_UNICODE) || defined(UNICODE)
+    Buf    tmpStr;
+    _TCHAR c;
+    DWORD  lValue;
+    bool   converted;
+    int    len;
+
+    if ( _tcsicmp( charset, __T("utf-8") ) == 0 ) {
+        // Convert UTF-8 data to Unicode for correct string output
+        converted = TRUE;
+        y = (int)_tcslen(buf);
+        for ( x = 0; x < y; x++ ) {
+            c = buf[x];
+            if ( c > 0xFF ) {
+                converted = FALSE;
+                break;          /* Exit from for() loop because of bad data. */
+            }
+            if ( c < 0x80 )
+                tmpStr.Add( c );
+            else
+            {
+                if ( (c & 0xE0) == 0xC0 ) {
+                    lValue = (DWORD)c & 0x1F;
+                    len = 1;
+                } else
+                if ( (c & 0xF0) == 0xE0 ) {
+                    lValue = (DWORD)c & 0x0F;
+                    len = 2;
+                } else
+                if ( (c & 0xF8) == 0xF0 ) {
+                    lValue = (DWORD)c & 0x07;
+                    len = 3;
+                } else
+                if ( (c & 0xFC) == 0xF8 ) {
+                    lValue = (DWORD)c & 0x03;
+                    len = 4;
+                } else
+                if ( (c & 0xFE) == 0xFC ) {
+                    lValue = (DWORD)c & 0x01;
+                    len = 5;
+                } else {
+                    converted = FALSE;
+                    break;      /* Exit from for() loop because of bad data. */
+                }
+                while ( len ) {
+                    if ( (buf[x+1] & ~0x3F) != 0x80 )
+                        break;  /* Exit from while() loop because of bad data. */
+
+                    lValue = (lValue << 6) + (buf[++x] & 0x3F);
+                    len--;
+                }
+                if ( len || (lValue > 0x0010FFFFul) ) {
+                    converted = FALSE;
+                    break;      /* Exit from for() loop because of bad data. */
+                }
+                if ( lValue > 0x0000FFFFul ) {
+                    c = (_TCHAR)(((lValue - 0x10000ul) >> 10) | 0xD800);
+                    tmpStr.Add( c );
+                    c = (_TCHAR)((lValue & 0x3FFul) | 0xDC00);
+                } else
+                    c = (_TCHAR)lValue;
+
+                tmpStr.Add( c );
+            }
+        }
+        if ( converted ) {
+            _tcscpy( buf, tmpStr.Get() );
+            y = (int)tmpStr.Length();
+        }
+
+        tmpStr.Free();
+    }
+#endif
     y = (int)_tcslen(buf);
     for ( x = 0; buf[x]; x++ ) {
         if ( buf[x] == __T('\r') ) {
@@ -1520,28 +1647,34 @@ void printMsg(LPTSTR p, ... )
         }
     }
 
-    lastByteSent = buf[_tcslen(buf) - 1];
+    y = (int)_tcslen(buf);
+    if ( y ) {
+        lastByteSent = buf[y - 1];
 
-    if ( logOut ) {
-        if ( !delimiterPrinted ) {
-            _ftprintf( logOut, __T("\n%s------------Start of Session-----------------\n"), timeBuffer );
-            delimiterPrinted = TRUE;
-        }
+        if ( logOut ) {
+            if ( !delimiterPrinted ) {
+                _ftprintf( logOut, __T("\n%s------------Start of Session-----------------\n"), timeBuffer );
+                delimiterPrinted = TRUE;
+            }
 
-        if ( timestamp )
-            _ftprintf( logOut, __T("%s: "), timeBuffer );
+            if ( timestamp )
+                _ftprintf( logOut, __T("%s: "), timeBuffer );
 
-        _ftprintf(logOut, __T("%s"), buf);
-        fflush( logOut );
-        fclose( logOut );
-        logOut = _tfopen(logFile, __T("a, ccs=UTF-8"));
-    } else {
+            _ftprintf(logOut, __T("%s"), buf);
+            fflush( logOut );
+            fclose( logOut );
+            logOut = _tfopen(logFile, fileAppendAttribute);
+        } else {
 #ifdef BLATDLL_EXPORTS
-        pMyPrintDLL(buf);
-#else
-        _tprintf(__T("%s"), buf);
-        fflush( stdout );
+            if ( pMyPrintDLL )
+                pMyPrintDLL(buf);
+            else
 #endif
+            {
+                _tprintf(__T("%s"), buf);
+                fflush( stdout );
+            }
+        }
     }
     va_end(args);
 }

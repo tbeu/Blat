@@ -5,6 +5,28 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.0.1
+[+] When printing messages to a log, or to the screen, convert UTF-8 strings
+    to Unicode when possible before writing to the log or screen.  This allows
+    the user's strings to appear as readable text to that user, hopefully.
+[*] Removed dependance on MSVCRT.DLL and MSVCR100.DLL.  The program size is
+    larger, but Blat now does not need these .dll files to be distributed.
+[*] Blat 32-bit is being built with Microsoft Visual C++ 6.0, and should still
+    run under Windows 98 and Windows 2000.
+[*] Blat 64-bit is being built with Visual Studio 2010, and should run under
+    any Windows 64-bit edition.
+[*] Blat 64-bit does not include GSS encryption support.
+[*] Dropped the "w/GSS encryption" version suffix.
+[-] Fix base64 encoding of message headers to issue a line break on the nearest
+    space character to a 72 character line length.  Before this change, some
+    Unicode strings were not interpreted correctly by some email clients.  With
+    this change, email clients like Thunderbird can decode the headers
+    properly.
+[-] Fixed the message output for blat.dll to use a caller's print function
+    when it is available.
+[-] Fixed blat.dll functions printDLLW(), printDLLA(), BlatA(), BlatW(),
+    SendA(), and SendW() to correctly convert from/to Unicode strings.
+-------------------------------------------------------------------------------
 3.0.0
 [+] Allow Unicode domain names, which will be made compliant with RFC 5890.
 [+] Converted the source code to use Unicode throughout.  As a result, I added

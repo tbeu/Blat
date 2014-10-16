@@ -39,7 +39,7 @@ static punycode_uint decode_digit(punycode_uint cp)
 
 static _TCHAR encode_digit(punycode_uint d, int flag)
 {
-    return (d + 22 + 75 * (d < 26) - ((flag != 0) << 5)) & 0x0FF;
+    return (_TCHAR)((d + 22 + 75 * (d < 26) - ((flag != 0) << 5)) & 0x0FF);
     /*  0..25 map to ASCII a..z or A..Z */
     /* 26..35 map to ASCII 0..9         */
 }
@@ -60,7 +60,7 @@ static _TCHAR encode_basic(punycode_uint bcp, int flag)
 {
 
     bcp -= ((bcp - 97) < 26) << 5;
-    return (bcp + ((!flag && ((bcp - 65) < 26)) << 5)) & 0x0FF;
+    return (_TCHAR)((bcp + ((!flag && ((bcp - 65) < 26)) << 5)) & 0x0FF);
 }
 
 /*** Platform-specific constants ***/
@@ -299,7 +299,6 @@ punycode_status punycode_decode( punycode_uint input_length,
 
 #include <assert.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* For testing, we'll just set some compile-time limits rather than */
@@ -386,7 +385,7 @@ int _tmain(int argc, LPTSTR * argv)
 
             there = argv[2];
             start = there;
-            CharLower(there);
+            _tcslwr(there);
             tmpBuf.Clear();
             finishedURL.Clear();
             needPunycode = 0;
@@ -509,6 +508,13 @@ int _tmain(int argc, LPTSTR * argv)
             _tcscpy(input, argv[2]);
         } else {
             _fgetts(input, ace_max_length+2, stdin);
+#if defined(_UNICODE) || defined(UNICODE)
+            for ( int i = 0; ; i++ ) {
+                input[i] = (_TCHAR)(input[i*2] + (input[(i*2)+1] << 8));
+                if ( input[i] == __T('\0') )
+                    break;
+            }
+#endif
             if (ferror(stdin))
                 fail(io_error);
 

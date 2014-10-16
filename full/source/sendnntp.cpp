@@ -7,7 +7,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "blat.h"
 #include "winfile.h"
@@ -32,7 +31,7 @@ extern int  add_one_attachment( Buf & messageBuffer, int buildSMTP, LPTSTR attac
 extern void getAttachmentInfo( int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType );
 extern void getMaxMsgSize( int buildSMTP, DWORD & length );
   #endif
-extern int  add_message_body( Buf &messageBuffer, int msgBodySize, Buf &multipartHdrs, int buildSMTP,
+extern int  add_message_body( Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdrs, int buildSMTP,
                               LPTSTR attachment_boundary, DWORD startOffset, int part, int attachNbr );
 extern int  add_attachments( Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary, int nbrOfAttachments );
 extern void add_msg_boundary( Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary );
@@ -195,7 +194,7 @@ static int prepare_nntp_message( LPTSTR loginAuth, LPTSTR pwdAuth )
 }
 
 
-int send_news( int msgBodySize,
+int send_news( size_t msgBodySize,
                Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
                LPTSTR attachment_boundary, LPTSTR multipartID,
                int nbrOfAttachments, DWORD totalsize )
@@ -210,8 +209,7 @@ int send_news( int msgBodySize,
     _TCHAR  saved8bitSupport;
     _TCHAR  savedChunkingSupport;
     BLDHDRS bldHdrs;
-    Buf     tmpBuf, tmpBuf2;
-    int     utf;
+    Buf     tmpBuf;
 
 
     if ( !NNTPHost[0] || !groups.Length() )
@@ -253,19 +251,26 @@ int send_news( int msgBodySize,
     }
  */
 
+#if defined(_UNICODE) || defined(UNICODE)
+    Buf tmpBuf2;
+    int utf;
+
     tmpBuf.Clear();
     tmpBuf2 = AUTHLogin;
-    utf = 0;
+    utf = NATIVE_16BIT_UTF;
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
     if ( utf )
         AUTHLogin = tmpBuf;
 
     tmpBuf.Clear();
     tmpBuf2 = AUTHPassword;
-    utf = 0;
+    utf = NATIVE_16BIT_UTF;
     convertPackedUnicodeToUTF( tmpBuf2, tmpBuf, &utf, NULL, 8 );
     if ( utf )
         AUTHPassword = tmpBuf;
+
+    tmpBuf2.Free();
+#endif
 
     if ( !my_hostname[0] ) {
         // Do a quick open/close to get the local hostname before building headers.
@@ -275,6 +280,7 @@ int send_news( int msgBodySize,
 
   #if SUPPORT_MULTIPART
     DWORD msgSize;
+    DWORD totalParts;
 
     if ( multipartSize )
         msgSize = (DWORD)multipartSize;
@@ -287,7 +293,6 @@ int send_news( int msgBodySize,
         printMsg(__T("Message is too big to send.  Please try a smaller message.\n") );
         finish_server_message();
         close_server_socket();
-        tmpBuf2.Free();
         tmpBuf.Free();
         header.Free();
         varHeaders.Free();
@@ -296,9 +301,7 @@ int send_news( int msgBodySize,
         return 14;
     }
 
-    int totalParts = (int)(totalsize / msgSize);
-    if ( totalsize % msgSize )
-        totalParts++;
+    totalParts = ((totalsize + msgSize - 1) / msgSize);
 
     if ( (totalParts > 1) || (nbrOfAttachments > 1) || (yEnc && nbrOfAttachments) ) {
         // send multiple messages, one attachment per message.
@@ -310,7 +313,7 @@ int send_news( int msgBodySize,
         DWORD   startOffset;
 
         if ( totalParts > 1 )
-            printMsg(__T("Sending %u parts for this message.\n"), totalParts );
+            printMsg(__T("Sending %lu parts for this message.\n"), totalParts );
 
         if ( !yEnc ) {
             mime     = FALSE;
@@ -354,7 +357,6 @@ int send_news( int msgBodySize,
                 retcode = add_message_body( messageBuffer, msgBodySize, multipartHdrs, FALSE,
                                             attachment_boundary, startOffset, thisPart, attachNbr );
                 if ( retcode ) {
-                    tmpBuf2.Free();
                     tmpBuf.Free();
                     header.Free();
                     varHeaders.Free();
@@ -376,7 +378,6 @@ int send_news( int msgBodySize,
 
                 multipartHdrs.Clear();
                 if ( retcode ) {
-                    tmpBuf2.Free();
                     tmpBuf.Free();
                     header.Free();
                     varHeaders.Free();
@@ -433,7 +434,6 @@ int send_news( int msgBodySize,
         if ( retcode ) {
             eightBitMimeSupported = saved8bitSupport;
             chunkingSupported = savedChunkingSupport;
-            tmpBuf2.Free();
             tmpBuf.Free();
             header.Free();
             varHeaders.Free();
@@ -448,7 +448,6 @@ int send_news( int msgBodySize,
         eightBitMimeSupported = saved8bitSupport;
 
         if ( retcode ) {
-            tmpBuf2.Free();
             tmpBuf.Free();
             header.Free();
             varHeaders.Free();
@@ -485,7 +484,6 @@ int send_news( int msgBodySize,
         }
     }
 
-    tmpBuf2.Free();
     tmpBuf.Free();
     header.Free();
     varHeaders.Free();

@@ -15,14 +15,14 @@ extern "C" {
 
 typedef struct
 {
-    uint32_t total[2];
+    size_t   total[2];
     uint32_t state[4];
     _TUCHAR  buffer[64];
 }
 md5_context;
 
 void _cdecl md5_starts( md5_context *ctx );
-void _cdecl md5_update( md5_context *ctx, _TUCHAR *input, uint32_t length );
+void _cdecl md5_update( md5_context *ctx, _TUCHAR *input, size_t length );
 void _cdecl md5_finish( md5_context *ctx, _TUCHAR  digest[16] );
 
 #ifdef __cplusplus
