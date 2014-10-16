@@ -710,7 +710,6 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
     Buf                   fixedReturnPathId;
     Buf                   contentType;
     FILETIME              today;
-    _TCHAR FAR *          domainPtr;
     LPTSTR                pp;
     Buf                   shortNameBuf;
 
@@ -1051,11 +1050,6 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
         bldHdrs.header->Add( bldHdrs.varHeaders->Get() );
     }
 #endif
-
-    domainPtr = gensock_getdomainfromhostname(CommonData, bldHdrs.server_name);
-    if (!domainPtr)
-        domainPtr = bldHdrs.server_name;
-
     GetSystemTimeAsFileTime( &today );
 
 #if defined(_WIN64)
@@ -1069,7 +1063,7 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
     }
 #endif
     _stprintf(tmpstr, __T("Message-ID: <%08lx$Blat.v%s$%08lx$%lx%lx@%s>\r\n"),
-              today.dwHighDateTime, blatVersion, today.dwLowDateTime, GetCurrentProcessId(), cpuTime, domainPtr );
+              today.dwHighDateTime, blatVersion, today.dwLowDateTime, GetCurrentProcessId(), cpuTime, bldHdrs.server_name );
     bldHdrs.header->Add( tmpstr );
 
     tmpstr[0] = __T('\0');

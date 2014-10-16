@@ -223,7 +223,7 @@ int add_message_body ( COMMON_DATA & CommonData,
                         messageBuffer.Add( altTextCharset );
                     else
                         messageBuffer.Add( getCharsetString(CommonData) );
-                    messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
+                    messageBuffer.Add( __T("\"\r\n\r\n") );
                     CommonData.boundaryPosted = TRUE;
                     if ( needQP )
                         ConvertToQuotedPrintable( CommonData, CommonData.alternateText, messageBuffer, FALSE );
@@ -270,7 +270,7 @@ int add_message_body ( COMMON_DATA & CommonData,
 #endif
                         messageBuffer.Add( __T(";\r\n charset=\"") );
                         messageBuffer.Add( getCharsetString(CommonData) );
-                        messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
+                        messageBuffer.Add( __T("\"\r\n\r\n") );
                         CommonData.boundaryPosted = TRUE;
                     }
                 } else {
@@ -319,7 +319,7 @@ int add_message_body ( COMMON_DATA & CommonData,
                             messageBuffer.Add( CommonData.textmode );
                             messageBuffer.Add( __T(";\r\n charset=\"") );
                             messageBuffer.Add( getCharsetString(CommonData) );
-                            messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
+                            messageBuffer.Add( __T("\"\r\n\r\n") );
                             CommonData.boundaryPosted = TRUE;
 #else
                             if ( !CommonData.uuencode && !yEnc_This && buildSMTP ) {
@@ -348,7 +348,7 @@ int add_message_body ( COMMON_DATA & CommonData,
   #endif
                                 messageBuffer.Add( __T(";\r\n charset=\"") );
                                 messageBuffer.Add( getCharsetString(CommonData) );
-                                messageBuffer.Add( __T("\";\r\n reply-type=original\r\n\r\n") );
+                                messageBuffer.Add( __T("\"\r\n\r\n") );
                                 CommonData.boundaryPosted = TRUE;
                             }
 #endif

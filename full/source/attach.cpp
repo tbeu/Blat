@@ -438,8 +438,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
                         tmpstr1.Add( localCharset );
                     else
                         tmpstr1.Add( defaultCharset );    // modified 15. June 1999 by JAG
-                    tmpstr1.Add( __T("\";\r\n") );
-                    tmpstr1.Add( __T(" reply-type=original\r\n") );
+                    tmpstr1.Add( __T("\"\r\n") );
 
                     tmpstr2    = __T("Content-Transfer-Encoding: ");
                     tmpstr2.Add( getBitSize( textFileBuffer.Get() ) );

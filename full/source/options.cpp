@@ -223,6 +223,7 @@ typedef enum {
     INSTALL_STATE_PROFILE,
     INSTALL_STATE_LOGIN_ID,
     INSTALL_STATE_PASSWORD,
+    INSTALL_STATE_ANYTHING_MISSED,
     INSTALL_STATE_DONE
 } _INSTALL_STATES;
 
@@ -474,6 +475,9 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
                 }
                 continue;
             }
+
+        case INSTALL_STATE_ANYTHING_MISSED:
+            argState++;
         }
     }
 
@@ -770,6 +774,9 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 }
                 continue;
             }
+
+        case INSTALL_STATE_ANYTHING_MISSED:
+            argState++;
         }
     }
 
@@ -1110,6 +1117,9 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 }
                 continue;
             }
+
+        case INSTALL_STATE_ANYTHING_MISSED:
+            argState++;
         }
     }
 
@@ -1411,6 +1421,9 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 }
                 continue;
             }
+
+        case INSTALL_STATE_ANYTHING_MISSED:
+            argState++;
         }
     }
 

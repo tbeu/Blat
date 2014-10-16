@@ -5,6 +5,19 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.1
+[*] Completely removed "reply-type=original" from the source, so it cannot be
+    added to any message headers.  No reference to this text was found in any
+    RFC at ietf.org.
+[*] Add the whole server name/address to the Message-ID header.  Before, only
+    the domain portion of the server name was added to the header.  In testing
+    a multithreaded program, the routine that attempted to identify the domain
+    was causing a crash.  The crash condition goes away if I just use the
+    server name as given by the user.
+[-] When checking user input for Unicode, the buffer length should already be
+    set, therefore set the buffer length only if not already set.  This allows
+    users to send binary files as their message body like older versions.
+-------------------------------------------------------------------------------
 3.2.0
 [+] First attempt to make Blat.dll thread safe, meaning that a multithreaded
     program that uses Blat.dll should be able to send emails with each thread

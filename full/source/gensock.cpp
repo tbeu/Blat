@@ -1131,7 +1131,7 @@ void
 //
 
 int
-     gensock_connect (struct _COMMON_DATA & CommonData,
+     gensock_connect (COMMON_DATA & CommonData,
                       LPTSTR hostname,
                       LPTSTR service,
                       socktag FAR * pst)
@@ -1171,7 +1171,7 @@ int
 //
 
 int
-     gensock_getchar (struct _COMMON_DATA & CommonData, socktag st, int wait, LPTSTR ch)
+     gensock_getchar (COMMON_DATA & CommonData, socktag st, int wait, LPTSTR ch)
 {
     connection * conn = (connection *) st;
 
@@ -1187,7 +1187,7 @@ int
 //
 
 int
-     gensock_put_data (struct _COMMON_DATA & CommonData, socktag st, LPTSTR pData, unsigned long length)
+     gensock_put_data (COMMON_DATA & CommonData, socktag st, LPTSTR pData, unsigned long length)
 {
     connection * conn = (connection *) st;
 
@@ -1202,7 +1202,7 @@ int
 //
 
 int
-     gensock_put_data_buffered (struct _COMMON_DATA & CommonData, socktag st, LPTSTR data, unsigned long length)
+     gensock_put_data_buffered (COMMON_DATA & CommonData, socktag st, LPTSTR data, unsigned long length)
 {
     connection * conn = (connection *) st;
 
@@ -1217,7 +1217,7 @@ int
 //
 
 int
-     gensock_put_data_flush (struct _COMMON_DATA & CommonData, socktag st)
+     gensock_put_data_flush (COMMON_DATA & CommonData, socktag st)
 {
     connection * conn = (connection *) st;
 
@@ -1231,7 +1231,7 @@ int
 // ---------------------------------------------------------------------------
 //
 char *
-     gensock_getdomainfromhostnameA (struct _COMMON_DATA & CommonData, char * pName)
+     gensock_getdomainfromhostnameA (COMMON_DATA & CommonData, char * pName)
 {
     char * domainPtr;
 
@@ -1272,7 +1272,7 @@ char *
 
 #if defined(_UNICODE) || defined(UNICODE)
 LPTSTR
-     gensock_getdomainfromhostnameW (struct _COMMON_DATA & CommonData, LPTSTR pName)
+     gensock_getdomainfromhostnameW (COMMON_DATA & CommonData, LPTSTR pName)
 {
     unsigned x;
     char   * pDomainName;
@@ -1427,7 +1427,7 @@ int
 //
 
 int
-     init_winsock(struct _COMMON_DATA & CommonData)
+     init_winsock(COMMON_DATA & CommonData)
 {
     int retval;
     WSADATA winsock_data;
@@ -1444,9 +1444,10 @@ int
     }
 #endif
     switch ( retval ) {
-//    case 0:           // defaults to break anyway.
-//        /* successful */
-//        break;
+    case 0:           // defaults to break anyway.
+        /* successful */
+        break;
+
     case WSASYSNOTREADY:
         return(ERR_SYS_NOT_READY);
 
@@ -1467,7 +1468,7 @@ int
 }
 
 void
-     deinit_winsock(struct _COMMON_DATA & CommonData)
+     deinit_winsock(COMMON_DATA & CommonData)
 {
     CommonData.network_initialized = 0;
     WSACleanup();

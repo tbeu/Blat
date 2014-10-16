@@ -713,8 +713,11 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
 
     newString.Clear();
     compactUnicodeFileData( stringToCheck );
-    stringToCheck.SetLength();
     length = stringToCheck.Length();
+    if ( length == 0 ) {
+        stringToCheck.SetLength();
+        length = stringToCheck.Length();
+    }
     pStr = (_TUCHAR *)stringToCheck.Get();
     for ( x = 0; x < length; x++ ) {
         if ( x == 0 ) {
