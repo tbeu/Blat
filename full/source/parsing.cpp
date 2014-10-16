@@ -32,27 +32,33 @@ void parseCommaDelimitString ( LPTSTR source, Buf & parsed_strings, int pathName
     len = _tcslen( source );
     if ( len ) {
         int x;
+
+        srcptr = source;
         for ( ; ; ) {
-            if ( (srcptr = _tcschr( source, __T('%') )) != NULL ) {
+            if ( (srcptr = _tcschr( srcptr, __T('%') )) != NULL ) {
                 _TCHAR holdingstr[3];
 
-                if ( _istxdigit( srcptr[1] ) &&
-                     _istxdigit( srcptr[2] ) ) {
-                    holdingstr[0] = srcptr[1];
-                    holdingstr[1] = srcptr[2];
-                    holdingstr[2] = __T('\0');
-                    _stscanf( holdingstr, __T("%02x"), &x );
-                    *srcptr = (_TCHAR)x;
-                    _tcscpy( srcptr+1, srcptr+3 );
-                }
+                holdingstr[0] = srcptr[1];
+                holdingstr[1] = srcptr[2];
+                holdingstr[2] = __T('\0');
+                _stscanf( holdingstr, __T("%02x"), &x );
+                *srcptr = (_TCHAR)x;
+                _tcscpy( srcptr+1, srcptr+3 );
+                srcptr++;
             }
             else
-            if ( (srcptr = _tcschr( source, __T('&') )) != NULL ) {
-                size_t len;
+                break;
+        }
+
+        srcptr = source;
+        for ( ; ; ) {
+            if ( (srcptr = _tcschr( srcptr, __T('&') )) != NULL ) {
+                size_t len1;
                 static struct {
                     _TCHAR   replacementChar;
                     LPTSTR   str;
                 } htmlStrings[] = { { __T('\x27'), __T("&apostrophe;") },
+                                    { __T('&')   , __T("&amp;")        },
                                     { __T('*')   , __T("&asterisk;")   },
                                     { __T(':')   , __T("&colon;")      },
                                     { __T(',')   , __T("&comma;")      },
@@ -98,12 +104,13 @@ void parseCommaDelimitString ( LPTSTR source, Buf & parsed_strings, int pathName
                     }
                 }
                 for ( x = 0; x < HTML_STRINGS_COUNT; x++ ) {
-                    len = _tcslen( htmlStrings[x].str );
-                    if ( _memicmp( srcptr, htmlStrings[x].str, len*sizeof(_TCHAR) ) == 0 ) {
+                    len1 = _tcslen( htmlStrings[x].str );
+                    if ( _memicmp( srcptr, htmlStrings[x].str, len1*sizeof(_TCHAR) ) == 0 ) {
                         srcptr[0] = htmlStrings[x].replacementChar;
-                        _tcscpy( srcptr+1, srcptr+len );
+                        _tcscpy( srcptr+1, srcptr+len1 );
                     }
                 }
+                srcptr++;
             }
             else
                 break;

@@ -495,23 +495,17 @@ int add_one_attachment ( Buf &messageBuffer, int buildSMTP, LPTSTR attachment_bo
                     if ( attachType == INLINE_ATTACHMENT ) {
                         tmpstr1 = __T("Content-Type: text/");
                         tmpstr1.Add( textmode );
-                        tmpstr1.Add( __T(";\r\n") );
-                        tmpstr1.Add( __T(" name=\"") );
-                        tmpstr1.Add( tmpstr3 );
-                        tmpstr1.Add( __T("\"") );
                     }
                     else {
-                        tmpstr1.Remove();
-                        tmpstr1.Remove();
+                        tmpstr1.Remove();               // remove the line feed ('\n')
+                        tmpstr1.Remove();               // remove the carriage return ('\r')
                     }
-                    tmpstr1.Add( __T(";\r\n") );
-                    tmpstr1.Add( __T(" charset=\"") );
+                    tmpstr1.Add( __T("; charset=\"") );
                     if ( localCharset[0] )
                         tmpstr1.Add( localCharset );
                     else
                         tmpstr1.Add( defaultCharset );    // modified 15. June 1999 by JAG
-                    tmpstr1.Add( __T("\";\r\n") );
-                    tmpstr1.Add( __T(" reply-type=original\r\n") );
+                    tmpstr1.Add( __T("\"\r\n") );
 
                     tmpstr2    = __T("Content-Transfer-Encoding: ");
                     tmpstr2.Add( getBitSize( textFileBuffer.Get() ) );

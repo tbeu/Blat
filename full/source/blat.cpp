@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.1.0")
+#define BLAT_VERSION    __T("3.1.1")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -1591,7 +1591,7 @@ BLATDLL_API void _stdcall SetProcessDataProcW(tProcessDataProcW pProcessDataProc
 #ifdef BLATDLL_TC_WCX
     pProcessDataProcW = pProcessDataProcW1;
 #else
-    pProcessDataProcW1 = pProcessDataProcW1;    // eliminate compiler warnings.
+    UNREFERENCED_PARAMETER( pProcessDataProcW1 );
 #endif
 }
 
@@ -1600,7 +1600,7 @@ BLATDLL_API void _stdcall SetProcessDataProc(tProcessDataProc pProcessDataProc1)
 #ifdef BLATDLL_TC_WCX
     pProcessDataProc = pProcessDataProc1;
 #else
-    pProcessDataProc1 = pProcessDataProc1;      // eliminate compiler warnings.
+    UNREFERENCED_PARAMETER( pProcessDataProc1 );
 #endif
 }
 

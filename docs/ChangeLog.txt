@@ -5,6 +5,11 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.1.1
+[-] Fixed a problem with parsing the command line and email addresses that have
+    an ampersand (&) or a percent sign (%) by themselves, not using HTML
+    formatting.
+-------------------------------------------------------------------------------
 3.1.0
 [+] Added support for Blat.wcx in Total Commander (http://www.ghisler.com)
 [*] Blat 64-bit includes GSS encryption support once again.  gssapi64.dll can
@@ -28,6 +33,10 @@
     using -debug.  -superdebug is not effected, because this mode will write
     the individual bytes in HEX mode, which the user can then validate if their
     login credentials are being rejected.
+[-] Fixed inline attachments to remove "reply-type=original", making the
+    headers look like they did with Blat version 2.6.1.  The test message
+    received by Windows Live Mail looks as expected -- inlined text attachments
+    are viewed as if part of the original message.
 [-] RFC 2046 says that if "Content-Type:" is message/rfc822, then only 7BIT,
     8BIT, and BINARY are permitted encoding types.  If an attachment is found
     to have this content type defined, then the attachment will be treated as a

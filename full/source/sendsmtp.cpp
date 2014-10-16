@@ -1331,7 +1331,7 @@ static int prepare_smtp_message( LPTSTR dest, DWORD msgLength )
         return(-1);
     }
 
-    msgLength = msgLength; // eliminate compiler warning.
+    UNREFERENCED_PARAMETER( msgLength );
 #if BLAT_LITE
 #else
     if ( !binaryMimeSupported )

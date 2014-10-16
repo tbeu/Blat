@@ -1383,7 +1383,7 @@ void build_headers( BLDHDRS & bldHdrs )
                             pString2 = _tcsstr( TempConsole.Get(), __T("Content-Type: ") );
                             if ( pString2 == NULL )
                                 pString2 = _tcsstr( TempConsole.Get(), __T("Content-Transfer-Encoding:") );
-                            *pString1 - __T('\r');
+                            *pString1 = __T('\r');
                         }
                     }
                     if ( pString2 == NULL ) {
