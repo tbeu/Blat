@@ -5,6 +5,13 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.2
+[-] Fixed the -af option to read Unicode / UTF-8 files.  The change was in a
+    routine common to several options.
+[-] Fixed a variable initialization in the sockets code.
+[-] Fixed attachment filename encoding for UTF-8 where the name does not
+    contain Unicode characters, but also is not strictly US ASCII.
+-------------------------------------------------------------------------------
 3.2.1
 [*] Completely removed "reply-type=original" from the source, so it cannot be
     added to any message headers.  No reference to this text was found in any
