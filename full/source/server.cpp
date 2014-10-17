@@ -856,6 +856,7 @@ int send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, int expected_resp
 {
     int enhancedStatusCode;
     int retval;
+    int serverResponse;
 
 #ifdef BLATDLL_TC_WCX
     retval = transform_and_send_edit_data( CommonData, message, attachmentSize );
@@ -865,7 +866,8 @@ int send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, int expected_resp
     if ( retval )
         return(retval);
 
-    if ( get_server_response( CommonData, responseStr, &enhancedStatusCode ) != expected_response ) {
+    serverResponse = get_server_response( CommonData, responseStr, &enhancedStatusCode );
+    if ( serverResponse != expected_response ) {
         server_error (CommonData, __T("Message not accepted by server\n"));
         finish_server_message(CommonData);
         return(-1);

@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.1")
+#define BLAT_VERSION    __T("3.2.2")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -1519,8 +1519,10 @@ void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... )
 
             _ftprintf( CommonData.logOut, __T("%s-------------End of Session------------------\n"), timeBuffer );
             fflush( CommonData.logOut );
-            fclose( CommonData.logOut );
-            CommonData.logOut = _tfopen(CommonData.logFile, fileAppendAttribute);
+            if ( CommonData.logOut != stdout ) {
+                fclose( CommonData.logOut );
+                CommonData.logOut = _tfopen(CommonData.logFile, fileAppendAttribute);
+            }
             CommonData.delimiterPrinted = FALSE;
         }
         return;
@@ -1656,8 +1658,10 @@ void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... )
 #endif
             _ftprintf(CommonData.logOut, __T("%s"), buf);
             fflush( CommonData.logOut );
-            fclose( CommonData.logOut );
-            CommonData.logOut = _tfopen(CommonData.logFile, fileAppendAttribute);
+            if ( CommonData.logOut != stdout ) {
+                fclose( CommonData.logOut );
+                CommonData.logOut = _tfopen(CommonData.logFile, fileAppendAttribute);
+            }
         } else {
 #ifdef BLATDLL_EXPORTS
             if ( pMyPrintDLL )

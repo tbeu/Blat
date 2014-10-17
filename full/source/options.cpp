@@ -516,7 +516,8 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
             CommonData.regerr = 0;
             printMsg( CommonData, NULL );
             if ( CommonData.logOut )
-                fclose( CommonData.logOut );
+                if ( CommonData.logOut != stdout )
+                    fclose( CommonData.logOut );
 
             CommonData.exitRequired = TRUE;
             return(0);
@@ -811,7 +812,8 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             CommonData.regerr = 0;
             printMsg( CommonData, NULL );
             if ( CommonData.logOut )
-                fclose( CommonData.logOut );
+                if ( CommonData.logOut != stdout )
+                    fclose( CommonData.logOut );
 
             CommonData.exitRequired = TRUE;
             return(0);
@@ -1148,7 +1150,8 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             CommonData.regerr = 0;
             printMsg( CommonData, NULL );
             if ( CommonData.logOut )
-                fclose( CommonData.logOut );
+                if ( CommonData.logOut != stdout )
+                    fclose( CommonData.logOut );
 
             CommonData.exitRequired = TRUE;
             return(0);
@@ -1452,7 +1455,8 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             CommonData.regerr = 0;
             printMsg( CommonData, NULL );
             if ( CommonData.logOut )
-                fclose( CommonData.logOut );
+                if ( CommonData.logOut != stdout )
+                    fclose( CommonData.logOut );
 
             CommonData.exitRequired = TRUE;
             return(0);
@@ -1789,7 +1793,8 @@ static int checkProfileEdit ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 #endif
     printMsg( CommonData, NULL );
     if ( CommonData.logOut )
-        fclose( CommonData.logOut );
+        if ( CommonData.logOut != stdout )
+            fclose( CommonData.logOut );
 
     CommonData.exitRequired = TRUE;
     return(0);
@@ -2421,10 +2426,12 @@ static int ReadFilenamesFromFile(COMMON_DATA & CommonData, LPTSTR namesfilename,
     sourceText.Add( tmpstr, filesize );
     checkInputForUnicode( CommonData, sourceText );
     memcpy( tmpstr, sourceText.Get(), (sourceText.Length()+1)*sizeof(_TCHAR) );
+    if ( tmpstr[0] == 0xFEFF )                  // Unicode BOM
+        memcpy( &tmpstr[0], &tmpstr[1], sourceText.Length()*sizeof(_TCHAR) );
   #endif
     addToAttachments( CommonData, &tmpstr, -1, aType );
     free(tmpstr);
-    return(1);                                   // indicates no error.
+    return(1);                                  // indicates no error.
 }
 
 static int checkTxtFileAttFil ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
@@ -2517,14 +2524,17 @@ static int checkLogMessages ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     startargv = startargv;
 
     if ( CommonData.logOut ) {
-        fclose( CommonData.logOut );
-        CommonData.logOut = 0;
+        if ( CommonData.logOut != stdout ) {
+            fclose( CommonData.logOut );
+            CommonData.logOut = 0;
+        }
     }
     if ( !argv[this_arg+1]                  ||
          (argv[this_arg+1][0] == __T('\0')) ||
          (argv[this_arg+1][0] == __T('-') ) ||
          (argv[this_arg+1][0] == __T('/') ) ) {
         CommonData.logFile[0] = __T('\0');
+        CommonData.logOut = stdout;
         return(0);
     }
 
@@ -3406,6 +3416,7 @@ _BLATOPTIONS blatOptionsList[] = {
     { __T("-ti")            , __T("timeout")         , FALSE, 1, checkTimeout        ,    __T(" <n>         : set timeout to 'n' seconds.  Blat will wait 'n' seconds for") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  server responses") },
     { strTry                ,              NULL      , FALSE, 1, checkAttempts       ,     __T(" <n times>  : how many times blat should try to send (1 to 'INFINITE')") },
+    {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  The default is 1.)") },
     { __T("-binary")        ,              NULL      , FALSE, 0, checkFixPipe        ,        __T("         : do not convert ASCII | (pipe, 0x7c) to CrLf in the message") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  body") },
     { __T("-hostname")      ,              NULL      , FALSE, 1, checkHostname       ,          __T(" <hst> : select the hostname used to send the message via SMTP") },
@@ -3417,9 +3428,9 @@ _BLATOPTIONS blatOptionsList[] = {
     { __T("-delay")         ,              NULL      , FALSE, 1, checkDelayTime      ,       __T(" <x>      : wait x seconds between messages being sent when used with") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  -maxnames")
   #if SUPPORT_MULTIPART
-                                                                                                            __T(" or -multipart")
+                                                                                                                  __T(" or -multipart")
   #endif
-                                                                                                                                   },
+                                                                                                                                        },
     { __T("-comment")       ,              NULL      , TRUE , 1, checkCommentChar    ,         __T(" <char> : use this character to mark the start of comments in") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  options files and recipient list files.  The default is ;") },
 #endif

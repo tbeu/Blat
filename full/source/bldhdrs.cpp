@@ -171,15 +171,27 @@ void fixup( COMMON_DATA & CommonData, LPTSTR string, Buf * outString, int header
     tempUTF = 0;
 
     if ( CheckIfNeedQuotedPrintable( CommonData, tempstring.Get(), TRUE ) ) {
-        Buf    tmpstr;
-        LPTSTR pStr;
+        Buf       tmpstr;
+        LPTSTR    pStr;
 
-        convertPackedUnicodeToUTF( tempstring, fixupString, &tempUTF, localCharset, utfRequested );
-        if ( tempUTF )
-        {
-            tempstring = fixupString;
-            charsetLen = 12;    // =?utf-8?q? ?=
+//#if defined(_UNICODE) || defined(UNICODE)
+        _TUCHAR * pStr1;
+        size_t    x;
+
+        pStr1 = (_TUCHAR *) tempstring.Get();
+        for ( x = 0; *pStr1 != __T('\0'); pStr1++ ) {
+            if ( (*pStr1 > 0x00FF) || ((memcmp(localCharset, __T("UTF-"), 4*sizeof(_TCHAR)) == 0) && (*pStr1 > 0x007F)) ) {
+                tempUTF = NATIVE_16BIT_UTF;
+                convertPackedUnicodeToUTF( tempstring, fixupString, &tempUTF, localCharset, utfRequested );
+                if ( tempUTF )
+                {
+                    tempstring = fixupString;
+                    charsetLen = 12;    // =?utf-8?q? ?=
+                }
+                break;
+            }
         }
+//#endif
 
 #if BLAT_LITE
 #else

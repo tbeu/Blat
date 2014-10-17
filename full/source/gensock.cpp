@@ -1048,6 +1048,7 @@ int
 
 connection_list::connection_list (void)
 {
+    data = 0;
     next = 0;
 }
 
@@ -1055,6 +1056,8 @@ connection_list::~connection_list(void)
 {
     if ( data )
         delete data;
+
+    data = 0;
 }
 
 // add a new connection to the list
