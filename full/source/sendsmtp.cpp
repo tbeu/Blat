@@ -1793,7 +1793,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
         if ( partsCount > 1 ) {
             CommonData.formattedContent = TRUE;
             if ( !yEnc_This ) {
-                CommonData.mime     = FALSE;
+                CommonData.mime     = 0;
                 CommonData.base64   = FALSE;
                 CommonData.uuencode = TRUE;
             }

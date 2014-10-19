@@ -101,7 +101,7 @@ int add_message_body ( COMMON_DATA & CommonData,
 #endif
                  !yEnc_This ) {
                 if ( CheckIfNeedQuotedPrintable(CommonData, CommonData.TempConsole.Get(), FALSE) ) {
-                    CommonData.mime = TRUE;
+                    CommonData.mime = 2;
                 }
             }
 
@@ -500,7 +500,7 @@ int add_message_body ( COMMON_DATA & CommonData,
             // or BASE64 encoding of main file.
             // or UUencoding of main file
             // or nothing special...
-            if ( CommonData.mime )
+            if ( CommonData.mime == 1 )
                 ConvertToQuotedPrintable( CommonData, fileBuffer, messageBuffer, FALSE );
             else
 #if BLAT_LITE
