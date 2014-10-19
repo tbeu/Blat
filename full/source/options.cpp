@@ -2123,7 +2123,7 @@ static int checkCharset ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
     if ( _tcscmp( CommonData.charset, __T("UTF-8") ) == 0 ) {
         CommonData.utf = UTF_REQUESTED;
 #if BLAT_LITE
-        CommonData.mime = TRUE;
+        CommonData.mime = 1;
 #else
         CommonData.eightBitMimeRequested = TRUE;
 #endif
@@ -2131,7 +2131,7 @@ static int checkCharset ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
     if ( _tcscmp( CommonData.charset, __T("UTF-7") ) == 0 ) {
         CommonData.utf = UTF_REQUESTED;
 #if BLAT_LITE
-        CommonData.mime = TRUE;
+        CommonData.mime = 1;
 #endif
     }
     return(1);
@@ -2195,7 +2195,7 @@ static int check_yEnc ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int t
     this_arg  = this_arg;
     startargv = startargv;
 
-    CommonData.mime     = FALSE;
+    CommonData.mime     = 0;
     CommonData.base64   = FALSE;
     CommonData.uuencode = FALSE;
     CommonData.yEnc     = TRUE;
@@ -2211,7 +2211,7 @@ static int checkMime ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int th
     this_arg  = this_arg;
     startargv = startargv;
 
-    CommonData.mime     = TRUE;
+    CommonData.mime     = 1;
 #if BLAT_LITE
 #else
     CommonData.base64   = FALSE;
@@ -2233,7 +2233,7 @@ static int checkUUEncode ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     startargv = startargv;
 
     if ( !CommonData.haveEmbedded ) {
-        CommonData.mime     = FALSE;
+        CommonData.mime     = 0;
         CommonData.base64   = FALSE;
         CommonData.uuencode = TRUE;
         CommonData.yEnc     = FALSE;
@@ -2257,7 +2257,7 @@ static int checkBase64Enc ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
     startargv = startargv;
 
     if ( !CommonData.attach ) {
-        CommonData.mime     = FALSE;
+        CommonData.mime     = 0;
         CommonData.base64   = TRUE;
         CommonData.uuencode = FALSE;
         CommonData.yEnc     = FALSE;

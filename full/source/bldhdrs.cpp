@@ -742,19 +742,19 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
             CommonData.base64 = TRUE;
         else
         if ( !CommonData.base64 )
-            CommonData.mime = TRUE;
+            CommonData.mime = 1;
 
-        CommonData.uuencode  = FALSE;
+        CommonData.uuencode = FALSE;
         yEnc_This = FALSE;
   #if SUPPORT_YENC
-        CommonData.yEnc      = FALSE;
+        CommonData.yEnc = FALSE;
   #endif
 #endif
     }
 
     if ( CommonData.charset[0] ) {
         if ( _tcscmp(CommonData.charset, defaultCharset) ) {
-            CommonData.mime     = TRUE;   // If -charset option was used, then set mime so the charset can be identified in the headers.
+            CommonData.mime     = 2;        // If -charset option was used, then set mime so the charset can be identified in the headers.
             yEnc_This           = FALSE;
 #if BLAT_LITE
 #else
