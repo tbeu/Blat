@@ -728,9 +728,17 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
 
 #if SUPPORT_YENC
     yEnc_This = CommonData.yEnc;
-    if ( bldHdrs.buildSMTP && !CommonData.eightBitMimeSupported && !CommonData.binaryMimeSupported )
+#else
+    yEnc_This = FALSE;
 #endif
+#if BLAT_LITE
+#else
+    if ( bldHdrs.buildSMTP && !CommonData.eightBitMimeSupported && !CommonData.binaryMimeSupported ) {
         yEnc_This = FALSE;
+        if ( _memicmp(CommonData.charset, __T("UTF-8"), 6*sizeof(_TCHAR)) == 0 )
+            CommonData.charset[4] = __T('7');
+    }
+#endif
 
     CommonData.needBoundary = FALSE;
 

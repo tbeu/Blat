@@ -2518,6 +2518,18 @@ static int checkDebugMode ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
     return(0);
 }
 
+static int checkLogCommands ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
+{
+    argc      = argc;   // For eliminating compiler warnings.
+    argv      = argv;
+    this_arg  = this_arg;
+    startargv = startargv;
+
+    CommonData.logCommands = TRUE;
+
+    return(0);
+}
+
 static int checkLogMessages ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
     argc      = argc;   // For eliminating compiler warnings.
@@ -3413,6 +3425,7 @@ _BLATOPTIONS blatOptionsList[] = {
     { __T("-log")           ,              NULL      , TRUE , 0, checkLogMessages    ,     __T(" <file>     : log everything but usage to <file>") },
     { __T("-timestamp")     ,              NULL      , FALSE, 0, checkTimestamp      ,           __T("      : when -log is used, a timestamp is added to each log line") },
     { __T("-overwritelog")  ,              NULL      , TRUE , 0, checkLogOverwrite   ,              __T("   : when -log is used, overwrite the log file") },
+    { __T("-logcmds")       ,              NULL      , TRUE , 0, checkLogCommands    ,         __T("        : when -log is used, write command line options to log file") },
     { __T("-ti")            , __T("timeout")         , FALSE, 1, checkTimeout        ,    __T(" <n>         : set timeout to 'n' seconds.  Blat will wait 'n' seconds for") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  server responses") },
     { strTry                ,              NULL      , FALSE, 1, checkAttempts       ,     __T(" <n times>  : how many times blat should try to send (1 to 'INFINITE')") },
@@ -3573,44 +3586,46 @@ int printUsage( COMMON_DATA & CommonData, int optionPtr )
                     break;
             }
         }
-    } else
-    if ( optionPtr == TRUE ) {
-        for ( i = 0; ; i++ ) {
-            if ( !blatOptionsList[i].optionString &&
-                 !blatOptionsList[i].preprocess   &&
-                 !blatOptionsList[i].additionArgC &&
-                 !blatOptionsList[i].initFunction &&
-                 !blatOptionsList[i].usageText    )
-                break;
-
-            if ( blatOptionsList[i].usageText ) {
-                _stprintf( printLine, __T("%s%s\n"),
-                           blatOptionsList[i].optionString ? blatOptionsList[i].optionString : __T(""),
-                           blatOptionsList[i].usageText );
-                if ( printLine[0] != __T('\0') )
-                    print_usage_line( CommonData, printLine );
-            }
-        }
     } else {
-        pMyPrintDLL( __T("Blat found fault with: ") );
-        pMyPrintDLL( blatOptionsList[optionPtr].optionString );
-        pMyPrintDLL( __T("\n\n") );
-        for ( ; !blatOptionsList[optionPtr].usageText; optionPtr++ )
-            ;
+        CommonData.usagePrinted = TRUE;
+        if ( optionPtr == TRUE ) {
+            for ( i = 0; ; i++ ) {
+                if ( !blatOptionsList[i].optionString &&
+                     !blatOptionsList[i].preprocess   &&
+                     !blatOptionsList[i].additionArgC &&
+                     !blatOptionsList[i].initFunction &&
+                     !blatOptionsList[i].usageText    )
+                    break;
 
-        for ( ; ; optionPtr++ ) {
-            if ( !blatOptionsList[optionPtr].usageText    ||
-                 !blatOptionsList[optionPtr].usageText[0] ||
-                 (blatOptionsList[optionPtr].usageText[0] == __T('-')) )
-                break;
+                if ( blatOptionsList[i].usageText ) {
+                    _stprintf( printLine, __T("%s%s\n"),
+                               blatOptionsList[i].optionString ? blatOptionsList[i].optionString : __T(""),
+                               blatOptionsList[i].usageText );
+                    if ( printLine[0] != __T('\0') )
+                        print_usage_line( CommonData, printLine );
+                }
+            }
+        } else {
+            pMyPrintDLL( __T("Blat found fault with: ") );
+            pMyPrintDLL( blatOptionsList[optionPtr].optionString );
+            pMyPrintDLL( __T("\n\n") );
+            for ( ; !blatOptionsList[optionPtr].usageText; optionPtr++ )
+                ;
 
-            _stprintf( printLine, __T("%s%s\n"),
-                       blatOptionsList[optionPtr].optionString ? blatOptionsList[optionPtr].optionString : __T(""),
-                       blatOptionsList[optionPtr].usageText );
-            print_usage_line( CommonData, printLine );
+            for ( ; ; optionPtr++ ) {
+                if ( !blatOptionsList[optionPtr].usageText    ||
+                     !blatOptionsList[optionPtr].usageText[0] ||
+                     (blatOptionsList[optionPtr].usageText[0] == __T('-')) )
+                    break;
 
-            if ( blatOptionsList[optionPtr+1].optionString && blatOptionsList[optionPtr+1].optionString[0] == __T('-') )
-                break;
+                _stprintf( printLine, __T("%s%s\n"),
+                           blatOptionsList[optionPtr].optionString ? blatOptionsList[optionPtr].optionString : __T(""),
+                           blatOptionsList[optionPtr].usageText );
+                print_usage_line( CommonData, printLine );
+
+                if ( blatOptionsList[optionPtr+1].optionString && blatOptionsList[optionPtr+1].optionString[0] == __T('-') )
+                    break;
+            }
         }
     }
 

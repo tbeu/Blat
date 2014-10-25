@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.2")
+#define BLAT_VERSION    __T("3.2.3")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -105,7 +105,7 @@ LPTSTR days[] = { __T("Sun"),
                   __T("Sat") };
 
 
-static void cleanUpBuffers( COMMON_DATA & CommonData )
+void cleanUpBuffers( COMMON_DATA & CommonData, LPTSTR * savedArguments, int argumentCount )
 {
     CommonData.TempConsole.Free();
     CommonData.alternateText.Free();
@@ -141,6 +141,16 @@ static void cleanUpBuffers( COMMON_DATA & CommonData )
 #if SUPPORT_POSTSCRIPTS
     CommonData.postscript.Free();
 #endif
+
+    if ( savedArguments ) {
+        int x;
+
+        for ( x = 1; x < argumentCount; x++ ) {
+            free( savedArguments[x] );
+        }
+
+        free( savedArguments );
+    }
 }
 
 
@@ -173,7 +183,7 @@ static void shrinkWhiteSpace( Buf & buffer )
 void InitializeCommonData( COMMON_DATA & CommonData )
 {
     // Initialize global variables.
-    cleanUpBuffers( CommonData );
+    cleanUpBuffers( CommonData, NULL, 0 );
 
 #if INCLUDE_SUPERDEBUG
     CommonData.superDebug                   = 0;
@@ -187,7 +197,7 @@ void InitializeCommonData( COMMON_DATA & CommonData )
     CommonData.maxNames                     = 0;
 
     CommonData.boundaryPosted               = 0;
-    CommonData.commentChar                  = __T(';');;
+    CommonData.commentChar                  = __T(';');
     CommonData.disposition                  = 0;
     CommonData.includeUserAgent             = 0;
     CommonData.sendUndisclosed              = 0;
@@ -351,6 +361,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             LPTSTR *argv,         /* Array of command-line argument strings   */
             LPTSTR *envp )        /* Array of environment variables           */
 {
+    LPTSTR    * savedArguments;
     COMMON_DATA CommonData;
     int         i, j;
     int         retcode;
@@ -402,9 +413,21 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 break;
         }
     }
+#else
+    _tcscpy( blatBuildDate, blatBuildDateA );
+    _tcscpy( blatBuildTime, blatBuildTimeA );
+#endif
+
+    ZeroMemory( &CommonData, sizeof(CommonData) );
     InitializeCommonData( CommonData );
 
+    savedArguments = (LPTSTR *) malloc( argc * sizeof(LPTSTR) );
+
     for ( i = 1; i < argc; i++ ) {
+        savedArguments[i] = (LPTSTR) malloc( (_tcslen(argv[i]) + 1) * sizeof(_TCHAR) );
+        _tcscpy( savedArguments[i], argv[i] );
+
+#if defined(_UNICODE) || defined(UNICODE)
         sourceText = argv[i];
         CommonData.utf = 0;
         CommonData.charset[0] = __T('\0');
@@ -438,11 +461,8 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             }
         }
         sourceText.Free();
-    }
-#else
-    _tcscpy( blatBuildDate, blatBuildDateA );
-    _tcscpy( blatBuildTime, blatBuildTimeA );
 #endif
+    }
 
     envp = envp;    // To remove compiler warnings.
 
@@ -502,6 +522,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     if ( argc < 2 ) {
 //        Must have at least a file name to send.
         printUsage( CommonData, NULL );
+        free( savedArguments );
         return(1);
     }
 
@@ -526,7 +547,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         if ( CommonData.logOut )
             fclose(CommonData.logOut);
 
-        cleanUpBuffers( CommonData );
+        cleanUpBuffers( CommonData, savedArguments, argc );
         return(retcode);
     }
 
@@ -553,7 +574,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 if ( CommonData.logOut )
                     fclose(CommonData.logOut);
 
-                cleanUpBuffers( CommonData );
+                cleanUpBuffers( CommonData, savedArguments, argc );
                 return(2);
             }
             filesize = fileh.GetSize();
@@ -564,7 +585,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 if ( CommonData.logOut )
                     fclose(CommonData.logOut);
 
-                cleanUpBuffers( CommonData );
+                cleanUpBuffers( CommonData, savedArguments, argc );
                 return(2);
             }
 
@@ -575,7 +596,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 if ( CommonData.logOut )
                     fclose(CommonData.logOut);
 
-                cleanUpBuffers( CommonData );
+                cleanUpBuffers( CommonData, savedArguments, argc );
                 return(2);
             }
             fileh.Close();
@@ -600,7 +621,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 if ( CommonData.logOut )
                     fclose(CommonData.logOut);
 
-                cleanUpBuffers( CommonData );
+                cleanUpBuffers( CommonData, savedArguments, argc );
                 return(2);
             }
             memcpy( tmpstr, sourceText.Get(), sourceText.Length()*sizeof(_TCHAR) );
@@ -634,7 +655,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 if ( CommonData.logOut )
                     fclose(CommonData.logOut);
             }
-            cleanUpBuffers( CommonData );
+            cleanUpBuffers( CommonData, savedArguments, argc );
             return(retcode);
         }
     }
@@ -683,7 +704,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             if ( CommonData.logOut )
                 fclose(CommonData.logOut);
 
-            cleanUpBuffers( CommonData );
+            cleanUpBuffers( CommonData, savedArguments, argc );
             return(retcode);
         }
     }
@@ -694,6 +715,16 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     else
         retcode = processOptions( CommonData, argc, argv, 2, FALSE );
 
+    if ( CommonData.logOut && CommonData.logCommands && !CommonData.usagePrinted ) {
+        int x;
+
+        printMsg( CommonData, __T("%i command line argument%s received ...\n"), argc - 1, (argc != 2) ? __T("s") : __T("") );
+        for ( x = 1; x < argc; x++ ) {
+            if ( savedArguments[x] )
+                printMsg( CommonData, __T("\t%s\n"), savedArguments[x] );
+        }
+    }
+
     // If the -install or -profile option was used,
     // then CommonData.exitRequired should be TRUE while retcode is 0.
     if ( CommonData.exitRequired || retcode ) {
@@ -701,7 +732,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         if ( CommonData.logOut )
             fclose(CommonData.logOut);
 
-        cleanUpBuffers( CommonData );
+        cleanUpBuffers( CommonData, savedArguments, argc );
         return(retcode);
     }
 
@@ -734,7 +765,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         if ( CommonData.logOut )
             fclose(CommonData.logOut);
 
-        cleanUpBuffers( CommonData );
+        cleanUpBuffers( CommonData, savedArguments, argc );
         return(12);
     }
 #else
@@ -749,7 +780,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         if ( CommonData.logOut )
             fclose(CommonData.logOut);
 
-        cleanUpBuffers( CommonData );
+        cleanUpBuffers( CommonData, savedArguments, argc );
         return(12);
     }
 #endif
@@ -792,7 +823,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 if ( CommonData.logOut )
                     fclose(CommonData.logOut);
 
-                cleanUpBuffers( CommonData );
+                cleanUpBuffers( CommonData, savedArguments, argc );
                 return(2);
             }
             CloseHandle(fh);
@@ -807,7 +838,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 if ( CommonData.logOut )
                     fclose(CommonData.logOut);
 
-                cleanUpBuffers( CommonData );
+                cleanUpBuffers( CommonData, savedArguments, argc );
                 return(2);
             }
             fclose(fh);
@@ -890,7 +921,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         if ( CommonData.logOut )
             fclose(CommonData.logOut);
 
-        cleanUpBuffers( CommonData );
+        cleanUpBuffers( CommonData, savedArguments, argc );
         return(12);
     }
 #else
@@ -903,7 +934,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         if ( CommonData.logOut )
             fclose(CommonData.logOut);
 
-        cleanUpBuffers( CommonData );
+        cleanUpBuffers( CommonData, savedArguments, argc );
         return(12);
     }
 #endif
@@ -957,7 +988,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             if ( CommonData.logOut )
                 fclose(CommonData.logOut);
 
-            cleanUpBuffers( CommonData );
+            cleanUpBuffers( CommonData, savedArguments, argc );
             return(3);
         }
         if ( !fileh.IsDiskFile() ) {
@@ -968,7 +999,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             if ( CommonData.logOut )
                 fclose(CommonData.logOut);
 
-            cleanUpBuffers( CommonData );
+            cleanUpBuffers( CommonData, savedArguments, argc );
             return(4);
         }
         filesize = fileh.GetSize();
@@ -987,7 +1018,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
         if ( !retcode ) {
             printMsg(CommonData, __T("error reading %s, aborting\n"), CommonData.bodyFilename);
-            cleanUpBuffers( CommonData );
+            cleanUpBuffers( CommonData, savedArguments, argc );
             return(5);
         }
     }
@@ -1027,7 +1058,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         if ( CommonData.logOut )
             fclose(CommonData.logOut);
 
-        cleanUpBuffers( CommonData );
+        cleanUpBuffers( CommonData, savedArguments, argc );
         return(12);
     }
 
@@ -1040,7 +1071,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         if ( CommonData.logOut )
             fclose(CommonData.logOut);
 
-        cleanUpBuffers( CommonData );
+        cleanUpBuffers( CommonData, savedArguments, argc );
         return(12);
     }
 
@@ -1064,7 +1095,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 #endif
     releaseAttachmentInfo( CommonData );
 
-    cleanUpBuffers( CommonData );
+    cleanUpBuffers( CommonData, savedArguments, argc );
 
     if (  CommonData.fCgiWork ) {
         Buf    lpszCgiText;

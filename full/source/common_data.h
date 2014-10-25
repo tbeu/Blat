@@ -203,6 +203,8 @@ typedef struct _COMMON_DATA
     _TCHAR        my_hostname[MY_HOSTNAME_SIZE];
 
     int           titleLinePrinted;
+    int           usagePrinted;
+    int           logCommands;
 
 } COMMON_DATA;
 
