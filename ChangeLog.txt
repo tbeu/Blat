@@ -192,7 +192,7 @@
     this change, email clients like Thunderbird can decode the headers
     properly.
 [-] Fixed the message output for blat.dll to use a caller's print function
-    when it is available.
+    when it is available.
 [-] Fixed blat.dll functions printDLLW(), printDLLA(), BlatA(), BlatW(),
     SendA(), and SendW() to correctly convert from/to Unicode strings.
 -------------------------------------------------------------------------------
@@ -958,7 +958,7 @@ could result in lower memory use by Blat.
 [+] yEnc has been added to use this encoding scheme for binary attachments. It
     will likely only work for systems that fully support 8-bit data since there
     is no provision to support 7-bit data streams in the protocol. There is a
-    failsafe check that if the SMTP server does not explicitely state 8bitmime,
+    failsafe check that if the SMTP server does not explicitly state 8bitmime,
     then yEnc will be disabled for that email message. This has no effect on
     NNTP traffic, yet. NNTP impact will have to be investigated a little
     further to see if there is an equivalent EHLO command to give back extended

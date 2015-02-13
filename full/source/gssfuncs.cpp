@@ -322,7 +322,7 @@ LPTSTR GssSession::MechtypeText(LPTSTR szBuffer)
     }
 
     // Convert known GSSAPI mechanism OIDs to human-meaningful names,
-    //    unkown mechanisms are left as ugly { # # # } string
+    //    unknown mechanisms are left as ugly { # # # } string
     if      (_tcsicmp(mechtype, __T("{ 1 2 840 113554 1 2 2 }"))==0) _tcscpy(mechtype,__T("Kerberos v5"));
     else if (_tcsicmp(mechtype, __T("{ 1 2 840 113554 1 2 3 }"))==0) _tcscpy(mechtype,__T("Kerberos5 v2"));
     else if (_tcsicmp(mechtype, __T("{ 1 3 5 1 5 2 }")         )==0) _tcscpy(mechtype,__T("Kerberos v5 (old)"));

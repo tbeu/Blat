@@ -78,7 +78,7 @@
   - Add -u and -pw option for AUTH LOGIN
 -------------------------------------------------------------------------------
 1.8.5d 2000.07.02
-  - Supress temporary file for console input
+  - Suppress temporary file for console input
   - fix crash with -debug option
 -------------------------------------------------------------------------------
 1.8.5c 2000.05.10
