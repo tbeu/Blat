@@ -5,6 +5,23 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.4
+[-] Changed X- header processing to use Buf definition rather than a fixed
+    array.  The change is made to organization and aheaders, to prevent
+    memory overruns.
+[-] If using alternate text, such as when sending plain text and HTML, and if 
+    that alternate text is Unicode, be sure to set the charset for the
+    alternate text section and set Content-Transfer-Encoding: 7BIT or 8BIT
+    as needed and available.
+[-] If the message body charset is UTF-8 or UTF-7, and MIME is expected, set
+    Content-Transfer-Encoding: 7BIT or 8BIT as needed and available instead of
+    setting Content-Transfer-Encoding: quoted-printable.  The Unicode message
+    body can then be sent as-is, if 8-bit is allowed, or sent as UTF-7 if 8-bit
+    is not available from the server.
+[-] Ensure message headers are properly sent when sending multiple attachments
+    across multiple messages, and the charset is UTF-8 or UTF-7.
+[-] Ensure the closing boundary marker is sent, when needed.
+-------------------------------------------------------------------------------
 3.2.3
 [+] Added -logcmds option to write the command line arguments to the log,
     or to the screen, when also using -log option.
@@ -14,8 +31,7 @@
     embedded space in violation of RFC 6152.  "8 BITMIME" is now accepted as if
     it were "8BITMIME".
 [-] If UTF-8 is selected with -charset option, and neither 8BITMIME nor
-    BINARYMIME are not supported by the server, then UTF-7 will be used
-    instead.
+    BINARYMIME are supported by the server, then UTF-7 will be used instead.
 -------------------------------------------------------------------------------
 3.2.2
 [-] Fixed message body handling for Unicode / UTF-8.
@@ -192,7 +208,7 @@
     this change, email clients like Thunderbird can decode the headers
     properly.
 [-] Fixed the message output for blat.dll to use a caller's print function
-    when it is available.
+    when it is available.
 [-] Fixed blat.dll functions printDLLW(), printDLLA(), BlatA(), BlatW(),
     SendA(), and SendW() to correctly convert from/to Unicode strings.
 -------------------------------------------------------------------------------

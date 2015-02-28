@@ -305,7 +305,7 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
             printMsg( CommonData, __T("Sending %lu parts for this message.\n"), totalParts );
 
         if ( !CommonData.yEnc ) {
-            CommonData.mime     = FALSE;
+            CommonData.mime     = 0;
             CommonData.base64   = FALSE;
             CommonData.uuencode = TRUE;
         }

@@ -782,7 +782,7 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
     fixupEmailHeaders(CommonData, CommonData.replytoid,    &fixedReplyToId   , 10, TRUE); // "Reply-to: "
 #if BLAT_LITE
 #else
-    fixup(CommonData, CommonData.organization, &fixedOrganization, 14, TRUE); // "Organization: "
+    fixup(CommonData, CommonData.organization.Get(), &fixedOrganization, 14, TRUE); // "Organization: "
 #endif
 
     if ( CommonData.returnpathid[0] ) {
@@ -1008,7 +1008,7 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
 
 #if BLAT_LITE
 #else
-        if ( CommonData.organization[0] ) {
+        if ( CommonData.organization.Length() ) {
             bldHdrs.header->Add( __T("Organization: ") );
             bldHdrs.header->Add( fixedOrganization );
             bldHdrs.header->Add( __T("\r\n") );
@@ -1030,17 +1030,17 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
         }
         bldHdrs.header->Add( tmpstr );
 #else
-        if ( CommonData.xheaders[0] ) {
+        if ( CommonData.xheaders.Length() ) {
             bldHdrs.header->Add( CommonData.xheaders );
             bldHdrs.header->Add( __T("\r\n") );
         }
 
-        if ( CommonData.aheaders1[0] ) {
+        if ( CommonData.aheaders1.Length() ) {
             bldHdrs.header->Add( CommonData.aheaders1 );
             bldHdrs.header->Add( __T("\r\n") );
         }
 
-        if ( CommonData.aheaders2[0] ) {
+        if ( CommonData.aheaders2.Length() ) {
             bldHdrs.header->Add( CommonData.aheaders2 );
             bldHdrs.header->Add( __T("\r\n") );
         }
@@ -1227,7 +1227,17 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                 _tcscpy( foundType, __T("text/") );
                 _tcscat( foundType, CommonData.textmode );
 #endif
-                contentType.Add( __T("Content-Transfer-Encoding: quoted-printable\r\n") );
+                if (_memicmp(CommonData.charset, __T("UTF-"),4*sizeof(_TCHAR)) == 0) {
+#if BLAT_LITE
+#else
+                    if ( (CommonData.charset[4] == __T('8')) && CommonData.eightBitMimeSupported )
+                        contentType.Add( __T("Content-Transfer-Encoding: 8BIT\r\n") );
+                    else
+#endif
+                        contentType.Add( __T("Content-Transfer-Encoding: 7BIT\r\n") );
+                } else {
+                    contentType.Add( __T("Content-Transfer-Encoding: quoted-printable\r\n") );
+                }
 #if SMART_CONTENT_TYPE
                 if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode, __T("plain")) )
                     getContentType( CommonData, tmpBuf, foundType, foundType, getShortFileName( CommonData.bodyFilename ) );
@@ -1241,6 +1251,56 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                 contentType.Add( __T(";\r\n charset=\"") );
                 contentType.Add( getCharsetString(CommonData) );
                 contentType.Add( __T("\"\r\n") );
+            }
+        }
+        else {
+            if ( bldHdrs.attachNbr ) {
+#if BLAT_LITE
+                contentType.Add( __T("MIME-Version: 1.0\r\n") );
+                contentType.Add( __T("Content-Type:") );
+                contentType.Add( __T(" multipart/mixed;\r\n") );
+                contentType.Add( __T(" boundary=\"") BOUNDARY_MARKER );
+                contentType.Add( boundary2);
+                contentType.Add( __T("\r\nThis is a multi-part message in MIME format.\r\n") );
+#else
+                if ( CommonData.uuencode || yEnc_This || !bldHdrs.buildSMTP ) {
+ /*
+  * Having this code enabled causes Mozilla to ignore attachments and treat them as inline text.
+  *
+  #if SMART_CONTENT_TYPE
+                    _TCHAR foundType  [0x200];
+
+                    _tcscpy( foundType, __T("text/") );
+                    _tcscat( foundType, CommonData.textmode );
+  #endif
+                    contentType.Add( __T("Content-description: " );
+                    if ( bldHdrs.buildSMTP )
+                        contentType.Add( __T("Mail") );
+                    else
+                        contentType.Add( __T("News") );
+                    contentType.Add( __T(" message body\r\n") );
+  #if SMART_CONTENT_TYPE
+                    if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode, __T("plain")) )
+                        getContentType( CommonData, NULL, foundType, foundType, getShortFileName( CommonData.bodyFilename ) );
+
+                    contentType.Add( __T("Content-Type: ") );
+                    contentType.Add( foundType );
+  #else
+                    contentType.Add( __T("Content-Type: text/") );
+                    contentType.Add( CommonData.textmode );
+  #endif
+                    contentType.Add( __T(";\r\n charset=\"") );
+                    contentType.Add( getCharsetString(CommonData) );
+                    contentType.Add( __T("\"\r\n") );
+  */
+                } else {
+                    contentType.Add( __T("MIME-Version: 1.0\r\n") );
+                    contentType.Add( __T("Content-Type:") );
+                    contentType.Add( __T(" multipart/mixed;\r\n") );
+                    contentType.Add( __T(" boundary=\"") BOUNDARY_MARKER );
+                    contentType.Add( boundary2);
+                }
+#endif
             }
         }
     } else {

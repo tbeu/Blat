@@ -12,7 +12,8 @@
 
 // MIME base64 Content-Transfer-Encoding
 
-#define PADCHAR __T('=')
+#define MAX_LINE_LENGTH     76              /* RFC 2045 says "The encoded output stream must be represented in lines of no more than 76 characters each." */
+#define PADCHAR             __T('=')
 
 LPTSTR base64table = __T("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
 
@@ -104,7 +105,7 @@ void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad )
     size_t    tempLength;
     _TUCHAR * in;
     int       bytes_out;
-    _TCHAR    tmpstr[80];
+    _TCHAR    tmpstr[MAX_LINE_LENGTH + 8];
     DWORD     bitStream;
 
     in = (_TUCHAR *) source.Get();
@@ -113,16 +114,16 @@ void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad )
 
     length = source.Length();
     tempLength = (((length *8)+5)/6);
-    tempLength += (((tempLength + 71) / 72) * 2) + 1;
+    tempLength += (((tempLength + MAX_LINE_LENGTH - 1) / MAX_LINE_LENGTH) * 2) + 1;
     out.Alloc( out.Length() + tempLength );
 
     // Ensure the data is padded with NULL to work the for() loop.
     in[length] = __T('\0');
 
-    tmpstr[ 72 ] = __T('\0');
+    tmpstr[ MAX_LINE_LENGTH ] = __T('\0');
 
     for ( bytes_out = 0; length > 2; length -= 3, in += 3 ) {
-        if ( bytes_out == 72 ) {
+        if ( bytes_out >= MAX_LINE_LENGTH ) {
             out.Add( tmpstr );
             bytes_out = 0;
             if ( inclCrLf )
@@ -142,7 +143,7 @@ void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad )
      * In all cases, in[2] is not needed.
      */
     if ( length ) {
-        if ( bytes_out == 72 ) {
+        if ( bytes_out >= MAX_LINE_LENGTH ) {
             out.Add( tmpstr );
             if ( inclCrLf )
                 out.Add( __T("\r\n") );

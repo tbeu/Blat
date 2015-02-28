@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.3")
+#define BLAT_VERSION    __T("3.2.4")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -140,6 +140,13 @@ void cleanUpBuffers( COMMON_DATA & CommonData, LPTSTR * savedArguments, int argu
 #endif
 #if SUPPORT_POSTSCRIPTS
     CommonData.postscript.Free();
+#endif
+#if BLAT_LITE
+#else
+    CommonData.organization.Free();
+    CommonData.xheaders.Free();
+    CommonData.aheaders1.Free();
+    CommonData.aheaders2.Free();
 #endif
 
     if ( savedArguments ) {
@@ -267,10 +274,6 @@ void InitializeCommonData( COMMON_DATA & CommonData )
 
 #if BLAT_LITE
 #else
-    CommonData.organization[0]              = __T('\0');
-    CommonData.xheaders[0]                  = __T('\0');
-    CommonData.aheaders1[0]                 = __T('\0');
-    CommonData.aheaders2[0]                 = __T('\0');
     CommonData.uuencode                     = 0;
 
     CommonData.base64                       = 0;
@@ -555,7 +558,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 #else
     if ( CommonData.optionsFile[0] ) {
 
-        size_t maxEntries = 256;
+        size_t maxEntries = 2048;
 
         secondArgV = (LPTSTR*)malloc( (maxEntries + 1) * sizeof(LPTSTR) );
         if ( secondArgV ) {

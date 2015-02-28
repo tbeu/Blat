@@ -2010,8 +2010,7 @@ static int checkOrgOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.organization, argv[this_arg+1], ORG_SIZE );
-    CommonData.organization[ORG_SIZE] = __T('\0');
+    CommonData.organization.Add( argv[this_arg+1] );
 
     return(1);
 }
@@ -2024,11 +2023,10 @@ static int checkXHeaders ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     // is argv[] "-x"? If so, argv[3] is an X-Header
     // Header MUST start with X-
     if ( (argv[this_arg+1][0] == __T('X')) && (argv[this_arg+1][1] == __T('-')) ) {
-        if ( CommonData.xheaders[0] ) {
-            _tcscat( CommonData.xheaders, __T("\r\n") );
-        }
+        if ( CommonData.xheaders.Length() )
+            CommonData.xheaders.Add( __T("\r\n") );
 
-        _tcscat( CommonData.xheaders, argv[this_arg+1] );
+        CommonData.xheaders.Add( argv[this_arg+1] );
     }
 
     return(1);
@@ -2712,7 +2710,6 @@ static int checkRaw ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int thi
     startargv = startargv;
 
     CommonData.formattedContent = FALSE;
-
     return(0);
 }
 
@@ -2724,9 +2721,7 @@ static int checkA1Headers ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.aheaders1, argv[this_arg+1], DEST_SIZE );
-    CommonData.aheaders1[DEST_SIZE] = __T('\0');
-
+    CommonData.aheaders1.Add( argv[this_arg+1] );
     return(1);
 }
 
@@ -2735,9 +2730,7 @@ static int checkA2Headers ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.aheaders2, argv[this_arg+1], DEST_SIZE );
-    CommonData.aheaders2[DEST_SIZE] = __T('\0');
-
+    CommonData.aheaders2.Add( argv[this_arg+1] );
     return(1);
 }
 

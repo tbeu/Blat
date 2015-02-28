@@ -736,8 +736,9 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bA
 #if BLAT_LITE
 #else
     if ( !CommonData.eightBitMimeSupported ) {
-        if ( _tcscmp( CommonData.charset, __T("utf-8") ) == 0 )
-            _tcscpy( CommonData.charset, __T("UTF-7") );
+        _tcsupr( CommonData.charset );
+        if ( _tcscmp( CommonData.charset, __T("UTF-8") ) == 0 )
+            CommonData.charset[4] = __T('7');
     }
 #endif
     return(0);
@@ -1998,15 +1999,13 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
         if ( retcode )
             return retcode;
 
-        if ( nbrOfAttachments ) {
-//            printMsg( CommonData, __T(" ... adding %d attachments\n"), nbrOfAttachments );
-            retcode = add_attachments( CommonData, messageBuffer, TRUE, attachment_boundary, nbrOfAttachments );
-            add_msg_boundary( CommonData, messageBuffer, TRUE, attachment_boundary );
+//        printMsg( CommonData, __T(" ... adding %d attachments\n"), nbrOfAttachments );
+        retcode = add_attachments( CommonData, messageBuffer, TRUE, attachment_boundary, nbrOfAttachments );
+        add_msg_boundary( CommonData, messageBuffer, TRUE, attachment_boundary );
 
-//            printMsg( CommonData, __T(" ... add_attachments() returned %d\n"), retcode );
-            if ( retcode )
-                return retcode;
-        }
+//        printMsg( CommonData, __T(" ... add_attachments() returned %d\n"), retcode );
+        if ( retcode )
+            return retcode;
 
         namesFound = 0;
 //        printMsg( CommonData, __T(" ... parsing email addresses(), %s\n"), CommonData.Recipients.Get() );

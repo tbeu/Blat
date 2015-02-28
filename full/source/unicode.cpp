@@ -733,7 +733,7 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
 
             CommonData.utf = UTF_REQUESTED;
   #if BLAT_LITE
-            CommonData.mime = TRUE;
+            CommonData.mime = 1;
   #else
             CommonData.eightBitMimeRequested = TRUE;
   #endif
@@ -758,7 +758,7 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
                 if ( *newString.Get() == 0xFEFF ) {
                     CommonData.utf = UTF_REQUESTED;
   #if BLAT_LITE
-                    CommonData.mime = TRUE;
+                    CommonData.mime = 1;
   #else
                     CommonData.eightBitMimeRequested = TRUE;
   #endif
@@ -768,7 +768,7 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
                     for ( savedLength = 0; savedLength < stringToCheck.Length(); savedLength++ ) {
                         if ( *pStr > 0x007F ) {
   #if BLAT_LITE
-                            CommonData.mime = TRUE;
+                            CommonData.mime = 1;
   #else
                             CommonData.eightBitMimeRequested = TRUE;
   #endif
@@ -782,7 +782,7 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
                 for ( savedLength = 0; savedLength < stringToCheck.Length(); savedLength++ ) {
                     if ( *pStr > 0x007F ) {
   #if BLAT_LITE
-                        CommonData.mime = TRUE;
+                        CommonData.mime = 1;
   #else
                         CommonData.eightBitMimeRequested = TRUE;
   #endif

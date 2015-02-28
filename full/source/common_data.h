@@ -134,10 +134,10 @@ typedef struct _COMMON_DATA
 #endif
 #if BLAT_LITE
 #else
-    _TCHAR        organization[ORG_SIZE+1];
-    _TCHAR        xheaders[DEST_SIZE+1];
-    _TCHAR        aheaders1[DEST_SIZE+1];
-    _TCHAR        aheaders2[DEST_SIZE+1];
+    Buf           organization;
+    Buf           xheaders;
+    Buf           aheaders1;
+    Buf           aheaders2;
     _TCHAR        uuencode;                      // by default Blat does not use UUEncode // Added by Gilles Vollant
 
     _TCHAR        base64;                        // by default Blat does not use base64 Quoted-Printable Content-Transfer-Encoding!

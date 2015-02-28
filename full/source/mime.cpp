@@ -207,7 +207,7 @@ void ConvertToQuotedPrintable(COMMON_DATA & CommonData, Buf & source, Buf & out,
     size_t length;
     int    CurrPos;
     LPTSTR pszStr;
-    _TCHAR tmpstr[4];
+    _TCHAR tmpstr[8];
 
 #if BLAT_LITE
     CommonData = CommonData;
@@ -321,18 +321,28 @@ void ConvertToQuotedPrintable(COMMON_DATA & CommonData, Buf & source, Buf & out,
                 out.Add( tmpstr );
                 CurrPos += 3;
             } else
-            if ( ((ThisChar < 0) || (ThisChar > 127))
+            if ( (ThisChar == __T('\t')) || ((ThisChar >= 32) && (ThisChar < 127)) ) {
+                out.Add( ThisChar );
+                CurrPos++;
+            } else
 #if BLAT_LITE
 #else
-                 && (!CommonData.eightBitMimeSupported || !CommonData.eightBitMimeRequested)
+            if ( CommonData.eightBitMimeSupported && CommonData.eightBitMimeRequested ) {
+                out.Add( ThisChar );
+                CurrPos++;
+            } else
 #endif
-               ) {
+//#if defined(_UNICODE) || defined(UNICODE)
+//            if (ThisChar > 0x00FF) {
+//                _stprintf( tmpstr, __T("&#u;"), ThisChar );
+//                out.Add( tmpstr );
+//                CurrPos += _tcslen( tmpstr );
+//            } else
+//#endif
+            {
                 _stprintf( tmpstr, __T("=%02") _TCHAR_PRINTF_FORMAT __T("X"), ThisChar & 0xFF );
                 out.Add( tmpstr );
                 CurrPos += 3;
-            } else {
-                out.Add( ThisChar );
-                CurrPos++;
             }
 
             if ( CurrPos > 71 ) {

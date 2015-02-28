@@ -111,13 +111,13 @@ int add_message_body ( COMMON_DATA & CommonData,
                 if ( CommonData.alternateText.Length() ) {
                     LPTSTR pp;
                     LPTSTR pp1;
+                    _TCHAR altTextCharset[12];
                     int needQP = FALSE;
                     int flowed = FALSE;
 
-                    _TCHAR altTextCharset[8];
                     altTextCharset[0] = 0;
                     localUTF = CommonData.utf;
-                    convertUnicode( CommonData.alternateText, &localUTF, altTextCharset, utfRequested );
+                    convertUnicode( CommonData.alternateText, &localUTF, altTextCharset, FALSE );
 
                     if ( CommonData.haveEmbedded || CommonData.haveAttachments ) {
                         if ( CommonData.haveEmbedded && CommonData.haveAttachments ) {
@@ -144,10 +144,19 @@ int add_message_body ( COMMON_DATA & CommonData,
                     messageBuffer.Add( __T("--") BOUNDARY_MARKER );
                     messageBuffer.Add( attachment_boundary );
                     if ( CheckIfNeedQuotedPrintable(CommonData, CommonData.alternateText.Get(), TRUE) ) {
-                        needQP = TRUE;
-                        messageBuffer.Add( __T("Content-Transfer-Encoding: quoted-printable\r\n") );
-                    } else
+                        if (_memicmp(altTextCharset,__T("UTF-"),4*sizeof(_TCHAR)) == 0) {
+                            if ( (altTextCharset[4] == __T('8')) && (CommonData.eightBitMimeSupported || yEnc_This) )
+                                messageBuffer.Add( __T("Content-Transfer-Encoding: 8BIT\r\n") );
+                            else
+                                messageBuffer.Add( __T("Content-Transfer-Encoding: 7BIT\r\n") );
+                        } else {
+                            needQP = TRUE;
+                            messageBuffer.Add( __T("Content-Transfer-Encoding: quoted-printable\r\n") );
+                        }
+                    } else {
                         messageBuffer.Add( __T("Content-Transfer-Encoding: 7BIT\r\n") );
+                        _tcscpy( altTextCharset, defaultCharset );
+                    }
 
                     if (CommonData.bodyconvert) {
                         fileBuffer.Clear();
@@ -257,7 +266,16 @@ int add_message_body ( COMMON_DATA & CommonData,
 
                         messageBuffer.Add( __T("--") BOUNDARY_MARKER );
                         messageBuffer.Add( attachment_boundary );
-                        messageBuffer.Add( __T("Content-Transfer-Encoding: quoted-printable\r\n") );
+                        if (_memicmp(CommonData.charset, __T("UTF-"),4*sizeof(_TCHAR)) == 0) {
+#if BLAT_LITE
+#else
+                            if ( CommonData.eightBitMimeSupported || yEnc_This ) {
+                                messageBuffer.Add( __T("Content-Transfer-Encoding: 8BIT\r\n") );
+                            } else
+#endif
+                                messageBuffer.Add( __T("Content-Transfer-Encoding: 7BIT\r\n") );
+                        } else
+                            messageBuffer.Add( __T("Content-Transfer-Encoding: quoted-printable\r\n") );
 #if SMART_CONTENT_TYPE
                         if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode, __T("plain") ) )
                             getContentType( CommonData, tmpstr, foundType, foundType, getShortFileName(CommonData.bodyFilename) );
