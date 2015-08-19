@@ -1753,6 +1753,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
         finish_server_message(CommonData);
         close_server_socket( CommonData );
         serverOpen = 0;
+        userAuthenticated = FALSE;
         return 14;
     }
 
@@ -1965,6 +1966,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
         finish_server_message(CommonData);
         close_server_socket( CommonData );
         serverOpen = 0;
+        userAuthenticated = FALSE;
     } else
 #else
     multipartID = multipartID;
@@ -1975,6 +1977,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
             finish_server_message(CommonData);
             close_server_socket( CommonData );
             serverOpen = 0;
+            userAuthenticated = FALSE;
             return 14;
         }
     }
@@ -2115,6 +2118,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
                 if ( anticipatedNameCount >= namesFound ) {
                     close_server_socket( CommonData );
                     serverOpen = 0;
+                    userAuthenticated = FALSE;
                 }
             }
 

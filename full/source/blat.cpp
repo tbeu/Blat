@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.4")
+#define BLAT_VERSION    __T("3.2.6")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.

@@ -792,6 +792,32 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
             }
             break;
         }
+        if ( pStr[0] != 0xFEFF )
+        {
+            if ( pStr[x+1] == 0x0000 )
+                x++;
+            else
+                break;
+        }
+    }
+    if ( x == length )
+    {
+        newString.Clear();
+        for ( x = 0; x < length; x += 2 )
+            newString.Add( pStr[x] );
+
+        stringToCheck = newString;
+        pStr = (_TUCHAR *)stringToCheck.Get();
+        for ( x = 0; x < stringToCheck.Length(); x++ ) {
+            if ( *pStr > 0x007F ) {
+  #if BLAT_LITE
+                CommonData.mime = 1;
+  #else
+                CommonData.eightBitMimeRequested = TRUE;
+  #endif
+                break;
+            }
+        }
     }
     newString.Free();
 }

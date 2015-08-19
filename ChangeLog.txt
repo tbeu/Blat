@@ -5,11 +5,22 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.6
+[-] When checking file content for Unicode, if the second byte of every pair is
+    binary zero, then strip the binary zeroes before proceeding.  It is
+    possible to create a Unicode file with the echo command such that a Unicode
+    Byte Order Marker (BOM) is not present in the file.  Without the BOM, Blat
+    was not properly handling these Unicode files.
+-------------------------------------------------------------------------------
+3.2.5
+[-] After closing the server connection, clear the authenticated user flag to
+    force reauthentication.
+-------------------------------------------------------------------------------
 3.2.4
 [-] Changed X- header processing to use Buf definition rather than a fixed
     array.  The change is made to organization and aheaders, to prevent
     memory overruns.
-[-] If using alternate text, such as when sending plain text and HTML, and if 
+[-] If using alternate text, such as when sending plain text and HTML, and if
     that alternate text is Unicode, be sure to set the charset for the
     alternate text section and set Content-Transfer-Encoding: 7BIT or 8BIT
     as needed and available.
@@ -208,7 +219,7 @@
     this change, email clients like Thunderbird can decode the headers
     properly.
 [-] Fixed the message output for blat.dll to use a caller's print function
-    when it is available.
+    when it is available.
 [-] Fixed blat.dll functions printDLLW(), printDLLA(), BlatA(), BlatW(),
     SendA(), and SendW() to correctly convert from/to Unicode strings.
 -------------------------------------------------------------------------------
