@@ -886,7 +886,6 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                 bldHdrs.header->Add( __T("\r\n") );
             } else
             if ( CommonData.formattedContent ) {
-                bldHdrs.header->Add( tmpstr );
                 bldHdrs.header->Add( __T("Reply-To: ") );
                 bldHdrs.header->Add( fixedLoginName );
                 bldHdrs.header->Add( __T("\r\n") );

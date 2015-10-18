@@ -3663,7 +3663,8 @@ int processOptions( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int start
         if ( !argv[this_arg][0] )   // If we already dealt with a given option,
             continue;               // it will have been removed from the list.
 
-        if ( argv[this_arg][0] == __T('/') )
+        if ( (argv[this_arg][0] == __T('/')) ||
+             (argv[this_arg][0] == 0x2013  ) )
             argv[this_arg][0] = __T('-');
 
 #if INCLUDE_SUPERDEBUG

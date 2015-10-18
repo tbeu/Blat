@@ -197,7 +197,7 @@ void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * pUTF, 
                 tempString.Free();
             }
             if ( prevC )
-                outputText.Add( __T('-') );  /* terminate the pUTF-7 string */
+                outputText.Add( __T('-') );  /* terminate the UTF-7 string */
         } else {
             /*
              * UTF-8 requested, or 32-bit Unicode found.
@@ -544,6 +544,7 @@ void compactUnicodeFileData( Buf &sourceText )
     int           tempUTF;
     LPTSTR        pp;
     unsigned long value;
+    size_t        x;
 
     pp = sourceText.Get();
     if ( !pp )
@@ -555,9 +556,82 @@ void compactUnicodeFileData( Buf &sourceText )
     outputText.Clear();
     tempUTF = 0;
 
-    if ( sourceText.Length() > 2 ) {
+    if ( !(sourceText.Length() & 1) ) {
+        bool haveNulls;
+
+        haveNulls = true;
+        for ( x = 1; x < sourceText.Length(); x += 2 ) {
+            if ( pp[x] != 0x0000 ) {
+                haveNulls = false;
+                break;
+            }
+        }
+        if ( haveNulls ) {
+            outputText.Add( (_TCHAR)0xFEFF );
+            for ( x = 0; x < sourceText.Length(); x += 2 ) {
+                outputText.Add( pp[x] );
+            }
+            sourceText = outputText;
+            pp = sourceText.Get();
+            outputText.Clear();
+        }
+        else {
+            if ( ((pp[0] == 0x00FF) && (pp[1] == 0x00FE) && (pp[2] == 0x0000) && (pp[3] == 0x0000)) ||
+                 ((pp[0] == 0x0000) && (pp[1] == 0x0000) && (pp[2] == 0x00FE) && (pp[3] == 0x00FF)) ||
+                 ((pp[0] == 0x00FF) && (pp[1] == 0x00FE))                                           ||
+                 ((pp[0] == 0x00FE) && (pp[1] == 0x00FF))                                           ) {
+            }
+            else {
+                for ( x = 1; x < sourceText.Length(); x += 2 ) {
+                    if ( pp[x] == 0x0000 ) {
+                        haveNulls = true;
+                        break;
+                    }
+                }
+                if ( haveNulls ) {
+                    _TUCHAR c;
+
+                    outputText.Add( (_TCHAR)0xFEFF );
+                    for ( x = 0; x < sourceText.Length(); x += 2 ) {
+                        c = pp[x] + (pp[x+1] << 8);
+                        outputText.Add( c );
+                    }
+                    sourceText = outputText;
+                    pp = sourceText.Get();
+                    outputText.Clear();
+                }
+            }
+        }
+    }
+
+    if ( sourceText.Length() == 1 ) {
+        if ( *pp > 0x00FF ) {
+            outputText.Add( (_TCHAR)0xFEFF );
+            outputText.Add( *pp );
+            sourceText = outputText;
+            pp = sourceText.Get();
+            outputText.Clear();
+        }
+    }
+    else
+    if ( sourceText.Length() == 2 ) {
+        if ( *pp != (_TCHAR)0xFEFF ) {
+            if ( ( pp[0] <  0x00FE) &&
+                 ( pp[0] >= 0x00C0) &&
+                 ((pp[1] & (_TUCHAR)~0x3F) == 0x0080) ) {
+                outputText.Clear();
+                outputText.Add( (_TCHAR)0xFEFF );    /* Prepend a UTF-16 BOM */
+                outputText.Add( (_TCHAR)(pp[0] + (pp[1] << 8)) );
+                sourceText = outputText;
+                pp = sourceText.Get();
+                outputText.Clear();
+            }
+        }
+    }
+    else {
+        // sourceText.Length() > 2
+
         if ( memcmp( pp, utf8BOM, 3*sizeof(_TCHAR) ) == 0 ) {
-  #if 1
             /*
              * UTF-8 BOM found.
              */
@@ -626,80 +700,198 @@ void compactUnicodeFileData( Buf &sourceText )
                 } while ( *pp & 0x0080 );
             }
             sourceText = outputText;
-  #endif
             outputText.Free();
-            return;
         }
+        else {
+            if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) && (pp[2] == 0x0000) && (pp[3] == 0x0000) && !(sourceText.Length() & 1) ) {
+                tempUTF = NATIVE_32BIT_UTF;     /* Looks like Unicode 32-bit in native format */
+            } else
+            if ( (pp[0] == 0x0000) && (pp[1] == 0x0000) && (pp[2] == 0x00FE) && (pp[3] == 0x00FF) && !(sourceText.Length() & 1) ) {
+                tempUTF = NON_NATIVE_32BIT_UTF; /* Looks like Unicode 32-bit in non-native format */
+            } else
+            if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) ) {
+                tempUTF = NATIVE_16BIT_UTF;     /* Looks like Unicode 16-bit in native format */
+            } else
+            if ( (pp[0] == 0x00FE) && (pp[1] == 0x00FF) ) {
+                tempUTF = NON_NATIVE_16BIT_UTF; /* Looks like Unicode 16-bit in non-native format */
+            }
 
-        if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) && (pp[2] == 0x0000) && (pp[3] == 0x0000) && !(sourceText.Length() & 1) ) {
-            tempUTF = NATIVE_32BIT_UTF;     /* Looks like Unicode 32-bit in native format */
-        } else
-        if ( (pp[0] == 0x0000) && (pp[1] == 0x0000) && (pp[2] == 0x00FE) && (pp[3] == 0x00FF) && !(sourceText.Length() & 1) ) {
-            tempUTF = NON_NATIVE_32BIT_UTF; /* Looks like Unicode 32-bit in non-native format */
-        } else
-        if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) ) {
-            tempUTF = NATIVE_16BIT_UTF;     /* Looks like Unicode 16-bit in native format */
-        } else
-        if ( (pp[0] == 0x00FE) && (pp[1] == 0x00FF) ) {
-            tempUTF = NON_NATIVE_16BIT_UTF; /* Looks like Unicode 16-bit in non-native format */
+            if ( tempUTF ) {
+                unsigned bufL;
+                unsigned incrementor;
+
+                outputText.Clear();
+
+                incrementor = (unsigned)(tempUTF & 0x07);
+                outputText.Add( (_TCHAR)0xFEFF );
+
+                bufL = (unsigned)(sourceText.Length() / incrementor);
+                pp += incrementor;
+                bufL--;
+
+                for ( ; bufL; ) {
+                    if ( tempUTF == NATIVE_32BIT_UTF ) {
+                        value = ((unsigned long)pp[3] << 24) + ((unsigned long)pp[2] << 16) + ((unsigned long)pp[1] << 8) + (unsigned long)pp[0];
+                        if ( value > 0x10FFFFul ) {
+                            outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
+                            return;
+                        }
+                        if ( (0x0D800 <= value) && (value <= 0x0FFFF) ) {
+                            outputText.Free();        /* values from 0xD800 - 0xFFFF are invalid for Unicode */
+                            return;
+                        }
+                    } else
+                    if ( tempUTF == NON_NATIVE_32BIT_UTF ) {
+                        value = ((unsigned long)pp[0] << 24) + ((unsigned long)pp[1] << 16) + ((unsigned long)pp[2] << 8) + (unsigned long)pp[3];
+                        if ( value > 0x10FFFFul ) {
+                            outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
+                            return;
+                        }
+                        if ( (0x0D800 <= value) && (value <= 0x0FFFF) ) {
+                            outputText.Free();        /* values from 0xD800 - 0xFFFF are invalid for Unicode */
+                            return;
+                        }
+                    } else
+                    if ( tempUTF == NATIVE_16BIT_UTF ) {
+                        value = (unsigned long)((pp[1] << 8) + pp[0]);
+                    } else {
+                        value = (unsigned long)((pp[0] << 8) + pp[1]);
+                    }
+                    if ( value > 0x0FFFF ) {
+                        _TCHAR surrogatePair;
+
+                        surrogatePair = (_TCHAR)(((value - 0x10000ul) / 0x0400) + 0xD800);
+                        value = (value & 0x03FF) + 0xDC00;
+                        outputText.Add( surrogatePair );
+                    }
+                    outputText.Add( (_TCHAR)value );
+                    pp += incrementor;
+                    bufL--;
+                }
+                sourceText = outputText;
+            }
+            else
+            if ( pp[0] != (_TCHAR)0xFEFF ) {
+                bool bUtf8detected;
+
+                bUtf8detected = true;
+                for ( x = 0; x < sourceText.Length(); x++ ) {
+                    if ( pp[x] < 0x0080 )
+                        continue;
+
+                    if ( (pp[x] >= 0x00C2) &&
+                         (pp[x] <= 0x00DF) ) {
+                        if ( ((x+1) < sourceText.Length())  &&
+                             ((pp[x+1] & 0xFFC0) == 0x0080) ) {
+                            x++;
+                        }
+                        else {
+                            bUtf8detected = false;
+                            break;
+                        }
+                    }
+                    else
+                    if ( pp[x] == 0x00E0 ) {
+                        if ( ((x+2) < sourceText.Length())  &&
+                             ((pp[x+1] & 0xFFE0) == 0x00A0) &&
+                             ((pp[x+2] & 0xFFC0) == 0x0080) ) {
+                            x += 2;
+                        }
+                        else {
+                            bUtf8detected = false;
+                            break;
+                        }
+                    }
+                    else
+                    if ( (pp[x] >= 0x00E1) &&
+                         (pp[x] <= 0x00EC) ) {
+                        if ( ((x+2) < sourceText.Length())  &&
+                             ((pp[x+1] & 0xFFC0) == 0x0080) &&
+                             ((pp[x+2] & 0xFFC0) == 0x0080) ) {
+                            x += 2;
+                        }
+                        else {
+                            bUtf8detected = false;
+                            break;
+                        }
+                    }
+                    else
+                    if ( pp[x] == 0x00ED ) {
+                        if ( ((x+2) < sourceText.Length())  &&
+                             ((pp[x+1] & 0xFFE0) == 0x0080) &&
+                             ((pp[x+2] & 0xFFC0) == 0x0080) ) {
+                            x += 2;
+                        }
+                        else {
+                            bUtf8detected = false;
+                            break;
+                        }
+                    }
+                    else
+                    if ( (pp[x] == 0x00EE) ||
+                         (pp[x] == 0x00EF) ) {
+                        if ( ((x+2) < sourceText.Length())  &&
+                             ((pp[x+1] & 0xFFC0) == 0x0080) &&
+                             ((pp[x+2] & 0xFFC0) == 0x0080) ) {
+                            x += 2;
+                        }
+                        else {
+                            bUtf8detected = false;
+                            break;
+                        }
+                    }
+                    else
+                    if ( pp[x] == 0x00F0 ) {
+                        if ( ((x+3) < sourceText.Length())  &&
+                             ( pp[x+1]           >= 0x0090) &&
+                             ( pp[x+1]           <= 0x00BF) &&
+                             ((pp[x+2] & 0xFFC0) == 0x0080) &&
+                             ((pp[x+3] & 0xFFC0) == 0x0080) ) {
+                            x += 3;
+                        }
+                        else {
+                            bUtf8detected = false;
+                            break;
+                        }
+                    }
+                    else
+                    if ( (pp[x] >= 0x00F1) &&
+                         (pp[x] <= 0x00F3) ) {
+                        if ( ((x+3) < sourceText.Length())  &&
+                             ((pp[x+1] & 0xFFC0) == 0x0080) &&
+                             ((pp[x+2] & 0xFFC0) == 0x0080) &&
+                             ((pp[x+3] & 0xFFC0) == 0x0080) ) {
+                            x += 3;
+                        }
+                        else {
+                            bUtf8detected = false;
+                            break;
+                        }
+                    }
+                    else
+                    if ( pp[x] == 0x00F4 ) {
+                        if ( ((x+3) < sourceText.Length())  &&
+                             ((pp[x+1] & 0xFFF0) == 0x0080) &&
+                             ((pp[x+2] & 0xFFC0) == 0x0080) &&
+                             ((pp[x+3] & 0xFFC0) == 0x0080) ) {
+                            x += 3;
+                        }
+                        else {
+                            bUtf8detected = false;
+                            break;
+                        }
+                    }
+                }
+                if ( bUtf8detected ) {
+                    outputText.Clear();
+                    outputText.Add( utf8BOM );    /* Prepend a UTF-16 BOM */
+                    outputText.Add( sourceText );
+                    sourceText = outputText;
+                    compactUnicodeFileData( sourceText );
+                }
+            }
         }
     }
-
-    if ( tempUTF ) {
-        unsigned bufL;
-        unsigned incrementor;
-
-        outputText.Clear();
-
-        incrementor = (unsigned)(tempUTF & 0x07);
-        outputText.Add( (_TCHAR)0xFEFF );
-
-        bufL = (unsigned)(sourceText.Length() / incrementor);
-        pp += incrementor;
-        bufL--;
-
-        for ( ; bufL; ) {
-            if ( tempUTF == NATIVE_32BIT_UTF ) {
-                value = ((unsigned long)pp[3] << 24) + ((unsigned long)pp[2] << 16) + ((unsigned long)pp[1] << 8) + (unsigned long)pp[0];
-                if ( value > 0x10FFFFul ) {
-                    outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
-                    return;
-                }
-                if ( (0x0D800 <= value) && (value <= 0x0FFFF) ) {
-                    outputText.Free();        /* values from 0xD800 - 0xFFFF are invalid for Unicode */
-                    return;
-                }
-            } else
-            if ( tempUTF == NON_NATIVE_32BIT_UTF ) {
-                value = ((unsigned long)pp[0] << 24) + ((unsigned long)pp[1] << 16) + ((unsigned long)pp[2] << 8) + (unsigned long)pp[3];
-                if ( value > 0x10FFFFul ) {
-                    outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
-                    return;
-                }
-                if ( (0x0D800 <= value) && (value <= 0x0FFFF) ) {
-                    outputText.Free();        /* values from 0xD800 - 0xFFFF are invalid for Unicode */
-                    return;
-                }
-            } else
-            if ( tempUTF == NATIVE_16BIT_UTF ) {
-                value = (unsigned long)((pp[1] << 8) + pp[0]);
-            } else {
-                value = (unsigned long)((pp[0] << 8) + pp[1]);
-            }
-            if ( value > 0x0FFFF ) {
-                _TCHAR surrogatePair;
-
-                surrogatePair = (_TCHAR)(((value - 0x10000ul) / 0x0400) + 0xD800);
-                value = (value & 0x03FF) + 0xDC00;
-                outputText.Add( surrogatePair );
-            }
-            outputText.Add( (_TCHAR)value );
-            pp += incrementor;
-            bufL--;
-        }
-        sourceText = outputText;
-    }
-
     outputText.Free();
 }
 
@@ -710,7 +902,9 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
     size_t    x;
     _TUCHAR * pStr;
     Buf       newString;
+    bool      haveNulls;
 
+    haveNulls = false;
     newString.Clear();
     compactUnicodeFileData( stringToCheck );
     length = stringToCheck.Length();
@@ -792,32 +986,50 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
             }
             break;
         }
-        if ( pStr[0] != 0xFEFF )
-        {
-            if ( pStr[x+1] == 0x0000 )
+        if ( pStr[0] != 0xFEFF ) {
+            if ( pStr[x+1] == 0x0000 ) {
+                haveNulls = true;
                 x++;
+            }
             else
+            if ( !haveNulls )
                 break;
         }
     }
-    if ( x == length )
-    {
-        newString.Clear();
-        for ( x = 0; x < length; x += 2 )
-            newString.Add( pStr[x] );
+    if ( x == length ) {
+        //bool canRemoveBOM;
 
-        stringToCheck = newString;
+        //canRemoveBOM = false;
         pStr = (_TUCHAR *)stringToCheck.Get();
         for ( x = 0; x < stringToCheck.Length(); x++ ) {
-            if ( *pStr > 0x007F ) {
+            if ( (x == 0) && (pStr[0] == 0xFEFF) ) {
+                //canRemoveBOM = true;
+            }
+            else
+            if ( pStr[x] > 0x00FF ) {
+                //canRemoveBOM = FALSE;
   #if BLAT_LITE
                 CommonData.mime = 1;
   #else
                 CommonData.eightBitMimeRequested = TRUE;
   #endif
-                break;
+            }
+            else
+            if ( pStr[x] > 0x007F ) {
+  #if BLAT_LITE
+                CommonData.mime = 1;
+  #else
+                CommonData.eightBitMimeRequested = TRUE;
+  #endif
             }
         }
+        //if ( canRemoveBOM ) {
+        //    newString.Clear();
+        //    for ( x = 1; x < stringToCheck.Length(); x++ ) {
+        //        newString.Add( pStr[x] );
+        //    }
+        //    stringToCheck = newString;
+        //}
     }
     newString.Free();
 }

@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.6")
+#define BLAT_VERSION    __T("3.2.9")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -395,6 +395,23 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     Buf         sourceText;
     DWORD       dwVersion;
 
+#if 0
+    {
+        int x;
+        _tprintf( __T("\nBlat saw the following command line options:\n") );
+        for ( x = 1; x < argc; x++ ) {
+            int y;
+            _tprintf( __T("%s\n"), argv[x] );
+            for ( y = 0; ; y++ ) {
+                _tprintf( __T(" %04X"), argv[x][y] );
+                if ( argv[x][y] == 0 )
+                    break;
+            }
+            _tprintf( __T("\n") );
+        }
+        _tprintf( __T("\n") );
+    }
+#endif
 
     dwVersion = GetVersion();
     if ( dwVersion & (0x80ul << ((sizeof(DWORD)-1) * 8)) ) {
@@ -508,17 +525,17 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     else {
         int x;
 
-        tprintf( __T("\nBlat saw the following command line:\n") );
+        _tprintf( __T("\nBlat saw the following command line:\n") );
         for ( x = 0; x < argc; x++ ) {
             if ( x )
-                tprintf( __T(" ") );
+                _tprintf( __T(" ") );
 
             if ( _tcschr(argv[x], __T(' ')) || _tcschr(argv[x], __T('"')) )
-                tprintf( __T("\"%s\""), argv[x] );
+                _tprintf( __T("\"%s\""), argv[x] );
             else
-                tprintf( __T("%s"), argv[x] );
+                _tprintf( __T("%s"), argv[x] );
         }
-        tprintf( __T("\n\n") );
+        _tprintf( __T("\n\n") );
     }
  */
 
@@ -534,6 +551,10 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
     secondArgV = NULL;
     secondArgC = 0;
+#endif
+#if defined(_UNICODE) || defined(UNICODE)
+    if ( argv[1][0] == 0x2013 )
+        argv[1][0] = __T('-');
 #endif
     if ( ((argv[1][0] == __T('-')) || (argv[1][0] == __T('/'))) && argv[1][1] )
         retcode = processOptions( CommonData, argc, argv, 1, TRUE );        // Preprocess the options
@@ -976,6 +997,8 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
                 CommonData.TempConsole.Add((char)i);
             }
+            if (CommonData.TempConsole.Length() == 0)
+                CommonData.TempConsole.Add( __T("\r\n") );
         }
         _tcscpy(CommonData.bodyFilename, stdinFileName);
     }

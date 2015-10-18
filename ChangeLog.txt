@@ -5,6 +5,24 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.9
+[*] If the message body is from keyboard input, and if the user enters Ctrl-Z
+    without anything else before it, then a carriage return / line feed will be
+    the message body.  This forces the program to add attachments properly.
+[-] Checking the message body for Unicode was causing every other character to
+    be lost.  This should be fixed now.  At the same time, Unicode files
+    without a Byte Order Marker (BOM) should be properly handled.  Version
+    3.2.6 was an attempt to fix this last piece, but it broke non-Unicode file
+    handling.
+-------------------------------------------------------------------------------
+3.2.8
+[-] When impersonating (-f option) and the message content is formatted, it was
+    possible to get two Date: header lines in outgoing email.
+-------------------------------------------------------------------------------
+3.2.7
+[*] Look for non-ASCII hyphen (hex code 0x2013) in the first position of
+    command line options, and replace it with ASCII hyphen (hex code 0x002D).
+-------------------------------------------------------------------------------
 3.2.6
 [-] When checking file content for Unicode, if the second byte of every pair is
     binary zero, then strip the binary zeroes before proceeding.  It is
