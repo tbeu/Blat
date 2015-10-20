@@ -146,60 +146,62 @@ static int ReadNamesFromFile(COMMON_DATA & CommonData, LPTSTR type, LPTSTR names
     DWORD   filesize;
     DWORD   dummy;
     Buf     p;
-    LPTSTR  tmpstr;
+    Buf     tmpstr;
+    LPTSTR  pString;
 
     if ( !fileh.OpenThisFile(namesfilename)) {
         printMsg(CommonData, __T("error opening %s, aborting\n"), namesfilename);
         return(3);
     }
     filesize = fileh.GetSize();
-    tmpstr = (LPTSTR)malloc( (filesize + 1)*sizeof(_TCHAR) );
-    if ( !tmpstr ) {
-        fileh.Close();
-        printMsg(CommonData, __T("error allocating memory for reading %s, aborting\n"), namesfilename);
-        return(5);
-    }
+    tmpstr.Alloc( filesize + 1 );
+    //if ( !tmpstr ) {
+    //    fileh.Close();
+    //    printMsg(CommonData, __T("error allocating memory for reading %s, aborting\n"), namesfilename);
+    //    return(5);
+    //}
 
-    if ( !fileh.ReadThisFile(tmpstr, filesize, &dummy, NULL) ) {
+    if ( !fileh.ReadThisFile(tmpstr.Get(), filesize, &dummy, NULL) ) {
         fileh.Close();
-        free(tmpstr);
+        tmpstr.Free();
         printMsg(CommonData, __T("error reading %s, aborting\n"), namesfilename);
         return(5);
     }
     fileh.Close();
-
-    tmpstr[filesize] = __T('\0');
+    tmpstr.SetLength( filesize );
   #if defined(_UNICODE) || defined(UNICODE)
     Buf sourceText;
 
     sourceText.Clear();
-    sourceText.Add( tmpstr, filesize );
+    sourceText.Add( tmpstr );
     checkInputForUnicode( CommonData, sourceText );
-    memcpy( tmpstr, sourceText.Get(), sourceText.Length()*sizeof(_TCHAR) );
-    tmpstr[sourceText.Length()] = __T('\0');
+    tmpstr = sourceText;
+    tmpstr.Add( __T('\0') );
   #endif
-    parseCommaDelimitString( CommonData, tmpstr, p, FALSE );
-    free(tmpstr);
-    tmpstr = p.Get();
+    parseCommaDelimitString( CommonData, tmpstr.Get(), p, FALSE );
+    tmpstr = p;
+    tmpstr.Add( __T('\0') );
+    pString = tmpstr.Get();
 
-    if ( !tmpstr ) {
+    if ( !pString ) {
         printMsg(CommonData, __T("error finding email addresses in %s, aborting\n"), namesfilename);
         return(5);
     }
 
     // Count and consolidate addresses.
     found = 0;
-    for ( ; *tmpstr; tmpstr += _tcslen(tmpstr) + 1 ) {
+    for ( ; *pString; pString += _tcslen(pString) + 1 ) {
         if ( found )
             listofnames.Add( __T(',') );
 
-        listofnames.Add( tmpstr );
+        listofnames.Add( pString );
         found++;
     }
 
     printMsg(CommonData, __T("Read %d %s address%s from %s\n"), found, type, (found == 1) ? __T("") : __T("es"), namesfilename);
 
     p.Free();
+    tmpstr.Free();
     return(0);                                   // indicates no error.
 }
 #endif
@@ -1642,42 +1644,61 @@ static int checkSubjectOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 
 static int checkSubjectFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    FILE * infile;
-    int    x;
-    LPTSTR pString;
-    _TCHAR tmpSubject[SUBJECT_SIZE+1];
+    WinFile fileh;
+    DWORD   filesize;
+    DWORD   dummy;
+    DWORD   x;
+    LPTSTR  pString;
+    Buf     tmpSubject;
 
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
     CommonData.subject.Free();
-    infile = _tfopen(argv[this_arg+1], __T("r"));
-    if ( infile ) {
-        memset(tmpSubject, 0x00, SUBJECT_SIZE*sizeof(_TCHAR));
-        _fgetts(tmpSubject, SUBJECT_SIZE, infile);    //lint !e534 ignore return
-        tmpSubject[SUBJECT_SIZE] = __T('\0');
-        fclose(infile);
-        CommonData.subject.Add( tmpSubject, SUBJECT_SIZE );
-  #if defined(_UNICODE) || defined(UNICODE)
-        checkInputForUnicode( CommonData, CommonData.subject );
-  #endif
-        pString = CommonData.subject.Get();
-        for ( x = 0; pString[x]; x++ ) {
-            if ( (pString[x] == __T('\n')) || (pString[x] == __T('\t')) )
-                pString[x] = __T(' ');  // convert LF and tabs to spaces
-            else
-            if ( pString[x] == __T('\r') ) {
-                _tcscpy( &pString[x], &pString[x+1] );
-                x--;            // Remove CR bytes.
-            }
-        }
-        for ( ; x; ) {
-            if ( pString[--x] != __T(' ') )
-                break;
+    if ( fileh.OpenThisFile(argv[this_arg+1])) {
+        filesize = fileh.GetSize();
+        tmpSubject.Alloc( filesize + 1 );
 
-            _tcscpy( &pString[x], &pString[x+1] );  // Strip off trailing spaces.
+        if ( fileh.ReadThisFile(tmpSubject.Get(), filesize, &dummy, NULL) ) {
+            fileh.Close();
+            tmpSubject.SetLength( filesize );
+          #if defined(_UNICODE) || defined(UNICODE)
+            Buf sourceText;
+
+            sourceText.Clear();
+            sourceText.Add( tmpSubject );
+            checkInputForUnicode( CommonData, sourceText );
+            tmpSubject = sourceText;
+            tmpSubject.Add( __T('\0') );
+          #endif
+            if ( tmpSubject.Length() > SUBJECT_SIZE ) {
+                tmpSubject.Get()[SUBJECT_SIZE] = __T('\0');
+                tmpSubject.SetLength();
+            }
+            pString = tmpSubject.Get();
+            for ( x = 0; pString[x]; x++ ) {
+                if ( (pString[x] == __T('\n')) || (pString[x] == __T('\t')) )
+                    pString[x] = __T(' ');  // convert LF and tabs to spaces
+                else
+                if ( pString[x] == __T('\r') ) {
+                    _tcscpy( &pString[x], &pString[x+1] );
+                    x--;            // Remove CR bytes.
+                }
+            }
+            for ( ; x; ) {
+                if ( pString[--x] != __T(' ') )
+                    break;
+
+                _tcscpy( &pString[x], &pString[x+1] );  // Strip off trailing spaces.
+            }
+            tmpSubject.SetLength();
+            CommonData.subject = tmpSubject;
         }
-        CommonData.subject.SetLength();
+        else {
+            CommonData.subject.Add( argv[this_arg+1] );
+            fileh.Close();
+            tmpSubject.Free();
+        }
     } else {
         CommonData.subject.Add( argv[this_arg+1] );
     }
@@ -2394,41 +2415,44 @@ static int ReadFilenamesFromFile(COMMON_DATA & CommonData, LPTSTR namesfilename,
     WinFile fileh;
     DWORD   filesize;
     DWORD   dummy;
-    LPTSTR  tmpstr;
+    Buf     tmpstr;
+    LPTSTR  pString;
 
     if ( !fileh.OpenThisFile(namesfilename)) {
         printMsg(CommonData, __T("error opening %s, aborting\n"), namesfilename);
         return(-3);
     }
     filesize = fileh.GetSize();
-    tmpstr = (LPTSTR)malloc( (filesize + 1)*sizeof(_TCHAR) );
-    if ( !tmpstr ) {
-        fileh.Close();
-        printMsg(CommonData, __T("error allocating memory for reading %s, aborting\n"), namesfilename);
-        return(-5);
-    }
+    tmpstr.Alloc( filesize+1 );
+    //if ( !tmpstr ) {
+    //    fileh.Close();
+    //    printMsg(CommonData, __T("error allocating memory for reading %s, aborting\n"), namesfilename);
+    //    return(-5);
+    //}
 
-    if ( !fileh.ReadThisFile(tmpstr, filesize, &dummy, NULL) ) {
+    if ( !fileh.ReadThisFile(tmpstr.Get(), filesize, &dummy, NULL) ) {
         fileh.Close();
-        free(tmpstr);
+        tmpstr.Free();
         printMsg(CommonData, __T("error reading %s, aborting\n"), namesfilename);
         return(-5);
     }
     fileh.Close();
-
-    tmpstr[filesize] = __T('\0');
+    tmpstr.SetLength( filesize );
+    tmpstr.Add( __T('\0') );
   #if defined(_UNICODE) || defined(UNICODE)
     Buf sourceText;
 
     sourceText.Clear();
-    sourceText.Add( tmpstr, filesize );
+    sourceText.Add( tmpstr.Get(), filesize );
     checkInputForUnicode( CommonData, sourceText );
-    memcpy( tmpstr, sourceText.Get(), (sourceText.Length()+1)*sizeof(_TCHAR) );
-    if ( tmpstr[0] == 0xFEFF )                  // Unicode BOM
-        memcpy( &tmpstr[0], &tmpstr[1], sourceText.Length()*sizeof(_TCHAR) );
+    tmpstr = sourceText;
+    if ( tmpstr.Get()[0] == 0xFEFF )            // Unicode BOM ?
+        tmpstr.Remove(0);
   #endif
-    addToAttachments( CommonData, &tmpstr, -1, aType );
-    free(tmpstr);
+    tmpstr.Add( __T('\0') );
+    pString = tmpstr.Get();
+    addToAttachments( CommonData, &pString, -1, aType );
+    tmpstr.Free();
     return(1);                                  // indicates no error.
 }
 

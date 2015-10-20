@@ -996,40 +996,18 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
                 break;
         }
     }
-    if ( x == length ) {
-        //bool canRemoveBOM;
+    if (stringToCheck.Get()[0] == 0xFEFF)
+        stringToCheck.Remove(0);
 
-        //canRemoveBOM = false;
-        pStr = (_TUCHAR *)stringToCheck.Get();
-        for ( x = 0; x < stringToCheck.Length(); x++ ) {
-            if ( (x == 0) && (pStr[0] == 0xFEFF) ) {
-                //canRemoveBOM = true;
-            }
-            else
-            if ( pStr[x] > 0x00FF ) {
-                //canRemoveBOM = FALSE;
-  #if BLAT_LITE
-                CommonData.mime = 1;
-  #else
-                CommonData.eightBitMimeRequested = TRUE;
-  #endif
-            }
-            else
-            if ( pStr[x] > 0x007F ) {
-  #if BLAT_LITE
-                CommonData.mime = 1;
-  #else
-                CommonData.eightBitMimeRequested = TRUE;
-  #endif
-            }
+    pStr = (_TUCHAR *)stringToCheck.Get();
+    for ( x = 0; x < stringToCheck.Length(); x++ ) {
+        if ( pStr[x] > 0x007F ) {
+#if BLAT_LITE
+            CommonData.mime = 1;
+#else
+            CommonData.eightBitMimeRequested = TRUE;
+#endif
         }
-        //if ( canRemoveBOM ) {
-        //    newString.Clear();
-        //    for ( x = 1; x < stringToCheck.Length(); x++ ) {
-        //        newString.Add( pStr[x] );
-        //    }
-        //    stringToCheck = newString;
-        //}
     }
     newString.Free();
 }

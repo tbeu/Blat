@@ -5,6 +5,12 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.10
+[-] R Massey found a problem with processing a subject file that resulted in
+    garbled subject text.  This was exposed as a problem with the most recent
+    changes, but there was a latent bug in the source code for a while which
+    actually caused problems for R Massey.
+-------------------------------------------------------------------------------
 3.2.9
 [*] If the message body is from keyboard input, and if the user enters Ctrl-Z
     without anything else before it, then a carriage return / line feed will be

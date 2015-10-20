@@ -250,6 +250,17 @@ public:
         if (buflen)
             buflen--;
         }
+    void Remove(size_t position) {
+        if (buffer) {
+            if (position < buflen) {
+                do {
+                    buffer[position] = buffer[position+1];
+                    position++;
+                    } while (position < buflen);
+                buflen--;
+                }
+            }
+        }
     operator LPCTSTR () const{
         return buffer;
         }

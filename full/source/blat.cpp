@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.9")
+#define BLAT_VERSION    __T("3.2.10")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -648,10 +648,10 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 cleanUpBuffers( CommonData, savedArguments, argc );
                 return(2);
             }
+            if (sourceText.Get()[0] == 0xFEFF)
+                sourceText.Remove(0);
             memcpy( tmpstr, sourceText.Get(), sourceText.Length()*sizeof(_TCHAR) );
             tmpstr[sourceText.Length()] = __T('\0');
-            if ( tmpstr[0] == 0xFEFF )
-                _tcscpy( &tmpstr[0], &tmpstr[1] );
 
             CommonData.utf = savedUTF;
             CommonData.eightBitMimeRequested = savedEightBitMimeRequested;
