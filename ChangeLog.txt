@@ -5,6 +5,12 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.11
+[-] Alain Loubert found a problem with processing a plain text file for the
+    message body, resulting in a UTF-8 byte order marker (BOM) being sent as
+    part of the message.  I fixed this oversight and added more test cases to
+    my validation batch file.
+-------------------------------------------------------------------------------
 3.2.10
 [-] R Massey found a problem with processing a subject file that resulted in
     garbled subject text.  This was exposed as a problem with the most recent

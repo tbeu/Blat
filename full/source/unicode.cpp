@@ -579,7 +579,8 @@ void compactUnicodeFileData( Buf &sourceText )
             if ( ((pp[0] == 0x00FF) && (pp[1] == 0x00FE) && (pp[2] == 0x0000) && (pp[3] == 0x0000)) ||
                  ((pp[0] == 0x0000) && (pp[1] == 0x0000) && (pp[2] == 0x00FE) && (pp[3] == 0x00FF)) ||
                  ((pp[0] == 0x00FF) && (pp[1] == 0x00FE))                                           ||
-                 ((pp[0] == 0x00FE) && (pp[1] == 0x00FF))                                           ) {
+                 ((pp[0] == 0x00FE) && (pp[1] == 0x00FF))                                           ||
+                 (memcmp( pp, utf8BOM, 3*sizeof(_TCHAR) ) == 0)                                   ) {
             }
             else {
                 for ( x = 1; x < sourceText.Length(); x += 2 ) {
@@ -774,7 +775,7 @@ void compactUnicodeFileData( Buf &sourceText )
             if ( pp[0] != (_TCHAR)0xFEFF ) {
                 bool bUtf8detected;
 
-                bUtf8detected = true;
+                bUtf8detected = false;
                 for ( x = 0; x < sourceText.Length(); x++ ) {
                     if ( pp[x] < 0x0080 )
                         continue;
@@ -784,6 +785,7 @@ void compactUnicodeFileData( Buf &sourceText )
                         if ( ((x+1) < sourceText.Length())  &&
                              ((pp[x+1] & 0xFFC0) == 0x0080) ) {
                             x++;
+                            bUtf8detected = true;
                         }
                         else {
                             bUtf8detected = false;
@@ -796,6 +798,7 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+1] & 0xFFE0) == 0x00A0) &&
                              ((pp[x+2] & 0xFFC0) == 0x0080) ) {
                             x += 2;
+                            bUtf8detected = true;
                         }
                         else {
                             bUtf8detected = false;
@@ -809,6 +812,7 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+1] & 0xFFC0) == 0x0080) &&
                              ((pp[x+2] & 0xFFC0) == 0x0080) ) {
                             x += 2;
+                            bUtf8detected = true;
                         }
                         else {
                             bUtf8detected = false;
@@ -821,6 +825,7 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+1] & 0xFFE0) == 0x0080) &&
                              ((pp[x+2] & 0xFFC0) == 0x0080) ) {
                             x += 2;
+                            bUtf8detected = true;
                         }
                         else {
                             bUtf8detected = false;
@@ -834,6 +839,7 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+1] & 0xFFC0) == 0x0080) &&
                              ((pp[x+2] & 0xFFC0) == 0x0080) ) {
                             x += 2;
+                            bUtf8detected = true;
                         }
                         else {
                             bUtf8detected = false;
@@ -848,6 +854,7 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+2] & 0xFFC0) == 0x0080) &&
                              ((pp[x+3] & 0xFFC0) == 0x0080) ) {
                             x += 3;
+                            bUtf8detected = true;
                         }
                         else {
                             bUtf8detected = false;
@@ -862,6 +869,7 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+2] & 0xFFC0) == 0x0080) &&
                              ((pp[x+3] & 0xFFC0) == 0x0080) ) {
                             x += 3;
+                            bUtf8detected = true;
                         }
                         else {
                             bUtf8detected = false;
@@ -875,6 +883,7 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+2] & 0xFFC0) == 0x0080) &&
                              ((pp[x+3] & 0xFFC0) == 0x0080) ) {
                             x += 3;
+                            bUtf8detected = true;
                         }
                         else {
                             bUtf8detected = false;
