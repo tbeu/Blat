@@ -109,7 +109,8 @@ int collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t 
         filewasfound = (ihandle != INVALID_HANDLE_VALUE);
         if ( !filewasfound ) {
             printMsg(CommonData, __T("No files found matching search string \"%s\".\n"), CommonData.attachfile[i]);
-            CommonData.attachFoundFault = TRUE;
+            if ( !CommonData.ignoreMissingAttachmentFiles )
+                CommonData.attachFoundFault = TRUE;
         }
 
         while ( filewasfound && !errorFound ) {

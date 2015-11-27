@@ -5,6 +5,19 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.12
+[+] Added a new command line option -IMAF to Ignore Missing Attachment Files.
+    If Blat is told to attach files to the outgoing message, and if the search
+    criteria fails to find a file, Blat normally stops to allow the user to
+    fix their problem with the requested attachment filename.  This new option
+    will tell Blat to continue with the process of sending the email even if
+    the requested attachment filename cannot be found.  Blat will still log a
+    message that the requested filename was not found, but Blat will not stop
+    when this option is used.  This request came through SourceForge from
+    Robert Widdicombe.
+[-] Correctly handle empty Unicode files that contain only the BOM.
+[-] Corrected the help text for IMAP UserID and IMAP Password.
+-------------------------------------------------------------------------------
 3.2.11
 [-] Alain Loubert found a problem with processing a plain text file for the
     message body, resulting in a UTF-8 byte order marker (BOM) being sent as

@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.11")
+#define BLAT_VERSION    __T("3.2.12")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -1086,6 +1086,13 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
         cleanUpBuffers( CommonData, savedArguments, argc );
         return(12);
+    }
+    if ( nbrOfAttachments == 0 ) {
+        CommonData.haveEmbedded    = FALSE;
+        CommonData.haveAttachments = FALSE;
+        CommonData.attach = 0;
+        CommonData.attachfile[0][0] = __T('\0');
+        CommonData.attachtype[0] = 0;
     }
 
     if ( nbrOfAttachments && !totalsize ) {

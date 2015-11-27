@@ -2364,6 +2364,17 @@ static int addToAttachments ( COMMON_DATA & CommonData, LPTSTR * argv, int this_
     return(1);
 }
 
+static int checkMissingAttach ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
+{
+    argc      = argc;   // For eliminating compiler warnings.
+    argv      = argv;
+    this_arg  = this_arg;
+    startargv = startargv;
+
+    CommonData.ignoreMissingAttachmentFiles = TRUE;
+    return(0);
+}
+
 static int checkInlineAttach ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
     argc      = argc;   // For eliminating compiler warnings.
@@ -3319,9 +3330,9 @@ _BLATOPTIONS blatOptionsList[] = {
 #endif
 #if INCLUDE_IMAP
     { strImapUsername       ,              NULL      , FALSE, 1, checkImapUIDOption  , NULL },
-    { strImapU              ,              NULL      , FALSE, 1, checkImapUIDOption  ,    __T(" <username>  : username for IMAP LOGIN (use with -ppw)") },
+    { strImapU              ,              NULL      , FALSE, 1, checkImapUIDOption  ,    __T(" <username>  : username for IMAP LOGIN (use with -ipw)") },
     { strImapPassword       ,              NULL      , FALSE, 1, checkImapPwdOption  , NULL },
-    { strImapPw             ,              NULL      , FALSE, 1, checkImapPwdOption  ,     __T(" <password> : password for IMAP LOGIN (use with -pu)") },
+    { strImapPw             ,              NULL      , FALSE, 1, checkImapPwdOption  ,     __T(" <password> : password for IMAP LOGIN (use with -iu)") },
 #endif
 #if SUPPORT_GSSAPI
     { __T("-k")             ,              NULL      , FALSE, 0, checkGssapiMutual   ,   __T("              : Use ") MECHTYPE __T(" mutual authentication and AUTH GSSAPI") },
@@ -3383,6 +3394,8 @@ _BLATOPTIONS blatOptionsList[] = {
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  separated)") },
     { __T("-aef")           ,              NULL      , FALSE, 1, checkEmbFileAttFil  ,     __T(" <file>     : file containing list of embed file(s) to attach (comma") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  separated)") },
+    { __T("-imaf")          ,              NULL      , FALSE, 0, checkMissingAttach  ,      __T("           : ignore missing attachment files.  Do not stop for missing") },
+    {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  files.") },
     { __T("-base64")        ,              NULL      , FALSE, 0, checkBase64Enc      ,        __T("         : send binary files using base64 (binary MIME)") },
     { __T("-uuencodel")     ,              NULL      , FALSE, 0, checkLongUUEncode   , NULL },
     { __T("-uuencode")      ,              NULL      , FALSE, 0, checkUUEncode       ,          __T("       : send binary files UUEncoded") },

@@ -94,6 +94,7 @@ typedef struct _COMMON_DATA
     Buf           alternateText;
     _TCHAR        clearLogFirst;
     _TCHAR        logFile[_MAX_PATH];
+    bool          ignoreMissingAttachmentFiles;
     int           attachFoundFault;
     int           globaltimeout;
     Buf           processedOptions;

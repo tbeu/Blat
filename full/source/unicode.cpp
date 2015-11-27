@@ -616,6 +616,15 @@ void compactUnicodeFileData( Buf &sourceText )
     }
     else
     if ( sourceText.Length() == 2 ) {
+        if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) ) {
+            sourceText.Clear();
+            sourceText.Add( (_TCHAR)0xFEFF );
+        } else
+        if ( (pp[0] == 0x00FE) && (pp[1] == 0x00FF) ) {
+            sourceText.Clear();
+            sourceText.Add( (_TCHAR)0xFEFF );
+        }
+        else
         if ( *pp != (_TCHAR)0xFEFF ) {
             if ( ( pp[0] <  0x00FE) &&
                  ( pp[0] >= 0x00C0) &&
