@@ -694,10 +694,19 @@ void compactUnicodeFileData( Buf &sourceText )
                         outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
                         return;
                     }
-                    if ( (0x0D800 <= value) && (value <= 0x0FFFF) ) {
-                        outputText.Free();        /* values from 0xD800 - 0xFFFF are invalid for Unicode */
+                    if ( (0x0D800 <= value) && (value <= 0x0DFFF) ) {
+                        outputText.Free();        /* values from 0xD800 - 0xDFFF are invalid for Unicode */
                         return;
                     }
+                    if ( (value & 0xFFFE) == 0xFFFE ) {
+                        outputText.Free();        /* any value that ends with 0xFFFE or 0xFFFF is invalid for Unicode */
+                        return;
+                    }
+                    if ( (0xFDD0 <= value) && (value <= 0xFDEF) ) {
+                        outputText.Free();        /* values from 0xFDD0 - 0xFDEF are invalid for Unicode */
+                        return;
+                    }
+
                     if ( value > 0x0FFFF ) {
                         _TCHAR surrogatePair;
 
@@ -1025,6 +1034,7 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
 #else
             CommonData.eightBitMimeRequested = TRUE;
 #endif
+            break;
         }
     }
     newString.Free();

@@ -15,6 +15,10 @@
     message that the requested filename was not found, but Blat will not stop
     when this option is used.  This request came through SourceForge from
     Robert Widdicombe.
+[-] Corrected UTF-8 text conversion to Unicode.  Some valid values were being
+    flagged as invalid.  This was found when saving a Chinese text file as
+    Unicode and as UTF-8, then comparing the UTF-8 conversion to the original
+    Unicode file saved from Notepad.
 [-] Correctly handle empty Unicode files that contain only the BOM.
 [-] Corrected the help text for IMAP UserID and IMAP Password.
 -------------------------------------------------------------------------------
