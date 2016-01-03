@@ -11,7 +11,8 @@
 #ifdef __WATCOMC__
 #include <mapi.h>
 #else
-#include <mapiwin.h>
+/* Commented out by Okkel Klaver <info@vanhetland.nl> on 1-3-2016 to get blat to build with VS 2015 */
+//#include <mapiwin.h>
 #endif
 
 #include "blat.h"
