@@ -519,7 +519,7 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bA
 
         // Changed to EHLO processing 27 Feb 2001 Craig Morrison
         _stprintf( out_data, __T("EHLO %s"),
-                   (wanted_hostname==NULL) ? CommonData.my_hostname : wanted_hostname);
+                   (wanted_hostname==NULL) ? CommonData.my_hostname.Get() : wanted_hostname);
         pStr = _tcsrchr( CommonData.Sender.Get(), __T('@') );
         if ( pStr ) {
             _tcscat( out_data, __T(".") );
@@ -689,7 +689,7 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bA
         } else {
 //            printMsg( CommonData, __T(" ... About to send 'HELO'\n") );
             _stprintf( out_data, __T("HELO %s"),
-                       (wanted_hostname==NULL) ? CommonData.my_hostname : wanted_hostname);
+                       (wanted_hostname==NULL) ? CommonData.my_hostname.Get() : wanted_hostname);
             pStr = _tcsrchr( CommonData.Sender.Get(), __T('@') );
             if ( pStr ) {
                 _tcscat( out_data, __T(".") );
