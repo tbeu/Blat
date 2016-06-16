@@ -72,12 +72,12 @@ int collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t 
     size_t   x;
     HANDLE   ihandle;
     int      filewasfound;
-    _TCHAR   path[MAX_PATH+1];
+    Buf      path;
     LPTSTR   pathptr;
     int      nbrOfFilesFound;
     WinFile  fileh;
     NODES *  tmpNode;
-    _TCHAR   attachedfile[MAX_PATH+1];
+    Buf      attachedfile;
     int      errorFound;
     WIN32_FIND_DATA FindFileData;
 
@@ -94,34 +94,34 @@ int collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t 
     for ( i = 0; (i < CommonData.attach) && !errorFound; i++ ) {
 
         // Get the path for opening file
-        _tcscpy(path, CommonData.attachfile[i]);
-        pathptr = _tcsrchr(path, __T('\\'));
+        path = CommonData.attachfile[i];
+        pathptr = _tcsrchr(path.Get(), __T('\\'));
         if ( !pathptr )
-            pathptr = _tcsrchr(path, __T(':'));
+            pathptr = _tcsrchr(path.Get(), __T(':'));
 
         if ( pathptr ) {
             *(pathptr+1) = __T('\0');
         } else {
-            path[0] = __T('\0');
+            path.Get()[0] = __T('\0');
         }
-
-        ihandle = FindFirstFile((LPTSTR)CommonData.attachfile[i], &FindFileData);
+        path.SetLength();
+        ihandle = FindFirstFile(CommonData.attachfile[i].Get(), &FindFileData);
         filewasfound = (ihandle != INVALID_HANDLE_VALUE);
         if ( !filewasfound ) {
-            printMsg(CommonData, __T("No files found matching search string \"%s\".\n"), CommonData.attachfile[i]);
+            printMsg(CommonData, __T("No files found matching search string \"%s\".\n"), CommonData.attachfile[i].Get());
             if ( !CommonData.ignoreMissingAttachmentFiles )
                 CommonData.attachFoundFault = TRUE;
         }
 
         while ( filewasfound && !errorFound ) {
             if ( !(FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ) {
-                _tcscpy(attachedfile, path);
-                _tcscat(attachedfile, FindFileData.cFileName);
-                if ( fileh.OpenThisFile(attachedfile) ) {
+                attachedfile = path;
+                attachedfile.Add(FindFileData.cFileName);
+                if ( fileh.OpenThisFile(attachedfile.Get()) ) {
                     // if ( fileh.IsDiskFile() && FindFileData.nFileSizeLow && !FindFileData.nFileSizeHigh ) {
                     if ( fileh.IsDiskFile() ) {
                         if ( FindFileData.nFileSizeHigh ) {
-                            printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but it is too large (>= 4GB), therefore will not be attached or sent.\n"), attachedfile, CommonData.attachfile[i]);
+                            printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but it is too large (>= 4GB), therefore will not be attached or sent.\n"), attachedfile.Get(), CommonData.attachfile[i].Get());
                         }
                         else {
                             DWORD tmpSize = totalsize;
@@ -140,9 +140,9 @@ int collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t 
 
                                 tmpNode->next = NULL;
 
-                                x = (_tcslen(attachedfile) + 1) * sizeof(_TCHAR);
+                                x = (attachedfile.Length() + 1) * sizeof(_TCHAR);
                                 tmpNode->attachmentName = (LPTSTR) malloc( x );
-                                memcpy( tmpNode->attachmentName, attachedfile, x );
+                                memcpy( tmpNode->attachmentName, attachedfile.Get(), x );
 
                                 tmpNode->fileType = CommonData.attachtype[i];
                                 tmpNode->fileSize = FindFileData.nFileSizeLow;
@@ -152,17 +152,19 @@ int collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t 
                         }
                     }
                     else {
-                        printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but it appears to not be a file that can be opened.\n"), attachedfile, CommonData.attachfile[i]);
+                        printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but it appears to not be a file that can be opened.\n"), attachedfile.Get(), CommonData.attachfile[i].Get());
                     }
                     fileh.Close();
                 }
                 else {
-                    printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but the file cannot be opened.\n"), attachedfile, CommonData.attachfile[i]);
+                    printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but the file cannot be opened.\n"), attachedfile.Get(), CommonData.attachfile[i].Get());
                 }
+                attachedfile.Free();
             }
             filewasfound = FindNextFile(ihandle, &FindFileData);
         }
         FindClose( ihandle );
+        path.Free();
     }
 
     return nbrOfFilesFound;
@@ -260,7 +262,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
     if ( memcmp( CommonData.charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 )
         localCharset[0] = __T('\0');
     else
-        _tcscpy( localCharset, CommonData.charset );
+        _tcscpy( localCharset, CommonData.charset.Get() );
 
     textFileBuffer.Free();
     tmpstr2.Clear();

@@ -247,7 +247,7 @@ int add_message_body ( COMMON_DATA & CommonData,
                         _TCHAR foundType  [0x200];
 
                         _tcscpy( foundType, __T("text/") );
-                        _tcscat( foundType, CommonData.textmode );
+                        _tcscat( foundType, CommonData.textmode.Get() );
 #endif
                         if ( !CommonData.alternateText.Length() ) {
                             if ( CommonData.haveEmbedded ) {
@@ -277,8 +277,8 @@ int add_message_body ( COMMON_DATA & CommonData,
                         } else
                             messageBuffer.Add( __T("Content-Transfer-Encoding: quoted-printable\r\n") );
 #if SMART_CONTENT_TYPE
-                        if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode, __T("plain") ) )
-                            getContentType( CommonData, tmpstr, foundType, foundType, getShortFileName(CommonData.bodyFilename) );
+                        if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode.Get(), __T("plain") ) )
+                            getContentType( CommonData, tmpstr, foundType, foundType, getShortFileName(CommonData.bodyFilename.Get()) );
 
                         messageBuffer.Add( __T("Content-Type: ") );
                         messageBuffer.Add( foundType );
@@ -303,10 +303,10 @@ int add_message_body ( COMMON_DATA & CommonData,
 
                         messageBuffer.Add( __T("Content-Type: application/octet-stream;\r\n") );
                         tmpstr.Clear();
-                        if ( _tcscmp(CommonData.bodyFilename, __T("-")) == 0 )
+                        if ( _tcscmp(CommonData.bodyFilename.Get(), __T("-")) == 0 )
                             fixup( CommonData, stdinFileName, &tmpstr, 7, TRUE );
                         else
-                            fixupFileName( CommonData, CommonData.bodyFilename, tmpstr, 7, TRUE );
+                            fixupFileName( CommonData, CommonData.bodyFilename.Get(), tmpstr, 7, TRUE );
 
                         tmpstr.SetLength();
                         messageBuffer.Add( __T(" name=\"") );
@@ -314,10 +314,10 @@ int add_message_body ( COMMON_DATA & CommonData,
                         messageBuffer.Add( tmpstr );
                         messageBuffer.Add( __T("\"\r\nContent-Disposition: ATTACHMENT;\r\n") );
                         tmpstr.Clear();
-                        if ( _tcscmp(CommonData.bodyFilename, __T("-")) == 0 )
+                        if ( _tcscmp(CommonData.bodyFilename.Get(), __T("-")) == 0 )
                             fixup( CommonData, stdinFileName, &tmpstr, 11, TRUE );
                         else
-                            fixupFileName( CommonData, CommonData.bodyFilename, tmpstr, 11, TRUE );
+                            fixupFileName( CommonData, CommonData.bodyFilename.Get(), tmpstr, 11, TRUE );
 
                         tmpstr.SetLength();
                         messageBuffer.Add( __T(" filename=\"") );
@@ -345,7 +345,7 @@ int add_message_body ( COMMON_DATA & CommonData,
                                 _TCHAR foundType  [0x200];
 
                                 _tcscpy( foundType, __T("text/") );
-                                _tcscat( foundType, CommonData.textmode );
+                                _tcscat( foundType, CommonData.textmode.Get() );
   #endif
                                 messageBuffer.Add( __T("Content-Description: Mail message body\r\n") );
 
@@ -355,8 +355,8 @@ int add_message_body ( COMMON_DATA & CommonData,
                                     messageBuffer.Add( __T("Content-Transfer-Encoding: 7BIT\r\n") );
                                 }
   #if SMART_CONTENT_TYPE
-                                if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode, __T("plain") ) )
-                                    getContentType( CommonData, tmpstr, foundType, foundType, getShortFileName(CommonData.bodyFilename) );
+                                if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode.Get(), __T("plain") ) )
+                                    getContentType( CommonData, tmpstr, foundType, foundType, getShortFileName(CommonData.bodyFilename.Get()) );
 
                                 messageBuffer.Add( __T("Content-Type: ") );
                                 messageBuffer.Add( foundType );
@@ -388,7 +388,7 @@ int add_message_body ( COMMON_DATA & CommonData,
                 if ( *pString == 0xFEFF )
                     pString++;
   #endif
-                if ( _tcscmp(CommonData.textmode, __T("html")) == 0 ) {
+                if ( _tcscmp(CommonData.textmode.Get(), __T("html")) == 0 ) {
                     fileBuffer.Add( __T("<p>") );
                     fileBuffer.Add( pString );
                     fileBuffer.Add( __T("</p>") );
@@ -415,7 +415,7 @@ int add_message_body ( COMMON_DATA & CommonData,
                 if ( *pString == 0xFEFF )
                     pString++;
   #endif
-                if ( _tcscmp(CommonData.textmode, __T("html")) == 0 ) {
+                if ( _tcscmp(CommonData.textmode.Get(), __T("html")) == 0 ) {
                     fileBuffer.Add( __T("<p>\r\n-- <br>\r\n") );
                     fileBuffer.Add( pString );
                     fileBuffer.Add( __T("</p>") );
@@ -451,7 +451,7 @@ int add_message_body ( COMMON_DATA & CommonData,
                         pString[x+1] = __T('\n');
                     }
                 }
-                if ( _tcscmp(CommonData.textmode, __T("html")) == 0 ) {
+                if ( _tcscmp(CommonData.textmode.Get(), __T("html")) == 0 ) {
                     fileBuffer.Add( __T("<p>") );
                     fileBuffer.Add( pString );
                     fileBuffer.Add( __T("</p>") );
@@ -475,7 +475,7 @@ int add_message_body ( COMMON_DATA & CommonData,
                 if ( *pString == 0xFEFF )
                     pString++;
   #endif
-                if ( _tcscmp(CommonData.textmode, __T("html")) == 0 ) {
+                if ( _tcscmp(CommonData.textmode.Get(), __T("html")) == 0 ) {
                     fileBuffer.Add( __T("<p>") );
                     fileBuffer.Add( pString );
                     fileBuffer.Add( __T("</p>") );
@@ -527,10 +527,10 @@ int add_message_body ( COMMON_DATA & CommonData,
                 base64_encode( fileBuffer, messageBuffer, TRUE, TRUE );
             else
             if ( !CommonData.attach && CommonData.uuencode ) {
-                if ( _tcscmp(CommonData.bodyFilename, __T("-")) == 0 )
+                if ( _tcscmp(CommonData.bodyFilename.Get(), __T("-")) == 0 )
                     douuencode( CommonData, fileBuffer, messageBuffer, stdinFileName, 1, 1 );
                 else
-                    douuencode( CommonData, fileBuffer, messageBuffer, getShortFileName(CommonData.bodyFilename), 1, 1 );
+                    douuencode( CommonData, fileBuffer, messageBuffer, getShortFileName(CommonData.bodyFilename.Get()), 1, 1 );
             }
             else
 #endif
@@ -601,7 +601,7 @@ int add_message_body ( COMMON_DATA & CommonData,
             printMsg( CommonData, __T("%s\n"), tmpstr.Get() );
 
         if ( CommonData.subject.Length() ) printMsg(CommonData, __T("Subject: %s\n"), CommonData.subject.Get());
-        if ( _tcslen(CommonData.loginname) ) printMsg(CommonData, __T("Login name is %s\n"), CommonData.loginname);
+        if ( CommonData.loginname.Length() ) printMsg(CommonData, __T("Login name is %s\n"), CommonData.loginname.Get());
     }
 
     fileBuffer.Free();

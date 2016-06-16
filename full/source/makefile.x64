@@ -54,10 +54,10 @@ $(dllDbgDir) :
     @if not exist $(dllDbgDir)\$(NULL) mkdir $(dllDbgDir)
 
 CPP=cl.exe
-exeRel_CPP_PROJ=/nologo /MP /EHsc /MT  /W4         /O1 /Os /favor:blend /Oy /Ob0 /GF /GS- /Gy /D NDEBUG /D WIN64 /D _WIN64 /D UNICODE /D _UNICODE /D _CONSOLE /D GENSOCK_STATIC_LINK                               /D WINVER=$(WINVERTARGET) /Fo$(exeRelDir)\ /Fd$(exeRelDir)\ /FD /c
-exeDbg_CPP_PROJ=/nologo /MP /EHsc /MTd /W4 /Zi /Od                               /GF /GS- /Gy /D _DEBUG /D WIN64 /D _WIN64 /D UNICODE /D _UNICODE /D _CONSOLE /D GENSOCK_STATIC_LINK                               /D WINVER=$(WINVERTARGET) /Fo$(exeDbgDir)\ /Fd$(exeDbgDir)\ /FD /c
-dllRel_CPP_PROJ=/nologo /MP /EHsc /MT  /W4 /vd0    /O1 /Os /favor:blend /Oy /Ob0 /GF /GS- /Gy /D NDEBUG /D WIN64 /D _WIN64 /D UNICODE /D _UNICODE /D _WINDOWS /D GENSOCK_STATIC_LINK /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=$(WINVERTARGET) /Fo$(dllRelDir)\ /Fd$(dllRelDir)\ /FD /c
-dllDbg_CPP_PROJ=/nologo /MP /EHsc /MTd /W4 /Zi /Od                               /GF /GS- /Gy /D _DEBUG /D WIN64 /D _WIN64 /D UNICODE /D _UNICODE /D _WINDOWS /D GENSOCK_STATIC_LINK /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=$(WINVERTARGET) /Fo$(dllDbgDir)\ /Fd$(dllDbgDir)\ /FD /c
+exeRel_CPP_PROJ=/nologo /MP /EHac /MT  /W4         /O1 /Os /favor:blend /Oy /Ob0 /GF /GS- /Gy /D NDEBUG /D WIN64 /D _WIN64 /D UNICODE /D _UNICODE /D _CONSOLE /D GENSOCK_STATIC_LINK                               /D WINVER=$(WINVERTARGET) /Fo$(exeRelDir)\ /Fd$(exeRelDir)\ /FD /c
+exeDbg_CPP_PROJ=/nologo /MP /EHac /MTd /W4 /Zi /Od                               /GF /GS- /Gy /D _DEBUG /D WIN64 /D _WIN64 /D UNICODE /D _UNICODE /D _CONSOLE /D GENSOCK_STATIC_LINK                               /D WINVER=$(WINVERTARGET) /Fo$(exeDbgDir)\ /Fd$(exeDbgDir)\ /FD /c
+dllRel_CPP_PROJ=/nologo /MP /EHac /MT  /W4 /vd0    /O1 /Os /favor:blend /Oy /Ob0 /GF /GS- /Gy /D NDEBUG /D WIN64 /D _WIN64 /D UNICODE /D _UNICODE /D _WINDOWS /D GENSOCK_STATIC_LINK /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=$(WINVERTARGET) /Fo$(dllRelDir)\ /Fd$(dllRelDir)\ /FD /c
+dllDbg_CPP_PROJ=/nologo /MP /EHac /MTd /W4 /Zi /Od                               /GF /GS- /Gy /D _DEBUG /D WIN64 /D _WIN64 /D UNICODE /D _UNICODE /D _WINDOWS /D GENSOCK_STATIC_LINK /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=$(WINVERTARGET) /Fo$(dllDbgDir)\ /Fd$(dllDbgDir)\ /FD /c
 
 .cpp{$(exeRelDir)}.obj::
    $(CPP) $(exeRel_CPP_PROJ) $<
@@ -89,13 +89,13 @@ exeDbg_RSC_PROJ=/nologo /l 0x409 /fo$(exeDbgDir)\blat.res /d _DEBUG /d WIN64 /d 
 dllRel_RSC_PROJ=/nologo /l 0x409 /fo$(dllRelDir)\blat.res /d NDEBUG /d WIN64 /d _WIN64
 dllDbg_RSC_PROJ=/nologo /l 0x409 /fo$(dllDbgDir)\blat.res /d _DEBUG /d WIN64 /d _WIN64
 
-#dll_DEF_FILE=.\blatdll\blat.def
+dll_DEF_FILE=.\blatdll\blat.def
 
 LIB64 =lib.exe
-exeRel_LIB64_FLAGS=/machine:X64  /subsystem:CONSOLE /nologo /out:$(exeRelDir)\blatproj.lib
-exeDbg_LIB64_FLAGS=/machine:X64  /subsystem:CONSOLE /nologo /out:$(exeDbgDir)\blatproj.lib
-dllRel_LIB64_FLAGS=/machine:X64  /subsystem:CONSOLE /nologo /out:$(dllRelDir)\blatproj.lib
-dllDbg_LIB64_FLAGS=/machine:X64  /subsystem:CONSOLE /nologo /out:$(dllDbgDir)\blatproj.lib
+exeRel_LIB64_FLAGS=/machine:X64  /nologo /out:$(exeRelDir)\blatproj.lib
+exeDbg_LIB64_FLAGS=/machine:X64  /nologo /out:$(exeDbgDir)\blatproj.lib
+dllRel_LIB64_FLAGS=/machine:X64  /nologo /out:$(dllRelDir)\blatproj.lib
+dllDbg_LIB64_FLAGS=/machine:X64  /nologo /out:$(dllDbgDir)\blatproj.lib
 
 exeRel_LIB64_OBJS= \
         $(exeRelDir)\attach.obj   \
@@ -191,10 +191,10 @@ dllDbg_LIB64_OBJS= \
 
 
 LINK64=link.exe
-exeRel_LINK64_FLAGS=$(exeRelDir)\blatproj.lib libcmt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /subsystem:console /incremental:no  /pdb:none                  /map:$(exeRelDir)\blat.map        /STACK:102400 /machine:X64 $(DXP) /nodefaultlib /out:$(exeRelDir)\blat.exe
-exeDbg_LINK64_FLAGS=$(exeDbgDir)\blatproj.lib libcmtd.lib wsock32.lib kernel32.lib advapi32.lib /nologo /subsystem:console /incremental:yes /pdb:$(exeDbgDir)\blat.pdb /map:$(exeDbgDir)\blat.map /debug /STACK:102400 /machine:X64 $(DXP) /nodefaultlib /out:$(exeDbgDir)\blat.exe
-dllRel_LINK64_FLAGS=$(dllRelDir)\blatproj.lib libcmt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /dll               /incremental:no  /pdb:none                  /map:$(dllRelDir)\blat.map        /STACK:102400 /machine:X64 $(DXP) /nodefaultlib /out:$(dllRelDir)\blat.dll /implib:$(dllRelDir)\blat.lib
-dllDbg_LINK64_FLAGS=$(dllDbgDir)\blatproj.lib libcmtd.lib wsock32.lib kernel32.lib advapi32.lib /nologo /dll               /incremental:yes /pdb:$(dllDbgDir)\blat.pdb /map:$(dllDbgDir)\blat.map /debug /STACK:102400 /machine:X64 $(DXP) /nodefaultlib /out:$(dllDbgDir)\blat.dll /implib:$(dllDbgDir)\blat.lib
+exeRel_LINK64_FLAGS=$(exeRelDir)\blatproj.lib libcmt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /subsystem:console /incremental:no  /pdb:none                  /map:$(exeRelDir)\blat.map        /STACK:102400 /machine:X64  $(DXP) /nodefaultlib                      /out:$(exeRelDir)\blat.exe
+exeDbg_LINK64_FLAGS=$(exeDbgDir)\blatproj.lib libcmtd.lib wsock32.lib kernel32.lib advapi32.lib /nologo /subsystem:console /incremental:yes /pdb:$(exeDbgDir)\blat.pdb /map:$(exeDbgDir)\blat.map /debug /STACK:102400 /machine:X64  $(DXP) /nodefaultlib                      /out:$(exeDbgDir)\blat.exe
+dllRel_LINK64_FLAGS=$(dllRelDir)\blatproj.lib libcmt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /dll               /incremental:no  /pdb:none                  /map:$(dllRelDir)\blat.map        /STACK:102400 /machine:X64  $(DXP) /nodefaultlib                      /out:$(dllRelDir)\blat.dll /implib:$(dllRelDir)\blat.lib
+dllDbg_LINK64_FLAGS=$(dllDbgDir)\blatproj.lib libcmtd.lib wsock32.lib kernel32.lib advapi32.lib /nologo /dll               /incremental:yes /pdb:$(dllDbgDir)\blat.pdb /map:$(dllDbgDir)\blat.map /debug /STACK:102400 /machine:X64  $(DXP) /nodefaultlib                      /out:$(dllDbgDir)\blat.dll /implib:$(dllDbgDir)\blat.lib
 
 exeRel_LINK64_OBJS= \
         $(exeRelDir)\blat.obj \
@@ -221,6 +221,8 @@ $(exeRelDir)\blatproj.lib : $(exeRelDir) $(exe_DEF_FILE) $(exeRel_LIB64_OBJS)
 $(exeRelDir)\blat.exe : $(exeRelDir) $(exe_DEF_FILE) $(exeRelDir)\blatproj.lib \
                         $(exeRel_LINK64_OBJS)
     $(LINK64) $(exeRel_LINK64_FLAGS) $(exeRel_LINK64_OBJS)
+    @if exist $(exeRelDir)\vc60.idb  del $(exeRelDir)\vc60.idb  > nul
+    @if exist $(exeRelDir)\vc100.idb del $(exeRelDir)\vc100.idb > nul
 
 $(exeDbgDir)\blatproj.lib : $(exeDbgDir) $(exe_DEF_FILE) $(exeDbg_LIB64_OBJS)
     -@if exist $(exeDbgDir)\blatproj.lib erase $(exeDbgDir)\blatproj.lib
@@ -230,6 +232,8 @@ $(exeDbgDir)\blatproj.lib : $(exeDbgDir) $(exe_DEF_FILE) $(exeDbg_LIB64_OBJS)
 $(exeDbgDir)\blat.exe : $(exeDbgDir) $(exe_DEF_FILE) $(exeDbgDir)\blatproj.lib \
                         $(exeDbg_LINK64_OBJS)
     $(LINK64) $(exeDbg_LINK64_FLAGS) $(exeDbg_LINK64_OBJS)
+    @if exist $(exeDbgDir)\vc60.idb  del $(exeDbgDir)\vc60.idb  > nul
+    @if exist $(exeDbgDir)\vc100.idb del $(exeDbgDir)\vc100.idb > nul
 
 $(dllRelDir)\blatproj.lib : $(dllRelDir) $(dll_DEF_FILE) $(dllRel_LIB64_OBJS)
     -@if exist $(dllRelDir)\blatproj.lib erase $(dllRelDir)\blatproj.lib
@@ -239,6 +243,8 @@ $(dllRelDir)\blatproj.lib : $(dllRelDir) $(dll_DEF_FILE) $(dllRel_LIB64_OBJS)
 $(dllRelDir)\blat.dll : $(dllRelDir) $(dll_DEF_FILE) $(dllRelDir)\blatproj.lib \
                         $(dllRel_LINK64_OBJS)
     $(LINK64) $(dllRel_LINK64_FLAGS) $(dllRel_LINK64_OBJS)
+    @if exist $(dllRelDir)\vc60.idb  del $(dllRelDir)\vc60.idb  > nul
+    @if exist $(dllRelDir)\vc100.idb del $(dllRelDir)\vc100.idb > nul
 
 $(dllDbgDir)\blatproj.lib : $(dllDbgDir) $(dll_DEF_FILE) $(dllDbg_LIB64_OBJS)
     -@if exist $(dllDbgDir)\blatproj.lib erase $(dllDbgDir)\blatproj.lib
@@ -248,6 +254,8 @@ $(dllDbgDir)\blatproj.lib : $(dllDbgDir) $(dll_DEF_FILE) $(dllDbg_LIB64_OBJS)
 $(dllDbgDir)\blat.dll : $(dllDbgDir) $(dll_DEF_FILE) $(dllDbgDir)\blatproj.lib \
                         $(dllDbg_LINK64_OBJS)
     $(LINK64) $(dllDbg_LINK64_FLAGS) $(dllDbg_LINK64_OBJS)
+    @if exist $(dllDbgDir)\vc60.idb  del $(dllDbgDir)\vc60.idb  > nul
+    @if exist $(dllDbgDir)\vc100.idb del $(dllDbgDir)\vc100.idb > nul
 
 
 #

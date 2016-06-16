@@ -25,8 +25,20 @@ extern tProcessDataProc  pProcessDataProc;
 #endif
 #endif
 
+int gensockGetLastError (COMMON_DATA & CommonData)
+{
+    return CommonData.lastServerSocketError;
+}
+
+void gensockSaveLastError (COMMON_DATA & CommonData, int retval)
+{
+    CommonData.lastServerSocketError = retval;
+}
+
 void gensock_error (COMMON_DATA & CommonData, LPTSTR function, int retval, LPTSTR hostname)
 {
+    gensockSaveLastError(CommonData, retval);
+
     switch ( retval ) {
     case ERR_CANT_MALLOC          : printMsg(CommonData, __T("Error: Malloc failed (possibly out of memory).\n")); break;
     case ERR_SENDING_DATA         : printMsg(CommonData, __T("Error: Error sending data.\n")); break;
@@ -65,11 +77,13 @@ int open_server_socket( COMMON_DATA & CommonData, LPTSTR host, LPTSTR userPort, 
     retval = gensock_connect(CommonData, (LPTSTR) host,
                              (LPTSTR)((*userPort == 0) ? portName : userPort),
                              &CommonData.ServerSocket);
+    gensockSaveLastError(CommonData, retval);
     if ( retval ) {
         if ( retval == ERR_CANT_RESOLVE_SERVICE ) {
             retval = gensock_connect(CommonData, (LPTSTR)host,
                                      (LPTSTR)((*userPort == 0) ? defaultPort : userPort),
                                      &CommonData.ServerSocket);
+            gensockSaveLastError(CommonData, retval);
             if ( retval ) {
                 gensock_error (CommonData, __T("gensock_connect"), retval, host);
                 return(-1);
@@ -83,9 +97,12 @@ int open_server_socket( COMMON_DATA & CommonData, LPTSTR host, LPTSTR userPort, 
     // we wait to do this until here because WINSOCK is
     // guaranteed to be already initialized at this point.
 
-    if ( !CommonData.my_hostname[0] ) {
+    if ( !CommonData.my_hostname.Get()[0] ) {
+        CommonData.my_hostname.Alloc(MY_HOSTNAME_SIZE);
         // get the local hostname (needed by SMTP)
-        retval = gensock_gethostname(CommonData.my_hostname, MY_HOSTNAME_SIZE);
+        retval = gensock_gethostname(CommonData.my_hostname.Get(), MY_HOSTNAME_SIZE);
+        CommonData.my_hostname.SetLength();
+        gensockSaveLastError(CommonData, retval);
         if ( retval ) {
             gensock_error (CommonData, __T("gensock_gethostname"), retval, host);
             return(-1);
@@ -103,15 +120,16 @@ int close_server_socket( COMMON_DATA & CommonData )
     if ( CommonData.ServerSocket ) {
         retval = gensock_close(CommonData, CommonData.ServerSocket);
         CommonData.ServerSocket = 0;
-
-        if ( retval ) {
-            gensock_error (CommonData, __T("gensock_close"), retval, __T(""));
-            return(-1);
-        }
+        gensockSaveLastError(CommonData, 0);
 
         if ( CommonData.gensock_lib ) {
             FreeLibrary( CommonData.gensock_lib );
             CommonData.gensock_lib = 0;
+        }
+
+        if ( retval ) {
+            gensock_error (CommonData, __T("gensock_close"), retval, __T(""));
+            return(-1);
         }
     }
 
@@ -169,6 +187,7 @@ int get_server_response( COMMON_DATA & CommonData, Buf * responseStr, int * vali
         ch = __T('.');          // Must reinitialize to avoid '\n' being here in the event of a multi-line response
         while ( ch != __T('\n') ) {
             retval = gensock_getchar(CommonData, CommonData.ServerSocket, 0, &ch);
+            gensockSaveLastError(CommonData, retval);
             if ( retval ) {
                 gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
@@ -308,6 +327,7 @@ int get_pop3_server_response( COMMON_DATA & CommonData, Buf * responseStr )
         ch = __T('.');      // Must reinitialize to avoid '\n' being here in the event of a multi-line response
         while ( ch != __T('\n') ) {
             retval = gensock_getchar(CommonData, CommonData.ServerSocket, 0, &ch);
+            gensockSaveLastError(CommonData, retval);
             if ( retval ) {
                 gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
@@ -334,6 +354,7 @@ int get_pop3_server_response( COMMON_DATA & CommonData, Buf * responseStr )
         /* This is a polling call, and will return if no data is waiting.*/
         for ( x = 0; x < CommonData.globaltimeout*4; x++ ) {
             retval = gensock_getchar(CommonData, CommonData.ServerSocket, 1, &ch);
+            gensockSaveLastError(CommonData, retval);
             if ( retval != WAIT_A_BIT )
                 break;
 
@@ -405,6 +426,7 @@ int get_imap_untagged_server_response( COMMON_DATA & CommonData, Buf * responseS
  */
         while ( ch != __T('\n') ) {
             retval = gensock_getchar(CommonData, CommonData.ServerSocket, 0, &ch);
+            gensockSaveLastError(CommonData, retval);
             if ( retval ) {
                 gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
@@ -443,6 +465,7 @@ int get_imap_untagged_server_response( COMMON_DATA & CommonData, Buf * responseS
         /* This is a polling call, and will return if no data is waiting.*/
         for ( x = 0; x < CommonData.globaltimeout*4; x++ ) {
             retval = gensock_getchar(CommonData, CommonData.ServerSocket, 1, &ch);
+            gensockSaveLastError(CommonData, retval);
             if ( retval != WAIT_A_BIT )
                 break;
 
@@ -504,6 +527,7 @@ int get_imap_tagged_server_response( COMMON_DATA & CommonData, Buf * responseStr
  */
         while ( ch != __T('\n') ) {
             retval = gensock_getchar(CommonData, CommonData.ServerSocket, 0, &ch);
+            gensockSaveLastError(CommonData, retval);
             if ( retval ) {
                 gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
@@ -543,6 +567,7 @@ int get_imap_tagged_server_response( COMMON_DATA & CommonData, Buf * responseStr
         /* This is a polling call, and will return if no data is waiting.*/
         for ( x = 0; x < CommonData.globaltimeout*4; x++ ) {
             retval = gensock_getchar(CommonData, CommonData.ServerSocket, 1, &ch);
+            gensockSaveLastError(CommonData, retval);
             if ( retval != WAIT_A_BIT )
                 break;
 
@@ -587,48 +612,55 @@ int put_message_line( COMMON_DATA & CommonData, socktag sock, LPTSTR line )
     size_t nchars;
     int retval;
 
-    nchars = _tcslen(line);
+    retval = gensockGetLastError( CommonData );
+    if ( retval == 0 ) {
 
-    retval = gensock_put_data(CommonData,
-                              sock,
-                              line,
-                              (unsigned long) nchars);
-    if ( retval ) {
-        switch ( retval ) {
-        case ERR_NOT_CONNECTED:
-            gensock_error( CommonData, __T("Server has closed the connection"), retval, __T("") );
-            break;
+        nchars = _tcslen(line);
 
-        default:
-            gensock_error (CommonData, __T("gensock_put_data"), retval, __T(""));
+        retval = gensock_put_data(CommonData,
+                                  sock,
+                                  line,
+                                  (unsigned long) nchars);
+        gensockSaveLastError(CommonData, retval);
+        if ( retval ) {
+            switch ( retval ) {
+            case ERR_NOT_CONNECTED:
+                gensock_error( CommonData, __T("Server has closed the connection"), retval, __T("") );
+                break;
+
+            default:
+                gensock_error (CommonData, __T("gensock_put_data"), retval, __T(""));
+            }
+            return(-1);
         }
-        return(-1);
+
+        if ( CommonData.debug ) {
+            _TCHAR c;
+            LPTSTR pStr;
+            static _TCHAR maskedLine[] = __T(">>>putline>>> %s *****\n");
+
+            if ( ((pStr = _tcsstr( line, __T("AUTH LOGIN ") )) != NULL) ||
+                 ((pStr = _tcsstr( line, __T("AUTH PLAIN ") )) != NULL) ) {
+                c = pStr[11];
+                pStr[11] = __T('\0');
+                printMsg(CommonData, maskedLine, line);
+                pStr[11] = c;
+            }
+            else
+            if ( (pStr = _tcsstr( line, __T("PASS ") )) != NULL ) {
+                c = pStr[4];
+                pStr[4] = __T('\0');
+                printMsg(CommonData, maskedLine, line);
+                pStr[4] = c;
+            }
+            else
+                printMsg(CommonData, __T(">>>putline>>> %s\n"),line);
+        }
     }
+    else
+        retval = -retval;
 
-    if ( CommonData.debug ) {
-        _TCHAR c;
-        LPTSTR pStr;
-        static _TCHAR maskedLine[] = __T(">>>putline>>> %s *****\n");
-
-        if ( ((pStr = _tcsstr( line, __T("AUTH LOGIN ") )) != NULL) ||
-             ((pStr = _tcsstr( line, __T("AUTH PLAIN ") )) != NULL) ) {
-            c = pStr[11];
-            pStr[11] = __T('\0');
-            printMsg(CommonData, maskedLine, line);
-            pStr[11] = c;
-        }
-        else
-        if ( (pStr = _tcsstr( line, __T("PASS ") )) != NULL ) {
-            c = pStr[4];
-            pStr[4] = __T('\0');
-            printMsg(CommonData, maskedLine, line);
-            pStr[4] = c;
-        }
-        else
-            printMsg(CommonData, __T(">>>putline>>> %s\n"),line);
-    }
-
-    return(0);
+    return(retval);
 }
 
 
@@ -637,19 +669,26 @@ int finish_server_message( COMMON_DATA & CommonData )
     int enhancedStatusCode;
     int ret;
 
-    ret = put_message_line( CommonData, CommonData.ServerSocket, __T("QUIT\r\n") );
+    ret = gensockGetLastError( CommonData );
+    if ( ret == 0 ) {
+
+        ret = put_message_line( CommonData, CommonData.ServerSocket, __T("QUIT\r\n") );
 
 #if INCLUDE_POP3
-    if ( CommonData.xtnd_xmit_supported ) {
-        // get_server_response( CommonData, NULL );
-        get_pop3_server_response( CommonData, NULL );
-    } else
+        if ( CommonData.xtnd_xmit_supported ) {
+            // get_server_response( CommonData, NULL );
+            get_pop3_server_response( CommonData, NULL );
+        } else
 #endif
-    {
-        // wait for a 221 message from the smtp server,
-        // or a 205 message from the nntp server.
-        get_server_response( CommonData, NULL, &enhancedStatusCode );
+        {
+            // wait for a 221 message from the smtp server,
+            // or a 205 message from the nntp server.
+            get_server_response( CommonData, NULL, &enhancedStatusCode );
+        }
     }
+    else
+        ret = -ret;
+
     return(ret);
 }
 
@@ -727,6 +766,7 @@ int transform_and_send_edit_data( COMMON_DATA & CommonData, LPTSTR editptr )
 
     if ( CommonData.chunkingSupported ) {
         retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, editptr, msgLength);
+        gensockSaveLastError(CommonData, retval);
     } else {
         msg_end = editptr + msgLength;
         index = editptr;
@@ -750,9 +790,11 @@ int transform_and_send_edit_data( COMMON_DATA & CommonData, LPTSTR editptr )
                 if ( previous_char == __T('\n') ) {
                     /* send _two_ dots... */
                     retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, index, 1);
+                    gensockSaveLastError(CommonData, retval);
                 }
                 if ( !retval ) {
                     retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, index, 1);
+                    gensockSaveLastError(CommonData, retval);
                 }
             } else
             if ( *index == __T('\r') ) {
@@ -762,17 +804,20 @@ int transform_and_send_edit_data( COMMON_DATA & CommonData, LPTSTR editptr )
                 else
                 if ( previous_char != __T('\r') ) {
                     retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, index, 1);
+                    gensockSaveLastError(CommonData, retval);
                 }
                 // soft line-break (see EM_FMTLINES), skip extra CR */
             } else {
                 if ( *index == __T('\n') )
                     if ( previous_char != __T('\r') ) {
                         retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, __T("\r"), 1);
+                        gensockSaveLastError(CommonData, retval);
                         if ( retval )
                             break;
                     }
 
                 retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, index, 1);
+                gensockSaveLastError(CommonData, retval);
             }
 
             previous_char = *index;
@@ -813,6 +858,7 @@ int transform_and_send_edit_data( COMMON_DATA & CommonData, LPTSTR editptr )
             retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, __T("\r\n.\r\n"), 5);
         else
             retval = gensock_put_data_buffered(CommonData, CommonData.ServerSocket, __T(".\r\n"), 3);
+        gensockSaveLastError(CommonData, retval);
     }
     /* now make sure it's all sent... */
     return (retval ? retval : gensock_put_data_flush(CommonData, CommonData.ServerSocket));
@@ -882,21 +928,18 @@ int noftry( COMMON_DATA & CommonData )
 {
     int    n_of_try;
     int    i;
-    size_t len;
 
     n_of_try = 0;
-    len = _tcslen(CommonData.Try);
-    for ( i = 0; (unsigned)i < len; i++ )
-        CommonData.Try[i] = (_TCHAR) _totupper(CommonData.Try[i]);
+    _tcsupr( CommonData.Try.Get() );
 
-    if ( !_tcscmp(CommonData.Try, __T("ONCE")    ) ) n_of_try = 1;
-    if ( !_tcscmp(CommonData.Try, __T("TWICE")   ) ) n_of_try = 2;
-    if ( !_tcscmp(CommonData.Try, __T("THRICE")  ) ) n_of_try = 3;
-    if ( !_tcscmp(CommonData.Try, __T("INFINITE")) ) n_of_try = -1;
-    if ( !_tcscmp(CommonData.Try, __T("-1")      ) ) n_of_try = -1;
+    if ( !_tcscmp(CommonData.Try.Get(), __T("ONCE")    ) ) n_of_try = 1;
+    if ( !_tcscmp(CommonData.Try.Get(), __T("TWICE")   ) ) n_of_try = 2;
+    if ( !_tcscmp(CommonData.Try.Get(), __T("THRICE")  ) ) n_of_try = 3;
+    if ( !_tcscmp(CommonData.Try.Get(), __T("INFINITE")) ) n_of_try = -1;
+    if ( !_tcscmp(CommonData.Try.Get(), __T("-1")      ) ) n_of_try = -1;
 
     if ( n_of_try == 0 ) {
-        i = _stscanf( CommonData.Try, __T("%d"), &n_of_try );
+        i = _stscanf( CommonData.Try.Get(), __T("%d"), &n_of_try );
         if ( !i )
             n_of_try = 1;
     }

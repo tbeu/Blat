@@ -98,7 +98,7 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR loginAuth, LPTSTR pwdAut
     int ret_temp;
     int enhancedStatusCode;
 
-    if ( open_server_socket( CommonData, CommonData.NNTPHost, CommonData.NNTPPort, defaultNNTPPort, __T("nntp") ) )
+    if ( open_server_socket( CommonData, CommonData.NNTPHost.Get(), CommonData.NNTPPort.Get(), defaultNNTPPort, __T("nntp") ) )
         return(-1);
 
     ret_temp = get_server_response( CommonData, NULL, &enhancedStatusCode );
@@ -201,7 +201,7 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
     Buf     tmpBuf;
 
 
-    if ( !CommonData.NNTPHost[0] || !CommonData.groups.Length() )
+    if ( !CommonData.NNTPHost.Get()[0] || !CommonData.groups.Length() )
         return(0);
 
     bldHdrs.messageBuffer         = &messageBuffer;
@@ -213,8 +213,8 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
     bldHdrs.lpszOtherHeader       = &lpszOtherHeader;
     bldHdrs.attachment_boundary   = attachment_boundary;
     bldHdrs.multipartID           = multipartID;
-    bldHdrs.wanted_hostname       = CommonData.my_hostname_wanted;
-    bldHdrs.server_name           = CommonData.NNTPHost;
+    bldHdrs.wanted_hostname       = CommonData.my_hostname_wanted.Get();
+    bldHdrs.server_name           = CommonData.NNTPHost.Get();
     bldHdrs.nbrOfAttachments      = nbrOfAttachments;
     bldHdrs.addBccHeader          = FALSE;
 
@@ -261,9 +261,10 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
     tmpBuf2.Free();
 #endif
 
-    if ( !CommonData.my_hostname[0] ) {
+    if ( !CommonData.my_hostname.Get()[0] ) {
+        CommonData.my_hostname.Alloc(MY_HOSTNAME_SIZE);
         // Do a quick open/close to get the local hostname before building headers.
-        open_server_socket( CommonData, CommonData.NNTPHost, CommonData.NNTPPort, defaultNNTPPort, __T("nntp") );
+        open_server_socket( CommonData, CommonData.NNTPHost.Get(), CommonData.NNTPPort.Get(), defaultNNTPPort, __T("nntp") );
         close_server_socket(CommonData);
     }
 

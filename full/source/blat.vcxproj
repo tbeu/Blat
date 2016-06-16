@@ -119,7 +119,8 @@
       <OutputFile>$(IntDir)blat.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <ProgramDatabaseFile>$(IntDir)blat.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>
+      </ProgramDatabaseFile>
       <GenerateMapFile>true</GenerateMapFile>
       <MapFileName>$(IntDir)blat.map</MapFileName>
       <SubSystem>Console</SubSystem>
@@ -167,7 +168,8 @@
       <OutputFile>$(IntDir)blat.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <ProgramDatabaseFile>$(IntDir)blat.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>
+      </ProgramDatabaseFile>
       <GenerateMapFile>true</GenerateMapFile>
       <MapFileName>$(IntDir)blat.map</MapFileName>
       <SubSystem>Console</SubSystem>

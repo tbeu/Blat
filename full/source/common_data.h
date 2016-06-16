@@ -19,9 +19,9 @@ typedef struct _COMMON_DATA
 #if INCLUDE_SUPERDEBUG
     _TCHAR        superDebug;
 #endif
-    _TCHAR        Profile[TRY_SIZE+1];
-    _TCHAR        priority[2];
-    _TCHAR        sensitivity[2];
+    Buf           Profile;
+    Buf           priority;
+    Buf           sensitivity;
 
     _TCHAR        impersonating;
     _TCHAR        ssubject;
@@ -52,48 +52,48 @@ typedef struct _COMMON_DATA
     int           delayBetweenMsgs;
 
 #if INCLUDE_POP3
-    _TCHAR        POP3Host[SERVER_SIZE+1];
-    _TCHAR        POP3Port[SERVER_SIZE+1];
+    Buf           POP3Host;
+    Buf           POP3Port;
     Buf           POP3Login;
     Buf           POP3Password;
     _TCHAR        xtnd_xmit_wanted;
     _TCHAR        xtnd_xmit_supported;
 #endif
 #if INCLUDE_IMAP
-    _TCHAR        IMAPHost[SERVER_SIZE+1];
-    _TCHAR        IMAPPort[SERVER_SIZE+1];
+    Buf           IMAPHost;
+    Buf           IMAPPort;
     Buf           IMAPLogin;
     Buf           IMAPPassword;
 #endif
 
-    _TCHAR        SMTPHost[SERVER_SIZE+1];
-    _TCHAR        SMTPPort[SERVER_SIZE+1];
+    Buf           SMTPHost;
+    Buf           SMTPPort;
 
 #if INCLUDE_NNTP
-    _TCHAR        NNTPHost[SERVER_SIZE+1];
-    _TCHAR        NNTPPort[SERVER_SIZE+1];
+    Buf           NNTPHost;
+    Buf           NNTPPort;
     Buf           groups;
 #endif
 
     Buf           AUTHLogin;
     Buf           AUTHPassword;
-    _TCHAR        Try[TRY_SIZE+1];
+    Buf           Try;
     Buf           Sender;
     Buf           TempConsole;
     Buf           Recipients;
     Buf           destination;
     Buf           cc_list;
     Buf           bcc_list;
-    _TCHAR        loginname   [SENDER_SIZE+1];   // RFC 821 MAIL From. <loginname>. There are some inconsistencies in usage
-    _TCHAR        senderid    [SENDER_SIZE+1];   // Inconsistent use in Blat for some RFC 822 Field definitions
-    _TCHAR        sendername  [SENDER_SIZE+1];   // RFC 822 Sender: <sendername>
-    _TCHAR        fromid      [SENDER_SIZE+1];   // RFC 822 From: <fromid>
-    _TCHAR        replytoid   [SENDER_SIZE+1];   // RFC 822 Reply-To: <replytoid>
-    _TCHAR        returnpathid[SENDER_SIZE+1];   // RFC 822 Return-Path: <returnpath>
+    Buf           loginname;                        // RFC 821 MAIL From. <loginname>. There are some inconsistencies in usage
+    Buf           senderid;                         // Inconsistent use in Blat for some RFC 822 Field definitions
+    Buf           sendername;                       // RFC 822 Sender: <sendername>
+    Buf           fromid;                           // RFC 822 From: <fromid>
+    Buf           replytoid;                        // RFC 822 Reply-To: <replytoid>
+    Buf           returnpathid;                     // RFC 822 Return-Path: <returnpath>
     Buf           subject;
     Buf           alternateText;
     _TCHAR        clearLogFirst;
-    _TCHAR        logFile[_MAX_PATH];
+    Buf           logFile;
     bool          ignoreMissingAttachmentFiles;
     int           attachFoundFault;
     int           globaltimeout;
@@ -113,11 +113,11 @@ typedef struct _COMMON_DATA
     BOOL          authgssapi;
     BOOL          mutualauth;
     BOOL          bSuppressGssOptionsAtRuntime;
-    _TCHAR        servicename[SERVICENAME_SIZE];
+    Buf           servicename;
     protLev       gss_protection_level;
     GssSession *  pGss;
     BOOL          have_mechtype;
-    _TCHAR        mechtype[MECHTYPE_SIZE];
+    Buf           mechtype;
     GssSession    TheSession;
 #endif
 
@@ -139,9 +139,9 @@ typedef struct _COMMON_DATA
     Buf           xheaders;
     Buf           aheaders1;
     Buf           aheaders2;
-    _TCHAR        uuencode;                      // by default Blat does not use UUEncode // Added by Gilles Vollant
+    _TCHAR        uuencode;                         // by default Blat does not use UUEncode // Added by Gilles Vollant
 
-    _TCHAR        base64;                        // by default Blat does not use base64 Quoted-Printable Content-Transfer-Encoding!
+    _TCHAR        base64;                           // by default Blat does not use base64 Quoted-Printable Content-Transfer-Encoding!
                                                     //  If you're looking for something to do, then it would be nice if this thing
                                                     //  detected any non-printable characters in the input, and use base64 whenever
                                                     //  quoted-printable wasn't chosen by the user.
@@ -155,7 +155,7 @@ typedef struct _COMMON_DATA
     _TCHAR        binaryMimeSupported;
     //_TCHAR  binaryMimeRequested;
 
-    _TCHAR        optionsFile[_MAX_PATH];
+    Buf           optionsFile;
     FILE *        optsFile;
     Buf           userContentType;
 #endif
@@ -163,12 +163,12 @@ typedef struct _COMMON_DATA
     _TCHAR        chunkingSupported;
     int           utf;
 
-    _TCHAR        textmode[TEXTMODE_SIZE+1];     // added 15 June 1999 by James Greene "greene@gucc.org"
-    _TCHAR        bodyFilename[_MAX_PATH+1];
+    Buf           textmode;                         // added 15 June 1999 by James Greene "greene@gucc.org"
+    Buf           bodyFilename;
     Buf           bodyparameter;
     _TCHAR        ConsoleDone;
     _TCHAR        formattedContent;
-    _TCHAR        mime;                          // by default Blat does not use mime Quoted-Printable Content-Transfer-Encoding!
+    _TCHAR        mime;                             // by default Blat does not use mime Quoted-Printable Content-Transfer-Encoding!
     _TCHAR        quiet;
     _TCHAR        debug;
     _TCHAR        haveEmbedded;
@@ -179,11 +179,11 @@ typedef struct _COMMON_DATA
 
     int           exitRequired;
 
-    _TCHAR        attachfile[64][MAX_PATH+1];
-    _TCHAR        my_hostname_wanted[1024];
+    Buf           attachfile[64];
+    Buf           my_hostname_wanted;
     FILE *        logOut;
     int           fCgiWork;
-    _TCHAR        charset[40];                   // Added 25 Apr 2001 Tim Charron (default ISO-8859-1)
+    Buf           charset;                          // Added 25 Apr 2001 Tim Charron (default ISO-8859-1)
 
     _TCHAR        attachtype[64];
     _TCHAR        timestamp;
@@ -199,9 +199,10 @@ typedef struct _COMMON_DATA
     HMODULE       gensock_lib;
 
     socktag       ServerSocket;
+    int           lastServerSocketError;
 
 #define MY_HOSTNAME_SIZE    1024
-    _TCHAR        my_hostname[MY_HOSTNAME_SIZE];
+    Buf           my_hostname;
 
     int           titleLinePrinted;
     int           usagePrinted;

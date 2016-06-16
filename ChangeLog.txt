@@ -5,6 +5,16 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.14
+[-] Vishnu Raju reported a string overflow when processing the profile option,
+    leading to a program crash.  I changed the string processing so this cannot
+    occur again.
+-------------------------------------------------------------------------------
+3.2.13
+[+] If an error is encountered with the server, and the connection is closed
+    by the server, do not attempt to continue sending commands.  If try count
+    is not exhausted, then attempt to reestablish a connection.
+-------------------------------------------------------------------------------
 3.2.12
 [+] Added a new command line option -IMAF to Ignore Missing Attachment Files.
     If Blat is told to attach files to the outgoing message, and if the search

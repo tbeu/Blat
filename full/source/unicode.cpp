@@ -594,7 +594,7 @@ void compactUnicodeFileData( Buf &sourceText )
 
                     outputText.Add( (_TCHAR)0xFEFF );
                     for ( x = 0; x < sourceText.Length(); x += 2 ) {
-                        c = pp[x] + (pp[x+1] << 8);
+                        c = (_TUCHAR)(pp[x] + (pp[x+1] << 8));
                         outputText.Add( c );
                     }
                     sourceText = outputText;
@@ -690,20 +690,25 @@ void compactUnicodeFileData( Buf &sourceText )
                         pp++;
                         thisLength++;
                     }
-                    if ( value > 0x10FFFFul ) {
-                        outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
-                        return;
-                    }
                     if ( (0x0D800 <= value) && (value <= 0x0DFFF) ) {
                         outputText.Free();        /* values from 0xD800 - 0xDFFF are invalid for Unicode */
                         return;
                     }
+                    if ( (0xFDD0 <= value) && (value <= 0xFDEF) ) {
+                        outputText.Free();        /* values from 0xFDD0 - 0xFDEF are invalid for Unicode */
+                        return;
+                    }
+                    if ( value == 0xFEFF ) {
+                        outputText.Free();        /* value of 0xFEFF is invalid for Unicode */
+                        return;
+                    }
+
                     if ( (value & 0xFFFE) == 0xFFFE ) {
                         outputText.Free();        /* any value that ends with 0xFFFE or 0xFFFF is invalid for Unicode */
                         return;
                     }
-                    if ( (0xFDD0 <= value) && (value <= 0xFDEF) ) {
-                        outputText.Free();        /* values from 0xFDD0 - 0xFDEF are invalid for Unicode */
+                    if ( value > 0x10FFFFul ) {
+                        outputText.Free();        /* values greater than 0x10FFFF are invalid for Unicode */
                         return;
                     }
 

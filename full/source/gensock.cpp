@@ -134,11 +134,11 @@ void complain (COMMON_DATA & CommonData, LPTSTR message)
 
 connection::connection (void)
 {
-    the_socket       = 0;
-    in_index         = 0;
-    out_index        = 0;
-    in_buffer_total  = 0;
-    out_buffer_total = 0;
+    the_socket         = 0;
+    in_index           = 0;
+    out_index          = 0;
+    in_buffer_total    = 0;
+    out_buffer_total   = 0;
     last_winsock_error = 0;
 
     pInBuffer   = new char[SOCKET_BUFFER_SIZE];
@@ -426,13 +426,19 @@ int
 
 #if INCLUDE_SUPERDEBUG
         if ( CommonData.superDebug ) {
+            size_t index;
+            _TCHAR tempService[sizeof(service)];
             _TCHAR savedQuiet = CommonData.quiet;
             CommonData.quiet = FALSE;
-            printMsg( CommonData, __T("superDebug: Attempting to connect to ip address %hhu.%hhu.%hhu.%hhu\n"),
+            for ( index = 0; service[index]; index++ )
+                tempService[index] = service[index];
+            tempService[index] = __T('\0');
+            printMsg( CommonData, __T("superDebug: Attempting to connect to ip address %hhu.%hhu.%hhu.%hhu, on port %s\n"),
                                   sa_in.sin_addr.S_un.S_un_b.s_b1,
                                   sa_in.sin_addr.S_un.S_un_b.s_b2,
                                   sa_in.sin_addr.S_un.S_un_b.s_b3,
-                                  sa_in.sin_addr.S_un.S_un_b.s_b4 );
+                                  sa_in.sin_addr.S_un.S_un_b.s_b4,
+                                  tempService );
             CommonData.quiet = savedQuiet;
         }
 #endif
@@ -1422,7 +1428,7 @@ int
         deinit_winsock(CommonData);
     }
 
-    return(0);
+    return(retval);
 }
 
 //---------------------------------------------------------------------------

@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.12")
+#define BLAT_VERSION    __T("3.2.13")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -53,7 +53,7 @@ extern int  send_news( COMMON_DATA & CommonData,
                        LPTSTR attachment_boundary, LPTSTR multipartID,
                        int nbrOfAttachments, DWORD totalsize );
 #endif
-extern int  GetRegEntry( COMMON_DATA & CommonData, LPTSTR pstrProfile );
+extern int  GetRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile );
 
 extern void printTitleLine( COMMON_DATA & CommonData, int quiet );
 extern int  printUsage( COMMON_DATA & CommonData, int optionPtr );
@@ -107,6 +107,48 @@ LPTSTR days[] = { __T("Sun"),
 
 void cleanUpBuffers( COMMON_DATA & CommonData, LPTSTR * savedArguments, int argumentCount )
 {
+    CommonData.Profile.Free();
+    CommonData.priority.Free();
+    CommonData.sensitivity.Free();
+#if INCLUDE_POP3
+    CommonData.POP3Host.Free();
+    CommonData.POP3Port.Free();
+#endif
+#if INCLUDE_IMAP
+    CommonData.IMAPHost.Free();
+    CommonData.IMAPPort.Free();
+#endif
+
+    CommonData.SMTPHost.Free();
+    CommonData.SMTPPort.Free();
+
+#if INCLUDE_NNTP
+    CommonData.NNTPHost.Free();
+    CommonData.NNTPPort.Free();
+#endif
+    CommonData.Try.Free();
+    CommonData.loginname.Free();
+    CommonData.senderid.Free();
+    CommonData.sendername.Free();
+    CommonData.fromid.Free();
+    CommonData.replytoid.Free();
+    CommonData.returnpathid.Free();
+    CommonData.logFile.Free();
+#if SUPPORT_GSSAPI  //Added 2003-11-07 Joseph Calzaretta
+    CommonData.servicename.Free();
+    CommonData.mechtype.Free();
+#endif
+
+#if BLAT_LITE
+#else
+    CommonData.optionsFile.Free();
+#endif
+
+    CommonData.bodyFilename.Free();
+    CommonData.my_hostname_wanted.Free();
+    CommonData.charset.Free();
+    CommonData.my_hostname.Free();
+
     CommonData.TempConsole.Free();
     CommonData.alternateText.Free();
     CommonData.bodyparameter.Free();
@@ -195,9 +237,9 @@ void InitializeCommonData( COMMON_DATA & CommonData )
 #if INCLUDE_SUPERDEBUG
     CommonData.superDebug                   = 0;
 #endif
-    CommonData.Profile[0]                   = __T('\0');
-    CommonData.priority[0]                  = __T('\0');
-    CommonData.sensitivity[0]               = __T('\0');
+    CommonData.Profile.Clear();
+    CommonData.priority.Clear();
+    CommonData.sensitivity.Clear();
 
     CommonData.impersonating                = 0;
     CommonData.ssubject                     = 0;
@@ -227,33 +269,33 @@ void InitializeCommonData( COMMON_DATA & CommonData )
     CommonData.delayBetweenMsgs             = 0;
 
 #if INCLUDE_POP3
-    CommonData.POP3Host[0]                  = __T('\0');
-    CommonData.POP3Port[0]                  = __T('\0');
+    CommonData.POP3Host.Clear();
+    CommonData.POP3Port.Clear();
     CommonData.xtnd_xmit_wanted             = 0;
     CommonData.xtnd_xmit_supported          = 0;
 #endif
 #if INCLUDE_IMAP
-    CommonData.IMAPHost[0]                  = __T('\0');
-    CommonData.IMAPPort[0]                  = __T('\0');
+    CommonData.IMAPHost.Clear();
+    CommonData.IMAPPort.Clear();
 #endif
 
-    CommonData.SMTPHost[0]                  = __T('\0');
-    CommonData.SMTPPort[0]                  = __T('\0');
+    CommonData.SMTPHost.Clear();
+    CommonData.SMTPPort.Clear();
 
 #if INCLUDE_NNTP
-    CommonData.NNTPHost[0]                  = __T('\0');
-    CommonData.NNTPPort[0]                  = __T('\0');
+    CommonData.NNTPHost.Clear();
+    CommonData.NNTPPort.Clear();
 #endif
 
-    CommonData.Try[0]                       = __T('\0');
-    CommonData.loginname   [0]              = __T('\0');
-    CommonData.senderid    [0]              = __T('\0');
-    CommonData.sendername  [0]              = __T('\0');
-    CommonData.fromid      [0]              = __T('\0');
-    CommonData.replytoid   [0]              = __T('\0');
-    CommonData.returnpathid[0]              = __T('\0');
+    CommonData.Try.Clear();
+    CommonData.loginname.Clear();
+    CommonData.senderid.Clear();
+    CommonData.sendername.Clear();
+    CommonData.fromid.Clear();
+    CommonData.replytoid.Clear();
+    CommonData.returnpathid.Clear();
     CommonData.clearLogFirst                = 0;
-    CommonData.logFile[0]                   = __T('\0');
+    CommonData.logFile.Clear();
     CommonData.attachFoundFault             = 0;
     CommonData.globaltimeout                = 30;
 
@@ -266,10 +308,10 @@ void InitializeCommonData( COMMON_DATA & CommonData )
     CommonData.authgssapi                   = 0;
     CommonData.mutualauth                   = 0;
     CommonData.bSuppressGssOptionsAtRuntime = 0;
-    CommonData.servicename[0]               = __T('\0');
+    CommonData.servicename.Clear();
     CommonData.pGss                         = 0;
     CommonData.have_mechtype                = 0;
-    CommonData.mechtype[0]                  = __T('\0');
+    CommonData.mechtype.Clear();
 #endif
 
 #if BLAT_LITE
@@ -288,14 +330,14 @@ void InitializeCommonData( COMMON_DATA & CommonData )
     CommonData.binaryMimeSupported          = 0;
     //CommonData.binaryMimeRequested          = 0;
 
-    CommonData.optionsFile[0]               = __T('\0');
+    CommonData.optionsFile.Clear();
     CommonData.optsFile                     = 0;
 #endif
 
     CommonData.chunkingSupported            = 0;
     CommonData.utf                          = 0;
 
-    CommonData.bodyFilename[0]              = __T('\0');
+    CommonData.bodyFilename.Clear();
     CommonData.ConsoleDone                  = 0;
     CommonData.formattedContent             = 0;
     CommonData.mime                         = 0;
@@ -310,12 +352,12 @@ void InitializeCommonData( COMMON_DATA & CommonData )
     CommonData.exitRequired                 = 0;
 
     ZeroMemory( CommonData.attachfile, sizeof(CommonData.attachfile) );
-    CommonData.my_hostname_wanted[0]        = __T('\0');
+    CommonData.my_hostname_wanted.Clear();
     CommonData.logOut                       = 0;
     CommonData.fCgiWork                     = 0;
-    CommonData.charset[0]                   = __T('\0');
+    CommonData.charset.Clear();
 
-    CommonData.attachtype[0]                = __T('\0');
+    CommonData.attachtype[0]                = 0;
     CommonData.timestamp                    = 0;
 
     CommonData.delimiterPrinted             = 0;
@@ -324,18 +366,18 @@ void InitializeCommonData( COMMON_DATA & CommonData )
     CommonData.dll_module_handle            = 0;
     CommonData.gensock_lib                  = 0;
 
-    CommonData.my_hostname[0]               = __T('\0');
+    CommonData.my_hostname.Clear();
 
     CommonData.titleLinePrinted             = 0;
 
 #if INCLUDE_NNTP
-    _tcscpy(CommonData.NNTPPort, defaultNNTPPort);
+    CommonData.NNTPPort = defaultNNTPPort;
 #endif
-    _tcscpy(CommonData.SMTPPort, defaultSMTPPort);
-    _tcscpy(CommonData.Try,      __T("1"));                      // Was ONCE
+    CommonData.SMTPPort = defaultSMTPPort;
+    CommonData.Try      =__T("1");                              // Was ONCE
 
 #if SUPPORT_GSSAPI  //Added 2003-11-07 Joseph Calzaretta
-    _tcscpy(CommonData.mechtype, __T("UNKNOWN"));
+    CommonData.mechtype = __T("UNKNOWN");
     CommonData.gss_protection_level = GSSAUTH_P_PRIVACY;
 #endif
 
@@ -356,7 +398,7 @@ void InitializeCommonData( COMMON_DATA & CommonData )
     CommonData.AUTHLogin.Clear();
     CommonData.AUTHPassword.Clear();
 
-    _tcscpy(CommonData.textmode, __T("plain"));
+    CommonData.textmode = __T("plain");
 }
 
 
@@ -450,7 +492,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 #if defined(_UNICODE) || defined(UNICODE)
         sourceText = argv[i];
         CommonData.utf = 0;
-        CommonData.charset[0] = __T('\0');
+        CommonData.charset.Clear();
         checkInputForUnicode( CommonData, sourceText );
         if ( CommonData.utf ) {
             LPTSTR pString;
@@ -577,7 +619,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
 #if BLAT_LITE
 #else
-    if ( CommonData.optionsFile[0] ) {
+    if ( CommonData.optionsFile.Get()[0] ) {
 
         size_t maxEntries = 2048;
 
@@ -592,7 +634,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             memset( secondArgV, 0, (maxEntries + 1) * sizeof(LPTSTR) );
             if ( !fileh.OpenThisFile(CommonData.optionsFile) ) {
                 free( secondArgV );
-                printMsg( CommonData, __T("Options file \"%s\" not found or could not be opened.\n"), CommonData.optionsFile );
+                printMsg( CommonData, __T("Options file \"%s\" not found or could not be opened.\n"), CommonData.optionsFile.Get() );
 
                 printMsg( CommonData, NULL );
                 if ( CommonData.logOut )
@@ -605,7 +647,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             tmpstr = (LPTSTR)malloc( (filesize + 1)*sizeof(_TCHAR) );
             if ( !tmpstr ) {
                 fileh.Close();
-                printMsg( CommonData, __T("error allocating memory for reading %s, aborting\n"), CommonData.optionsFile );
+                printMsg( CommonData, __T("error allocating memory for reading %s, aborting\n"), CommonData.optionsFile.Get() );
                 if ( CommonData.logOut )
                     fclose(CommonData.logOut);
 
@@ -616,7 +658,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             if ( !fileh.ReadThisFile(tmpstr, filesize, &dummy, NULL) ) {
                 fileh.Close();
                 free(tmpstr);
-                printMsg( CommonData, __T("error reading %s, aborting\n"), CommonData.optionsFile );
+                printMsg( CommonData, __T("error reading %s, aborting\n"), CommonData.optionsFile.Get() );
                 if ( CommonData.logOut )
                     fclose(CommonData.logOut);
 
@@ -641,7 +683,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             tmpstr = (LPTSTR)malloc( (sourceText.Length() + 1)*sizeof(_TCHAR) );
             if ( !tmpstr ) {
                 sourceText.Free();
-                printMsg( CommonData, __T("error allocating memory for reading %s, aborting\n"), CommonData.optionsFile );
+                printMsg( CommonData, __T("error allocating memory for reading %s, aborting\n"), CommonData.optionsFile.Get() );
                 if ( CommonData.logOut )
                     fclose(CommonData.logOut);
 
@@ -687,14 +729,13 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
     // get file name from argv[1]
     if ( (argv[1][0] != __T('-')) && (argv[1][0] != __T('/')) ) {
-        _tcsncpy( CommonData.bodyFilename, argv[1], _MAX_PATH );
-        CommonData.bodyFilename[_MAX_PATH] = __T('\0');
+        CommonData.bodyFilename = argv[1];
     }
 
     CommonData.regerr = GetRegEntry( CommonData, CommonData.Profile );
 
-    _tcscpy(CommonData.senderid,  CommonData.Sender.Get());
-    _tcscpy(CommonData.loginname, CommonData.Sender.Get());
+    CommonData.senderid  = CommonData.Sender;
+    CommonData.loginname = CommonData.Sender;
 
 #if 01
     LARGE_INTEGER ticksPerSecond;
@@ -762,23 +803,23 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
 #if INCLUDE_NNTP
     if ( CommonData.regerr == 12 )
-        if ( !CommonData.loginname[0] || (!CommonData.SMTPHost[0] && !CommonData.NNTPHost[0]) )
+        if ( !CommonData.loginname.Get()[0] || (!CommonData.SMTPHost.Get()[0] && !CommonData.NNTPHost.Get()[0]) )
             printMsg( CommonData, __T("Failed to open registry key for Blat\n") );
 #else
     if ( CommonData.regerr == 12 )
-        if ( !CommonData.loginname[0] || !CommonData.SMTPHost[0] )
+        if ( !CommonData.loginname.Get()[0] || !CommonData.SMTPHost.Get()[0] )
             printMsg( CommonData, __T("Failed to open registry key for Blat\n") );
 #endif
 
     // if we are not impersonating loginname is the same as the sender
     if ( ! CommonData.impersonating )
-        _tcscpy(CommonData.senderid, CommonData.loginname);
+        CommonData.senderid = CommonData.loginname;
 
     // fixing the argument parsing
     // Ends here
 
 #if INCLUDE_NNTP
-    if ( !CommonData.loginname[0] || (!CommonData.SMTPHost[0] && !CommonData.NNTPHost[0]) ) {
+    if ( !CommonData.loginname.Get()[0] || (!CommonData.SMTPHost.Get()[0] && !CommonData.NNTPHost.Get()[0]) ) {
         printMsg( CommonData, __T("To set the SMTP server's name/address and your username/email address for that\n") \
                               __T("server machine do:\n") \
                               __T("blat -install  server_name  your_email_address\n") \
@@ -793,7 +834,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         return(12);
     }
 #else
-    if ( !CommonData.loginname[0] || !CommonData.SMTPHost[0] ) {
+    if ( !CommonData.loginname.Get()[0] || !CommonData.SMTPHost.Get()[0] ) {
         printMsg( CommonData, __T("To set the SMTP server's name/address and your username/email address for that\n") \
                               __T("server machine do:\n") \
                               __T("blat -install  server_name  your_email_address\n") \
@@ -810,7 +851,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 #endif
 
     // make sure filename exists, get full pathname
-    if ( CommonData.bodyFilename[0] && (_tcscmp(CommonData.bodyFilename, __T("-")) != 0) ) {
+    if ( CommonData.bodyFilename.Get()[0] && (_tcscmp(CommonData.bodyFilename.Get(), __T("-")) != 0) ) {
         int useCreateFile;
         OSVERSIONINFOEX osvi;
 
@@ -839,9 +880,9 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             if ( fh == INVALID_HANDLE_VALUE ) {
                 DWORD lastError = GetLastError();
                 if ( lastError )
-                    printMsg(CommonData, __T("unknown error code %lu when trying to open %s\n"), lastError, CommonData.bodyFilename);
+                    printMsg(CommonData, __T("unknown error code %lu when trying to open %s\n"), lastError, CommonData.bodyFilename.Get());
                 else
-                    printMsg(CommonData, __T("%s does not exist\n"), CommonData.bodyFilename);
+                    printMsg(CommonData, __T("%s does not exist\n"), CommonData.bodyFilename.Get());
 
                 printMsg( CommonData, NULL );
                 if ( CommonData.logOut )
@@ -856,7 +897,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
             fh = _tfopen(CommonData.bodyFilename, __T("r"));
             if ( fh == NULL ) {
-                printMsg(CommonData, __T("%s does not exist\n"),CommonData.bodyFilename);
+                printMsg(CommonData, __T("%s does not exist\n"),CommonData.bodyFilename.Get());
 
                 printMsg( CommonData, NULL );
                 if ( CommonData.logOut )
@@ -965,7 +1006,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
     // if reading from the console, read everything into a temporary file first
     CommonData.ConsoleDone = FALSE;
-    if ( (CommonData.bodyFilename[0] == __T('\0')) || (_tcscmp(CommonData.bodyFilename, __T("-")) == 0) ) {
+    if ( (CommonData.bodyFilename.Get()[0] == __T('\0')) || (_tcscmp(CommonData.bodyFilename.Get(), __T("-")) == 0) ) {
 
         if ( lpszMessageCgi.Length() ) {
             CommonData.ConsoleDone = TRUE;
@@ -1000,7 +1041,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             if (CommonData.TempConsole.Length() == 0)
                 CommonData.TempConsole.Add( __T("\r\n") );
         }
-        _tcscpy(CommonData.bodyFilename, stdinFileName);
+        CommonData.bodyFilename = stdinFileName;
     }
 
     if (!CommonData.ConsoleDone) {
@@ -1008,7 +1049,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
         //get the text of the file into a string buffer
         if ( !fileh.OpenThisFile(CommonData.bodyFilename) ) {
-            printMsg(CommonData, __T("error reading %s, aborting\n"),CommonData.bodyFilename);
+            printMsg(CommonData, __T("error reading %s, aborting\n"),CommonData.bodyFilename.Get());
 
             printMsg( CommonData, NULL );
             if ( CommonData.logOut )
@@ -1043,7 +1084,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         fileh.Close();
 
         if ( !retcode ) {
-            printMsg(CommonData, __T("error reading %s, aborting\n"), CommonData.bodyFilename);
+            printMsg(CommonData, __T("error reading %s, aborting\n"), CommonData.bodyFilename.Get());
             cleanUpBuffers( CommonData, savedArguments, argc );
             return(5);
         }
@@ -1062,7 +1103,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     checkInputForUnicode ( CommonData, CommonData.TempConsole );
     if ( CommonData.utf == UTF_REQUESTED ) {
         if ( CommonData.charset[0] == __T('\0') )
-            _tcscpy( CommonData.charset, __T("utf-8") );   // Set to lowercase to distinguish between our determination and user specified.
+            CommonData.charset = __T("utf-8");              // Set to lowercase to distinguish between our determination and user specified.
     } else {
   #if BLAT_LITE
         CommonData.mime = savedMime;
@@ -1091,7 +1132,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         CommonData.haveEmbedded    = FALSE;
         CommonData.haveAttachments = FALSE;
         CommonData.attach = 0;
-        CommonData.attachfile[0][0] = __T('\0');
+        CommonData.attachfile[0].Clear();
         CommonData.attachtype[0] = 0;
     }
 

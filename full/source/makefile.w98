@@ -54,10 +54,10 @@ $(dllDbgDir) :
     @if not exist $(dllDbgDir)\$(NULL) mkdir $(dllDbgDir)
 
 CPP=cl.exe
-exeRel_CPP_PROJ=/nologo /EHsc /MD  /W4         /O1 /Os /Oy /Ob0 /GF /Gy /D NDEBUG /D WIN32 /D _WIN32 /D MBCS    /D _MBCS    /D _CONSOLE /D GENSOCK_STATIC_LINK                               /D WINVER=$(WINVERTARGET) /Fo$(exeRelDir)\ /Fd$(exeRelDir)\ /FD /c
-exeDbg_CPP_PROJ=/nologo /EHsc /MDd /W4 /Zi /Od                  /GF /Gy /D _DEBUG /D WIN32 /D _WIN32 /D MBCS    /D _MBCS    /D _CONSOLE /D GENSOCK_STATIC_LINK                               /D WINVER=$(WINVERTARGET) /Fo$(exeDbgDir)\ /Fd$(exeDbgDir)\ /FD /c
-dllRel_CPP_PROJ=/nologo /EHsc /MD  /W4 /vd0    /O1 /Os /Oy /Ob0 /GF /Gy /D NDEBUG /D WIN32 /D _WIN32 /D MBCS    /D _MBCS    /D _WINDOWS /D GENSOCK_STATIC_LINK /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=$(WINVERTARGET) /Fo$(dllRelDir)\ /Fd$(dllRelDir)\ /FD /c
-dllDbg_CPP_PROJ=/nologo /EHsc /MDd /W4 /Zi /Od                  /GF /Gy /D _DEBUG /D WIN32 /D _WIN32 /D MBCS    /D _MBCS    /D _WINDOWS /D GENSOCK_STATIC_LINK /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=$(WINVERTARGET) /Fo$(dllDbgDir)\ /Fd$(dllDbgDir)\ /FD /c
+exeRel_CPP_PROJ=/nologo     /EHac /MT  /W4         /O1 /Os              /Oy /Ob0 /GF      /Gy /D NDEBUG /D WIN32 /D _WIN32 /D MBCS    /D _MBCS    /D _CONSOLE /D GENSOCK_STATIC_LINK                               /D WINVER=$(WINVERTARGET) /Fo$(exeRelDir)\ /Fd$(exeRelDir)\ /FD /c
+exeDbg_CPP_PROJ=/nologo     /EHac /MTd /W4 /Zi /Od                               /GF      /Gy /D _DEBUG /D WIN32 /D _WIN32 /D MBCS    /D _MBCS    /D _CONSOLE /D GENSOCK_STATIC_LINK                               /D WINVER=$(WINVERTARGET) /Fo$(exeDbgDir)\ /Fd$(exeDbgDir)\ /FD /c
+dllRel_CPP_PROJ=/nologo     /EHac /MT  /W4 /vd0    /O1 /Os              /Oy /Ob0 /GF      /Gy /D NDEBUG /D WIN32 /D _WIN32 /D MBCS    /D _MBCS    /D _WINDOWS /D GENSOCK_STATIC_LINK /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=$(WINVERTARGET) /Fo$(dllRelDir)\ /Fd$(dllRelDir)\ /FD /c
+dllDbg_CPP_PROJ=/nologo     /EHac /MTd /W4 /Zi /Od                               /GF      /Gy /D _DEBUG /D WIN32 /D _WIN32 /D MBCS    /D _MBCS    /D _WINDOWS /D GENSOCK_STATIC_LINK /D _USRDLL /D BLATDLL_EXPORTS /D WINVER=$(WINVERTARGET) /Fo$(dllDbgDir)\ /Fd$(dllDbgDir)\ /FD /c
 
 .cpp{$(exeRelDir)}.obj::
    $(CPP) $(exeRel_CPP_PROJ) $<
@@ -92,10 +92,10 @@ dllDbg_RSC_PROJ=/l 0x409 /fo$(dllDbgDir)\blat.res /d _DEBUG /d WIN32 /d _WIN32
 dll_DEF_FILE=.\blatdll\blat.def
 
 LIB32 =lib.exe
-exeRel_LIB32_FLAGS=/machine:I386 /subsystem:CONSOLE /nologo /out:$(exeRelDir)\blatproj.lib
-exeDbg_LIB32_FLAGS=/machine:I386 /subsystem:CONSOLE /nologo /out:$(exeDbgDir)\blatproj.lib
-dllRel_LIB32_FLAGS=/machine:I386 /subsystem:CONSOLE /nologo /out:$(dllRelDir)\blatproj.lib
-dllDbg_LIB32_FLAGS=/machine:I386 /subsystem:CONSOLE /nologo /out:$(dllDbgDir)\blatproj.lib
+exeRel_LIB32_FLAGS=/machine:I386 /nologo /out:$(exeRelDir)\blatproj.lib
+exeDbg_LIB32_FLAGS=/machine:I386 /nologo /out:$(exeDbgDir)\blatproj.lib
+dllRel_LIB32_FLAGS=/machine:I386 /nologo /out:$(dllRelDir)\blatproj.lib
+dllDbg_LIB32_FLAGS=/machine:I386 /nologo /out:$(dllDbgDir)\blatproj.lib
 
 exeRel_LIB32_OBJS= \
         $(exeRelDir)\attach.obj   \
@@ -191,10 +191,10 @@ dllDbg_LIB32_OBJS= \
 
 
 LINK32=link.exe
-exeRel_LINK32_FLAGS=$(exeRelDir)\blatproj.lib msvcrt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /subsystem:console /incremental:no  /pdb:none                  /map:$(exeRelDir)\blat.map        /STACK:102400 /machine:I386 $(DXP) /nodefaultlib                      /out:$(exeRelDir)\blat.exe
-exeDbg_LINK32_FLAGS=$(exeDbgDir)\blatproj.lib msvcrtd.lib wsock32.lib kernel32.lib advapi32.lib /nologo /subsystem:console /incremental:yes /pdb:$(exeDbgDir)\blat.pdb /map:$(exeDbgDir)\blat.map /debug /STACK:102400 /machine:I386 $(DXP) /nodefaultlib                      /out:$(exeDbgDir)\blat.exe
-dllRel_LINK32_FLAGS=$(dllRelDir)\blatproj.lib msvcrt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /dll               /incremental:no  /pdb:none                  /map:$(dllRelDir)\blat.map        /STACK:102400 /machine:I386 $(DXP) /nodefaultlib /def:$(dll_DEF_FILE) /out:$(dllRelDir)\blat.dll /implib:$(dllRelDir)\blat.lib
-dllDbg_LINK32_FLAGS=$(dllDbgDir)\blatproj.lib msvcrtd.lib wsock32.lib kernel32.lib advapi32.lib /nologo /dll               /incremental:yes /pdb:$(dllDbgDir)\blat.pdb /map:$(dllDbgDir)\blat.map /debug /STACK:102400 /machine:I386 $(DXP) /nodefaultlib /def:$(dll_DEF_FILE) /out:$(dllDbgDir)\blat.dll /implib:$(dllDbgDir)\blat.lib
+exeRel_LINK32_FLAGS=$(exeRelDir)\blatproj.lib libcmt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /subsystem:console /incremental:no  /pdb:none                  /map:$(exeRelDir)\blat.map        /STACK:102400 /machine:I386 $(DXP) /nodefaultlib                      /out:$(exeRelDir)\blat.exe
+exeDbg_LINK32_FLAGS=$(exeDbgDir)\blatproj.lib libcmtd.lib wsock32.lib kernel32.lib advapi32.lib /nologo /subsystem:console /incremental:yes /pdb:$(exeDbgDir)\blat.pdb /map:$(exeDbgDir)\blat.map /debug /STACK:102400 /machine:I386 $(DXP) /nodefaultlib                      /out:$(exeDbgDir)\blat.exe
+dllRel_LINK32_FLAGS=$(dllRelDir)\blatproj.lib libcmt.lib  wsock32.lib kernel32.lib advapi32.lib /nologo /dll               /incremental:no  /pdb:none                  /map:$(dllRelDir)\blat.map        /STACK:102400 /machine:I386 $(DXP) /nodefaultlib /def:$(dll_DEF_FILE) /out:$(dllRelDir)\blat.dll /implib:$(dllRelDir)\blat.lib
+dllDbg_LINK32_FLAGS=$(dllDbgDir)\blatproj.lib libcmtd.lib wsock32.lib kernel32.lib advapi32.lib /nologo /dll               /incremental:yes /pdb:$(dllDbgDir)\blat.pdb /map:$(dllDbgDir)\blat.map /debug /STACK:102400 /machine:I386 $(DXP) /nodefaultlib /def:$(dll_DEF_FILE) /out:$(dllDbgDir)\blat.dll /implib:$(dllDbgDir)\blat.lib
 
 exeRel_LINK32_OBJS= \
         $(exeRelDir)\blat.obj \
@@ -221,6 +221,8 @@ $(exeRelDir)\blatproj.lib : $(exeRelDir) $(exe_DEF_FILE) $(exeRel_LIB32_OBJS)
 $(exeRelDir)\blat.exe : $(exeRelDir) $(exe_DEF_FILE) $(exeRelDir)\blatproj.lib \
                         $(exeRel_LINK32_OBJS)
     $(LINK32) $(exeRel_LINK32_FLAGS) $(exeRel_LINK32_OBJS)
+    @if exist $(exeRelDir)\vc60.idb  del $(exeRelDir)\vc60.idb  > nul
+    @if exist $(exeRelDir)\vc100.idb del $(exeRelDir)\vc100.idb > nul
 
 $(exeDbgDir)\blatproj.lib : $(exeDbgDir) $(exe_DEF_FILE) $(exeDbg_LIB32_OBJS)
     -@if exist $(exeDbgDir)\blatproj.lib erase $(exeDbgDir)\blatproj.lib
@@ -230,6 +232,8 @@ $(exeDbgDir)\blatproj.lib : $(exeDbgDir) $(exe_DEF_FILE) $(exeDbg_LIB32_OBJS)
 $(exeDbgDir)\blat.exe : $(exeDbgDir) $(exe_DEF_FILE) $(exeDbgDir)\blatproj.lib \
                         $(exeDbg_LINK32_OBJS)
     $(LINK32) $(exeDbg_LINK32_FLAGS) $(exeDbg_LINK32_OBJS)
+    @if exist $(exeDbgDir)\vc60.idb  del $(exeDbgDir)\vc60.idb  > nul
+    @if exist $(exeDbgDir)\vc100.idb del $(exeDbgDir)\vc100.idb > nul
 
 $(dllRelDir)\blatproj.lib : $(dllRelDir) $(dll_DEF_FILE) $(dllRel_LIB32_OBJS)
     -@if exist $(dllRelDir)\blatproj.lib erase $(dllRelDir)\blatproj.lib
@@ -239,6 +243,8 @@ $(dllRelDir)\blatproj.lib : $(dllRelDir) $(dll_DEF_FILE) $(dllRel_LIB32_OBJS)
 $(dllRelDir)\blat.dll : $(dllRelDir) $(dll_DEF_FILE) $(dllRelDir)\blatproj.lib \
                         $(dllRel_LINK32_OBJS)
     $(LINK32) $(dllRel_LINK32_FLAGS) $(dllRel_LINK32_OBJS)
+    @if exist $(dllRelDir)\vc60.idb  del $(dllRelDir)\vc60.idb  > nul
+    @if exist $(dllRelDir)\vc100.idb del $(dllRelDir)\vc100.idb > nul
 
 $(dllDbgDir)\blatproj.lib : $(dllDbgDir) $(dll_DEF_FILE) $(dllDbg_LIB32_OBJS)
     -@if exist $(dllDbgDir)\blatproj.lib erase $(dllDbgDir)\blatproj.lib
@@ -248,6 +254,8 @@ $(dllDbgDir)\blatproj.lib : $(dllDbgDir) $(dll_DEF_FILE) $(dllDbg_LIB32_OBJS)
 $(dllDbgDir)\blat.dll : $(dllDbgDir) $(dll_DEF_FILE) $(dllDbgDir)\blatproj.lib \
                         $(dllDbg_LINK32_OBJS)
     $(LINK32) $(dllDbg_LINK32_FLAGS) $(dllDbg_LINK32_OBJS)
+    @if exist $(dllDbgDir)\vc60.idb  del $(dllDbgDir)\vc60.idb  > nul
+    @if exist $(dllDbgDir)\vc100.idb del $(dllDbgDir)\vc100.idb > nul
 
 
 #

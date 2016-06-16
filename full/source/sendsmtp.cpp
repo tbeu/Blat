@@ -464,7 +464,7 @@ void searchReplaceEmailKeyword (COMMON_DATA & CommonData, Buf & email_addresses)
         len = (DWORD)_tcslen( srcptr );
         pp = srcptr;
         if ( !_tcscmp( srcptr, EMAIL_KEYWORD ) )
-            pp = CommonData.loginname;
+            pp = CommonData.loginname.Get();
 
         if ( email_addresses.Length() )
             email_addresses.Add( __T(',') );
@@ -507,7 +507,7 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bA
             Sleep( 1000 );
         }
         if (!bAgain) {
-            socketError = open_server_socket( CommonData, CommonData.SMTPHost, CommonData.SMTPPort, defaultSMTPPort, __T("smtp") );
+            socketError = open_server_socket( CommonData, CommonData.SMTPHost.Get(), CommonData.SMTPPort.Get(), defaultSMTPPort, __T("smtp") );
             if ( socketError )
                 continue;
 
@@ -736,9 +736,9 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bA
 #if BLAT_LITE
 #else
     if ( !CommonData.eightBitMimeSupported ) {
-        _tcsupr( CommonData.charset );
-        if ( _tcscmp( CommonData.charset, __T("UTF-8") ) == 0 )
-            CommonData.charset[4] = __T('7');
+        _tcsupr( CommonData.charset.Get() );
+        if ( _tcscmp( CommonData.charset.Get(), __T("UTF-8") ) == 0 )
+            CommonData.charset.Get()[4] = __T('7');
     }
 #endif
     return(0);
@@ -878,16 +878,16 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
 
             _TCHAR servname[1024];
 
-            if (*CommonData.servicename)
-                _tcscpy(servname,CommonData.servicename);
+            if (CommonData.servicename.Length() && CommonData.servicename.Get()[0])
+                _tcscpy(servname,CommonData.servicename.Get());
             else
-                _stprintf(servname, __T("smtp@%s"), CommonData.SMTPHost);
+                _stprintf(servname, __T("smtp@%s"), CommonData.SMTPHost.Get());
 
             CommonData.pGss->Authenticate(CommonData,getline,putline,CommonData.AUTHLogin.Get(),servname,CommonData.mutualauth,CommonData.gss_protection_level);
 
             if (CommonData.pGss->GetProtectionLevel()!=GSSAUTH_P_NONE)
             {
-                if (say_hello_again(CommonData, CommonData.my_hostname_wanted)!=0)
+                if (say_hello_again(CommonData, CommonData.my_hostname_wanted.Get())!=0)
                     return (-5);
             }
         }
@@ -1071,7 +1071,7 @@ static int prepare_smtp_message( COMMON_DATA & CommonData, LPTSTR dest, DWORD ms
         return 0;
 #endif
 
-    parse_email_addresses (CommonData, CommonData.loginname, tmpBuf);
+    parse_email_addresses (CommonData, CommonData.loginname.Get(), tmpBuf);
     ptr = tmpBuf.Get();
     if ( !ptr ) {
         server_error( CommonData, __T("No email address was found for the sender name.\n") \
@@ -1308,16 +1308,16 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
 #if INCLUDE_POP3
 
     if ( CommonData.POP3Login.Get()[0] || CommonData.POP3Password.Get()[0] )
-        if ( !CommonData.POP3Host[0] )
-            _tcscpy( CommonData.POP3Host, CommonData.SMTPHost );
+        if ( !CommonData.POP3Host.Get()[0] )
+            CommonData.POP3Host = CommonData.SMTPHost;
 
-    if ( CommonData.POP3Host[0] ) {
+    if ( CommonData.POP3Host.Get()[0] ) {
         _TCHAR saved_quiet;
 
         saved_quiet = CommonData.quiet;
         CommonData.quiet = TRUE;
 
-        if ( !open_server_socket( CommonData, CommonData.POP3Host, CommonData.POP3Port, defaultPOP3Port, __T("pop3") ) ) {
+        if ( !open_server_socket( CommonData, CommonData.POP3Host.Get(), CommonData.POP3Port.Get(), defaultPOP3Port, __T("pop3") ) ) {
             Buf  responseStr;
 
             for ( ; ; ) {
@@ -1385,7 +1385,7 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
     }
 #endif
 #if INCLUDE_IMAP
-    if ( CommonData.IMAPHost[0] ) {
+    if ( CommonData.IMAPHost.Get()[0] ) {
 //        Buf  savedResponse;
         _TCHAR saved_quiet;
         _TCHAR imapLogin;
@@ -1400,7 +1400,7 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
         imapCRAM    = 0;
         retVal      = 0;
 
-        if ( !open_server_socket( CommonData, CommonData.IMAPHost, CommonData.IMAPPort, defaultIMAPPort, __T("imap") ) ) {
+        if ( !open_server_socket( CommonData, CommonData.IMAPHost.Get(), CommonData.IMAPPort.Get(), defaultIMAPPort, __T("imap") ) ) {
             Buf    responseStr;
             LPTSTR pStr;
             LPTSTR pStr1;
@@ -1621,7 +1621,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
     int     userAuthenticated;
 
     retcode=0;
-    if ( !CommonData.SMTPHost[0] || !CommonData.Recipients.Length() )
+    if ( !CommonData.SMTPHost.Get()[0] || !CommonData.Recipients.Length() )
         return(0);
 
     bldHdrs.messageBuffer          = &messageBuffer;
@@ -1633,8 +1633,8 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
     bldHdrs.lpszOtherHeader        = &lpszOtherHeader;
     bldHdrs.attachment_boundary    = attachment_boundary;
     bldHdrs.multipartID            = multipartID;
-    bldHdrs.wanted_hostname        = CommonData.my_hostname_wanted;
-    bldHdrs.server_name            = CommonData.SMTPHost;
+    bldHdrs.wanted_hostname        = CommonData.my_hostname_wanted.Get();
+    bldHdrs.server_name            = CommonData.SMTPHost.Get();
     bldHdrs.nbrOfAttachments       = nbrOfAttachments;
     bldHdrs.addBccHeader           = FALSE;
 
@@ -1707,7 +1707,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
     tmpBuf2.Free();
 #endif
 
-    retcode = prefetch_smtp_info( CommonData, CommonData.my_hostname_wanted );
+    retcode = prefetch_smtp_info( CommonData, CommonData.my_hostname_wanted.Get() );
 //    printMsg( CommonData, __T(" ... prefetch_smtp_info() returned %d\n"), retcode );
     if ( retcode )
         return retcode;
@@ -1820,7 +1820,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
             for ( k = 1; (k <= n_of_try) || (n_of_try == -1); k++ ) {
                 retcode = 0;
                 if ( !serverOpen )
-                    retcode = say_hello( CommonData, CommonData.my_hostname_wanted );
+                    retcode = say_hello( CommonData, CommonData.my_hostname_wanted.Get() );
 
                 if ( retcode == 0 ) {
                     serverOpen = 1;
@@ -2072,7 +2072,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
 
                 retcode = 0;
                 if ( !serverOpen )
-                    retcode = say_hello( CommonData, CommonData.my_hostname_wanted );
+                    retcode = say_hello( CommonData, CommonData.my_hostname_wanted.Get() );
 
                 if ( 0 == retcode ) {
                     serverOpen = 1;

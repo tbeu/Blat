@@ -133,7 +133,9 @@ public:
     void Clone(const Buf &buf) {
         if (buf.bufsize) {
             Alloc(buf.buflen + 1);
-            memcpy(buffer, buf.buffer, buf.buflen*sizeof(_TCHAR));
+            if (buf.buflen)
+                memcpy(buffer, buf.buffer, buf.buflen*sizeof(_TCHAR));
+
             buflen = buf.buflen;
             buffer[buflen] = __T('\0');
             }

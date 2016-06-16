@@ -27,7 +27,7 @@ extern void (*pMyPrintDLL)(LPTSTR);
 #endif
 
 extern int  CreateRegEntry( COMMON_DATA & CommonData, int useHKCU );
-extern int  DeleteRegEntry( COMMON_DATA & CommonData, LPTSTR pstrProfile, int useHKCU );
+extern int  DeleteRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile, int useHKCU );
 extern void ShowRegHelp( COMMON_DATA & CommonData );
 extern void ListProfiles( COMMON_DATA & CommonData, LPTSTR pstrProfile );
 extern void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & parsed_addys, int pathNames );
@@ -206,6 +206,13 @@ static int ReadNamesFromFile(COMMON_DATA & CommonData, LPTSTR type, LPTSTR names
 }
 #endif
 
+static void checkProfileNameLength( COMMON_DATA & CommonData )
+{
+    if ( CommonData.Profile.Length() > TRY_SIZE ) {
+        CommonData.Profile.Get()[TRY_SIZE] = __T('\0');
+        CommonData.Profile.SetLength();
+    }
+}
 
 /*
  * In the following check* functions, their arguments have these meanings:
@@ -251,16 +258,16 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
     loginFound   = FALSE;
     pwdFound     = FALSE;
 
-    CommonData.SMTPHost[0]  =
-    CommonData.Profile[0]   = __T('\0');
+    CommonData.SMTPHost.Clear();
+    CommonData.Profile.Clear();
 
     CommonData.Sender.Clear();
 
     CommonData.AUTHLogin.Clear();
     CommonData.AUTHPassword.Clear();
 
-    _tcscpy( CommonData.SMTPPort, defaultSMTPPort );
-    _tcscpy( CommonData.Try, __T("1") );
+    CommonData.SMTPPort = defaultSMTPPort;
+    CommonData.Try      = __T("1");
 
     if ( !argc && !_tcsicmp( argv[this_arg], strSaveSettings ) )
         argc = (INSTALL_STATE_DONE * 2) + 1;
@@ -285,8 +292,7 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.SMTPHost, argv[this_arg], SERVER_SIZE );
-                CommonData.SMTPHost[SERVER_SIZE] = __T('\0');
+                CommonData.SMTPHost = argv[this_arg];
                 hostFound = TRUE;
                 argState = INSTALL_STATE_SERVER+1;
                 continue;
@@ -320,8 +326,7 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.Try, argv[this_arg], TRY_SIZE );
-                CommonData.Try[TRY_SIZE] = __T('\0');
+                CommonData.Try = argv[this_arg];
                 tryFound = TRUE;
                 argState = INSTALL_STATE_TRY+1;
                 continue;
@@ -341,8 +346,7 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.SMTPPort, argv[this_arg], SERVER_SIZE );
-                CommonData.SMTPPort[SERVER_SIZE] = __T('\0');
+                CommonData.SMTPPort = argv[this_arg];
                 portFound = TRUE;
                 argState = INSTALL_STATE_PORT+1;
                 continue;
@@ -359,9 +363,9 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the profile.
-                    _tcsncpy( CommonData.Profile, argv[this_arg], TRY_SIZE );// Keep the profile if not "-"
-                    CommonData.Profile[TRY_SIZE] = __T('\0');
+                if ( _tcscmp(argv[this_arg], __T("-")) ) {          // If "-" found, then skip the profile.
+                    CommonData.Profile = argv[this_arg];            // Keep the profile if not "-"
+                    checkProfileNameLength( CommonData );
                 }
                 profileFound = TRUE;
                 argState = INSTALL_STATE_PROFILE+1;
@@ -380,7 +384,7 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
                 this_arg++;
                 startargv++;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the login name.
-                    CommonData.AUTHLogin = argv[this_arg];                   // Keep the login name if not "-"
+                    CommonData.AUTHLogin = argv[this_arg];        // Keep the login name if not "-"
                 }
                 loginFound = TRUE;
                 argState = INSTALL_STATE_LOGIN_ID+1;
@@ -400,7 +404,7 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
                 this_arg++;
                 startargv++;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the password.
-                    CommonData.AUTHPassword = argv[this_arg];                // Keep the password if not "-"
+                    CommonData.AUTHPassword = argv[this_arg];     // Keep the password if not "-"
                 }
                 pwdFound = TRUE;
                 argState = INSTALL_STATE_PASSWORD+1;
@@ -416,8 +420,7 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
             argState++;
             if ( !hostFound ) {
                 hostFound = TRUE;
-                _tcsncpy( CommonData.SMTPHost, argv[this_arg], SERVER_SIZE );
-                CommonData.SMTPHost[SERVER_SIZE] = __T('\0');
+                CommonData.SMTPHost = argv[this_arg];
                 continue;
             }
 
@@ -433,8 +436,7 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
             argState++;
             if ( !tryFound ) {
                 tryFound = TRUE;
-                _tcsncpy( CommonData.Try, argv[this_arg], TRY_SIZE );
-                CommonData.Try[TRY_SIZE] = __T('\0');
+                CommonData.Try = argv[this_arg];
                 continue;
             }
 
@@ -442,8 +444,7 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
             argState++;
             if ( !portFound ) {
                 portFound = TRUE;
-                _tcsncpy( CommonData.SMTPPort, argv[this_arg], SERVER_SIZE );
-                CommonData.SMTPPort[SERVER_SIZE] = __T('\0');
+                CommonData.SMTPPort = argv[this_arg];
                 continue;
             }
 
@@ -452,8 +453,8 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
             if ( !profileFound ) {
                 profileFound = TRUE;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the profile.
-                    _tcsncpy( CommonData.Profile, argv[this_arg], TRY_SIZE );// Keep the profile if not "-"
-                    CommonData.Profile[TRY_SIZE] = __T('\0');
+                    CommonData.Profile = argv[this_arg];          // Keep the profile if not "-"
+                    checkProfileNameLength( CommonData );
                 }
                 continue;
             }
@@ -463,7 +464,7 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
             if ( !loginFound ) {
                 loginFound = TRUE;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the login name.
-                    CommonData.AUTHLogin = argv[this_arg];                   // Keep the login name if not "-"
+                    CommonData.AUTHLogin = argv[this_arg];        // Keep the login name if not "-"
                 }
                 continue;
             }
@@ -473,7 +474,7 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
             if ( !pwdFound ) {
                 pwdFound = TRUE;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then delete the password.
-                    CommonData.AUTHPassword = argv[this_arg];                // Keep the password if not "-"
+                    CommonData.AUTHPassword = argv[this_arg];     // Keep the password if not "-"
                 }
                 continue;
             }
@@ -498,23 +499,23 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
     }
 
     if ( argState ) {
-        if ( !_tcscmp(CommonData.Try,__T("-")) ) _tcscpy(CommonData.Try,__T("1"));
-        if ( !_tcscmp(CommonData.Try,__T("0")) ) _tcscpy(CommonData.Try,__T("1"));
+        if ( !_tcscmp(CommonData.Try.Get(),__T("-")) ) CommonData.Try = __T("1");
+        if ( !_tcscmp(CommonData.Try.Get(),__T("0")) ) CommonData.Try = __T("1");
 
-        if ( !_tcscmp(CommonData.SMTPPort,__T("-")) ) _tcscpy(CommonData.SMTPPort,defaultSMTPPort);
-        if ( !_tcscmp(CommonData.SMTPPort,__T("0")) ) _tcscpy(CommonData.SMTPPort,defaultSMTPPort);
+        if ( !_tcscmp(CommonData.SMTPPort.Get(),__T("-")) ) CommonData.SMTPPort = defaultSMTPPort;
+        if ( !_tcscmp(CommonData.SMTPPort.Get(),__T("0")) ) CommonData.SMTPPort = defaultSMTPPort;
 
 #if INCLUDE_NNTP
-        CommonData.NNTPHost[0] = __T('\0');
+        CommonData.NNTPHost.Clear();
 #endif
 #if INCLUDE_POP3
-        CommonData.POP3Host[0] = __T('\0');
+        CommonData.POP3Host.Clear();
 #endif
 #if INCLUDE_IMAP
-        CommonData.IMAPHost[0] = __T('\0');
+        CommonData.IMAPHost.Clear();
 #endif
         if ( CreateRegEntry( CommonData, useHKCU ) == 0 ) {
-            printMsg( CommonData, __T("SMTP server set to %s on port %s with user %s, retry %s time(s)\n"), CommonData.SMTPHost, CommonData.SMTPPort, CommonData.Sender.Get(), CommonData.Try );
+            printMsg( CommonData, __T("SMTP server set to %s on port %s with user %s, retry %s time(s)\n"), CommonData.SMTPHost.Get(), CommonData.SMTPPort.Get(), CommonData.Sender.Get(), CommonData.Try.Get() );
             CommonData.regerr = 0;
             printMsg( CommonData, NULL );
             if ( CommonData.logOut )
@@ -558,16 +559,16 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     loginFound   = FALSE;
     pwdFound     = FALSE;
 
-    CommonData.NNTPHost[0]  =
-    CommonData.Profile[0]   = __T('\0');
+    CommonData.NNTPHost.Clear();
+    CommonData.Profile.Clear();
 
     CommonData.Sender.Clear();
 
     CommonData.AUTHLogin.Clear();
     CommonData.AUTHPassword.Clear();
 
-    _tcscpy( CommonData.NNTPPort, defaultNNTPPort );
-    _tcscpy( CommonData.Try, __T("1") );
+    CommonData.NNTPPort = defaultNNTPPort;
+    CommonData.Try = __T("1");
 
     for ( ; argc && argState < INSTALL_STATE_DONE; ) {
         argc--;
@@ -586,8 +587,7 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.NNTPHost, argv[this_arg], SERVER_SIZE );
-                CommonData.NNTPHost[SERVER_SIZE] = __T('\0');
+                CommonData.NNTPHost = argv[this_arg];
                 hostFound = TRUE;
                 argState = INSTALL_STATE_SERVER+1;
                 continue;
@@ -620,8 +620,7 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.Try, argv[this_arg], TRY_SIZE );
-                CommonData.Try[TRY_SIZE] = __T('\0');
+                CommonData.Try = argv[this_arg];
                 tryFound = TRUE;
                 argState = INSTALL_STATE_TRY+1;
                 continue;
@@ -641,8 +640,7 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.NNTPPort, argv[this_arg], SERVER_SIZE );
-                CommonData.NNTPPort[SERVER_SIZE] = __T('\0');
+                CommonData.NNTPPort = argv[this_arg];
                 portFound = TRUE;
                 argState = INSTALL_STATE_PORT+1;
                 continue;
@@ -660,8 +658,8 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 this_arg++;
                 startargv++;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the profile.
-                    _tcsncpy( CommonData.Profile, argv[this_arg], TRY_SIZE );// Keep the profile if not "-"
-                    CommonData.Profile[TRY_SIZE] = __T('\0');
+                    CommonData.Profile = argv[this_arg];          // Keep the profile if not "-"
+                    checkProfileNameLength( CommonData );
                 }
                 profileFound = TRUE;
                 argState = INSTALL_STATE_PROFILE+1;
@@ -680,7 +678,7 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 this_arg++;
                 startargv++;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the login name.
-                    CommonData.AUTHLogin = argv[this_arg];                   // Keep the login name if not "-"
+                    CommonData.AUTHLogin = argv[this_arg];        // Keep the login name if not "-"
                 }
                 loginFound = TRUE;
                 argState = INSTALL_STATE_LOGIN_ID+1;
@@ -700,7 +698,7 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 this_arg++;
                 startargv++;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the password.
-                    CommonData.AUTHPassword = argv[this_arg];                // Keep the password if not "-"
+                    CommonData.AUTHPassword = argv[this_arg];     // Keep the password if not "-"
                 }
                 pwdFound = TRUE;
                 argState = INSTALL_STATE_PASSWORD+1;
@@ -716,8 +714,7 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             argState++;
             if ( !hostFound ) {
                 hostFound = TRUE;
-                _tcsncpy( CommonData.NNTPHost, argv[this_arg], SERVER_SIZE );
-                CommonData.NNTPHost[SERVER_SIZE] = __T('\0');
+                CommonData.NNTPHost = argv[this_arg];
                 continue;
             }
 
@@ -733,8 +730,7 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             argState++;
             if ( !tryFound ) {
                 tryFound = TRUE;
-                _tcsncpy( CommonData.Try, argv[this_arg], TRY_SIZE );
-                CommonData.Try[TRY_SIZE] = __T('\0');
+                CommonData.Try = argv[this_arg];
                 continue;
             }
 
@@ -742,8 +738,7 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             argState++;
             if ( !portFound ) {
                 portFound = TRUE;
-                _tcsncpy( CommonData.NNTPPort, argv[this_arg], SERVER_SIZE );
-                CommonData.NNTPPort[SERVER_SIZE] = __T('\0');
+                CommonData.NNTPPort = argv[this_arg];
                 continue;
             }
 
@@ -752,8 +747,8 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             if ( !profileFound ) {
                 profileFound = TRUE;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the profile.
-                    _tcsncpy( CommonData.Profile, argv[this_arg], TRY_SIZE );// Keep the profile if not "-"
-                    CommonData.Profile[TRY_SIZE] = __T('\0');
+                    CommonData.Profile = argv[this_arg];          // Keep the profile if not "-"
+                    checkProfileNameLength( CommonData );
                 }
                 continue;
             }
@@ -763,7 +758,7 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             if ( !loginFound ) {
                 loginFound = TRUE;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the login name.
-                    CommonData.AUTHLogin = argv[this_arg];                   // Keep the login name if not "-"
+                    CommonData.AUTHLogin = argv[this_arg];        // Keep the login name if not "-"
                 }
                 continue;
             }
@@ -773,7 +768,7 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             if ( !pwdFound ) {
                 pwdFound = TRUE;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then delete the password.
-                    CommonData.AUTHPassword = argv[this_arg];                // Keep the password if not "-"
+                    CommonData.AUTHPassword = argv[this_arg];     // Keep the password if not "-"
                 }
                 continue;
             }
@@ -796,21 +791,21 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     }
 
     if ( argState ) {
-        if ( !_tcscmp(CommonData.Try,__T("-")) ) _tcscpy(CommonData.Try,__T("1"));
-        if ( !_tcscmp(CommonData.Try,__T("0")) ) _tcscpy(CommonData.Try,__T("1"));
+        if ( !_tcscmp(CommonData.Try.Get(),__T("-")) ) CommonData.Try = __T("1");
+        if ( !_tcscmp(CommonData.Try.Get(),__T("0")) ) CommonData.Try = __T("1");
 
-        if ( !_tcscmp(CommonData.NNTPPort,__T("-")) ) _tcscpy(CommonData.NNTPPort,defaultNNTPPort);
-        if ( !_tcscmp(CommonData.NNTPPort,__T("0")) ) _tcscpy(CommonData.NNTPPort,defaultNNTPPort);
+        if ( !_tcscmp(CommonData.NNTPPort.Get(),__T("-")) ) CommonData.NNTPPort = defaultNNTPPort;
+        if ( !_tcscmp(CommonData.NNTPPort.Get(),__T("0")) ) CommonData.NNTPPort = defaultNNTPPort;
 
 #if INCLUDE_POP3
-        CommonData.POP3Host[0] = __T('\0');
+        CommonData.POP3Host.Clear();
 #endif
 #if INCLUDE_IMAP
-        CommonData.IMAPHost[0] = __T('\0');
+        CommonData.IMAPHost.Clear();
 #endif
-        CommonData.SMTPHost[0] = __T('\0');
+        CommonData.SMTPHost.Clear();
         if ( CreateRegEntry( CommonData, useHKCU ) == 0 ) {
-            printMsg( CommonData, __T("NNTP server set to %s on port %s with user %s, retry %s time(s)\n"), CommonData.NNTPHost, CommonData.NNTPPort, CommonData.Sender.Get(), CommonData.Try );
+            printMsg( CommonData, __T("NNTP server set to %s on port %s with user %s, retry %s time(s)\n"), CommonData.NNTPHost.Get(), CommonData.NNTPPort.Get(), CommonData.Sender.Get(), CommonData.Try.Get() );
             CommonData.regerr = 0;
             printMsg( CommonData, NULL );
             if ( CommonData.logOut )
@@ -833,9 +828,7 @@ static int checkNNTPSrvr ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.NNTPHost, argv[this_arg+1], SERVER_SIZE );
-    CommonData.NNTPHost[SERVER_SIZE] = __T('\0');
-
+    CommonData.NNTPHost = argv[this_arg+1];
     return(1);
 }
 
@@ -844,9 +837,7 @@ static int checkNNTPPort ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.NNTPPort, argv[this_arg+1], SERVER_SIZE );
-    CommonData.NNTPPort[SERVER_SIZE] = __T('\0');
-
+    CommonData.NNTPPort = argv[this_arg+1];
     return(1);
 }
 
@@ -900,15 +891,15 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     loginFound   = FALSE;
     pwdFound     = FALSE;
 
-    CommonData.POP3Host[0]  =
-    CommonData.Profile[0]   = __T('\0');
+    CommonData.POP3Host.Clear();
+    CommonData.Profile.Clear();
 
     CommonData.Sender.Clear();
 
     CommonData.POP3Login.Clear();
     CommonData.POP3Password.Clear();
 
-    _tcscpy(CommonData.POP3Port, defaultPOP3Port);
+    CommonData.POP3Port = defaultPOP3Port;
 
     for ( ; argc && argState < INSTALL_STATE_DONE; ) {
         argc--;
@@ -927,8 +918,7 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.POP3Host, argv[this_arg], SERVER_SIZE );
-                CommonData.POP3Host[SERVER_SIZE] = __T('\0');
+                CommonData.POP3Host = argv[this_arg];
                 hostFound = TRUE;
                 argState = INSTALL_STATE_SERVER+1;
                 continue;
@@ -961,8 +951,7 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.Try, argv[this_arg], TRY_SIZE );
-                CommonData.Try[TRY_SIZE] = __T('\0');
+                CommonData.Try = argv[this_arg];
                 tryFound = TRUE;
                 argState = INSTALL_STATE_TRY+1;
                 continue;
@@ -982,8 +971,7 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.POP3Port, argv[this_arg], SERVER_SIZE );
-                CommonData.POP3Port[SERVER_SIZE] = __T('\0');
+                CommonData.POP3Port = argv[this_arg];
                 portFound = TRUE;
                 argState = INSTALL_STATE_PORT+1;
                 continue;
@@ -1001,8 +989,8 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 this_arg++;
                 startargv++;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the profile.
-                    _tcsncpy( CommonData.Profile, argv[this_arg], TRY_SIZE );// Keep the profile if not "-"
-                    CommonData.Profile[TRY_SIZE] = __T('\0');
+                    CommonData.Profile = argv[this_arg];          // Keep the profile if not "-"
+                    checkProfileNameLength( CommonData );
                 }
                 profileFound = TRUE;
                 argState = INSTALL_STATE_PROFILE+1;
@@ -1067,8 +1055,7 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             argState++;
             if ( !hostFound ) {
                 hostFound = TRUE;
-                _tcsncpy( CommonData.POP3Host, argv[this_arg], SERVER_SIZE );
-                CommonData.POP3Host[SERVER_SIZE] = __T('\0');
+                CommonData.POP3Host = argv[this_arg];
                 continue;
             }
 
@@ -1086,8 +1073,7 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             argState++;
             if ( !portFound ) {
                 portFound = TRUE;
-                _tcsncpy( CommonData.POP3Port, argv[this_arg], SERVER_SIZE );
-                CommonData.POP3Port[SERVER_SIZE] = __T('\0');
+                CommonData.POP3Port = argv[this_arg];
                 continue;
             }
 
@@ -1096,8 +1082,8 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             if ( !profileFound ) {
                 profileFound = TRUE;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the profile.
-                    _tcsncpy( CommonData.Profile, argv[this_arg], TRY_SIZE );// Keep the profile if not "-"
-                    CommonData.Profile[TRY_SIZE] = __T('\0');
+                    CommonData.Profile = argv[this_arg];          // Keep the profile if not "-"
+                    checkProfileNameLength( CommonData );
                 }
                 continue;
             }
@@ -1140,15 +1126,15 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     }
 
     if ( argState ) {
-        if ( !_tcscmp(CommonData.POP3Port, __T("-")) ) _tcscpy(CommonData.POP3Port, defaultPOP3Port);
-        if ( !_tcscmp(CommonData.POP3Port, __T("0")) ) _tcscpy(CommonData.POP3Port, defaultPOP3Port);
+        if ( !_tcscmp(CommonData.POP3Port.Get(), __T("-")) ) CommonData.POP3Port = defaultPOP3Port;
+        if ( !_tcscmp(CommonData.POP3Port.Get(), __T("0")) ) CommonData.POP3Port = defaultPOP3Port;
 
   #if INCLUDE_NNTP
-        CommonData.NNTPHost[0] = __T('\0');
+        CommonData.NNTPHost.Clear();
   #endif
-        CommonData.SMTPHost[0] = __T('\0');
+        CommonData.SMTPHost.Clear();
         if ( CreateRegEntry( CommonData, useHKCU ) == 0 ) {
-            printMsg( CommonData, __T("POP3 server set to %s on port %s\n"), CommonData.POP3Host, CommonData.POP3Port );
+            printMsg( CommonData, __T("POP3 server set to %s on port %s\n"), CommonData.POP3Host.Get(), CommonData.POP3Port.Get() );
             CommonData.regerr = 0;
             printMsg( CommonData, NULL );
             if ( CommonData.logOut )
@@ -1171,9 +1157,7 @@ static int checkPOP3Srvr ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.POP3Host, argv[this_arg+1], SERVER_SIZE );
-    CommonData.POP3Host[SERVER_SIZE] = __T('\0');
-
+    CommonData.POP3Host = argv[this_arg+1];
     return(1);
 }
 
@@ -1182,9 +1166,7 @@ static int checkPOP3Port ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.POP3Port, argv[this_arg+1], SERVER_SIZE );
-    CommonData.POP3Port[SERVER_SIZE] = __T('\0');
-
+    CommonData.POP3Port = argv[this_arg+1];
     return(1);
 }
 #endif
@@ -1212,15 +1194,15 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     loginFound   = FALSE;
     pwdFound     = FALSE;
 
-    CommonData.IMAPHost[0]  =
-    CommonData.Profile[0]   = __T('\0');
+    CommonData.IMAPHost.Clear();
+    CommonData.Profile.Clear();
 
     CommonData.Sender.Clear();
 
     CommonData.IMAPLogin.Clear();
     CommonData.IMAPPassword.Clear();
 
-    _tcscpy(CommonData.IMAPPort, defaultIMAPPort);
+    CommonData.IMAPPort = defaultIMAPPort;
 
     for ( ; argc && argState < INSTALL_STATE_DONE; ) {
         argc--;
@@ -1239,8 +1221,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.IMAPHost, argv[this_arg], SERVER_SIZE );
-                CommonData.IMAPHost[SERVER_SIZE] = __T('\0');
+                CommonData.IMAPHost = argv[this_arg];
                 hostFound = TRUE;
                 continue;
             }
@@ -1271,8 +1252,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.Try, argv[this_arg], TRY_SIZE );
-                CommonData.Try[TRY_SIZE] = __T('\0');
+                CommonData.Try = argv[this_arg];
                 tryFound = TRUE;
                 continue;
             }
@@ -1291,8 +1271,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 argc--;
                 this_arg++;
                 startargv++;
-                _tcsncpy( CommonData.IMAPPort, argv[this_arg], SERVER_SIZE );
-                CommonData.IMAPPort[SERVER_SIZE] = __T('\0');
+                CommonData.IMAPPort = argv[this_arg];
                 portFound = TRUE;
                 continue;
             }
@@ -1309,8 +1288,8 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 this_arg++;
                 startargv++;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the profile.
-                    _tcsncpy( CommonData.Profile, argv[this_arg], TRY_SIZE );// Keep the profile if not "-"
-                    CommonData.Profile[TRY_SIZE] = __T('\0');
+                    CommonData.Profile = argv[this_arg];          // Keep the profile if not "-"
+                    checkProfileNameLength( CommonData );
                 }
                 profileFound = TRUE;
                 continue;
@@ -1372,8 +1351,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             argState++;
             if ( !hostFound ) {
                 hostFound = TRUE;
-                _tcsncpy( CommonData.IMAPHost, argv[this_arg], SERVER_SIZE );
-                CommonData.IMAPHost[SERVER_SIZE] = __T('\0');
+                CommonData.IMAPHost = argv[this_arg];
                 continue;
             }
 
@@ -1391,8 +1369,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             argState++;
             if ( !portFound ) {
                 portFound = TRUE;
-                _tcsncpy( CommonData.IMAPPort, argv[this_arg], SERVER_SIZE );
-                CommonData.IMAPPort[SERVER_SIZE] = __T('\0');
+                CommonData.IMAPPort = argv[this_arg];
                 continue;
             }
 
@@ -1401,8 +1378,8 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             if ( !profileFound ) {
                 profileFound = TRUE;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the profile.
-                    _tcsncpy( CommonData.Profile, argv[this_arg], TRY_SIZE );// Keep the profile if not "-"
-                    CommonData.Profile[TRY_SIZE] = __T('\0');
+                    CommonData.Profile = argv[this_arg];          // Keep the profile if not "-"
+                    checkProfileNameLength( CommonData );
                 }
                 continue;
             }
@@ -1445,15 +1422,15 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     }
 
     if ( argState ) {
-        if ( !_tcscmp(CommonData.IMAPPort,__T("-")) ) _tcscpy(CommonData.IMAPPort,defaultIMAPPort);
-        if ( !_tcscmp(CommonData.IMAPPort,__T("0")) ) _tcscpy(CommonData.IMAPPort,defaultIMAPPort);
+        if ( !_tcscmp(CommonData.IMAPPort.Get(),__T("-")) ) CommonData.IMAPPort = defaultIMAPPort;
+        if ( !_tcscmp(CommonData.IMAPPort.Get(),__T("0")) ) CommonData.IMAPPort = defaultIMAPPort;
 
   #if INCLUDE_NNTP
-        CommonData.NNTPHost[0] = __T('\0');
+        CommonData.NNTPHost.Clear();
   #endif
-        CommonData.SMTPHost[0] = __T('\0');
+        CommonData.SMTPHost.Clear();
         if ( CreateRegEntry( CommonData, useHKCU ) == 0 ) {
-            printMsg( CommonData, __T("IMAP server set to %s on port %s\n"), CommonData.IMAPHost, CommonData.IMAPPort );
+            printMsg( CommonData, __T("IMAP server set to %s on port %s\n"), CommonData.IMAPHost.Get(), CommonData.IMAPPort.Get() );
             CommonData.regerr = 0;
             printMsg( CommonData, NULL );
             if ( CommonData.logOut )
@@ -1476,9 +1453,7 @@ static int checkIMAPSrvr ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.IMAPHost, argv[this_arg+1], SERVER_SIZE );
-    CommonData.IMAPHost[SERVER_SIZE] = __T('\0');
-
+    CommonData.IMAPHost = argv[this_arg+1];
     return(1);
 }
 
@@ -1487,9 +1462,7 @@ static int checkIMAPPort ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.IMAPPort, argv[this_arg+1], SERVER_SIZE );
-    CommonData.IMAPPort[SERVER_SIZE] = __T('\0');
-
+    CommonData.IMAPPort = argv[this_arg+1];
     return(1);
 }
 #endif
@@ -1502,9 +1475,8 @@ static int checkOptionFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    if ( !CommonData.optionsFile[0] ) {
-        _tcsncpy( CommonData.optionsFile, argv[this_arg+1], _MAX_PATH - 1);
-        CommonData.optionsFile[_MAX_PATH-1] = __T('\0');
+    if ( !CommonData.optionsFile.Get()[0] ) {
+        CommonData.optionsFile = argv[this_arg+1];
     }
     return(1);
 }
@@ -1731,7 +1703,7 @@ static int checkBodyText ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     checkInputForUnicode( CommonData, tempBodyParameter );
 #endif
     CommonData.bodyparameter.Add( tempBodyParameter );
-    _tcscpy(CommonData.bodyFilename, __T("-"));
+    CommonData.bodyFilename = __T("-");
 
     return(1);
 }
@@ -1744,9 +1716,7 @@ static int checkBodyFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     if ( !argv[this_arg+1] )
         return(-1);
 
-    _tcsncpy(CommonData.bodyFilename, argv[this_arg+1], _MAX_PATH-1 );
-    CommonData.bodyFilename[_MAX_PATH-1] = __T('\0');
-
+    CommonData.bodyFilename = argv[this_arg+1];
     return(1);
 }
 
@@ -1780,12 +1750,15 @@ static int checkProfileEdit ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 argc--;
 
             for ( ; argc; argc-- ) {
+                Buf profileKey;
                 if ( !_tcscmp( argv[this_arg], __T("-hkcu") ) ) {
                     useHKCU = TRUE;
                     this_arg++;
                     continue;
                 }
-                DeleteRegEntry( CommonData, argv[this_arg], useHKCU );
+                profileKey = argv[this_arg];
+                DeleteRegEntry( CommonData, profileKey, useHKCU );
+                profileKey.Free();
                 this_arg++;
             }
         } else {
@@ -1829,9 +1802,8 @@ static int checkProfileToUse ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.Profile, argv[this_arg+1], TRY_SIZE );
-    CommonData.Profile[TRY_SIZE] = __T('\0');
-
+    CommonData.Profile = argv[this_arg+1];
+    checkProfileNameLength( CommonData );
     return(1);
 }
 #endif
@@ -1841,9 +1813,7 @@ static int checkServerOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.SMTPHost, argv[this_arg+1], SERVER_SIZE );
-    CommonData.SMTPHost[SERVER_SIZE] = __T('\0');
-
+    CommonData.SMTPHost = argv[this_arg+1];
     return(1);
 }
 
@@ -1852,9 +1822,7 @@ static int checkFromOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.loginname, argv[this_arg+1], SENDER_SIZE );
-    CommonData.loginname[SENDER_SIZE] = __T('\0');
-
+    CommonData.loginname = argv[this_arg+1];
     return(1);
 }
 
@@ -1863,8 +1831,7 @@ static int checkImpersonate ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.senderid, argv[this_arg+1], SENDER_SIZE );
-    CommonData.senderid[SENDER_SIZE] = __T('\0');
+    CommonData.senderid = argv[this_arg+1];
     CommonData.impersonating = TRUE;
 
     return(1);
@@ -1875,9 +1842,7 @@ static int checkPortOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.SMTPPort, argv[this_arg+1], SERVER_SIZE );
-    CommonData.SMTPPort[SERVER_SIZE] = __T('\0');
-
+    CommonData.SMTPPort = argv[this_arg+1];
     return(1);
 }
 
@@ -1887,7 +1852,6 @@ static int checkUserIDOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
     startargv = startargv;
 
     CommonData.AUTHLogin = argv[this_arg+1];
-
     return(1);
 }
 
@@ -1983,9 +1947,7 @@ static int checkServiceName ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.servicename, argv[this_arg+1], SERVICENAME_SIZE-1 );
-    CommonData.servicename[SERVICENAME_SIZE-1] = __T('\0');
-
+    CommonData.servicename = argv[this_arg+1];
     return(1);
 }
 
@@ -2111,8 +2073,7 @@ static int checkPriority ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     // Check for priority. 0 is Low, 1 is High - you don't need
     // normal, since omission of a priority is normal.
 
-    CommonData.priority[0] = argv[this_arg+1][0];
-    CommonData.priority[1] = __T('\0');
+    CommonData.priority = argv[this_arg+1][0];
 
     return(1);
 }
@@ -2125,8 +2086,7 @@ static int checkSensitivity ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     // Check for sensitivity. 0 is personal, 1 is private, 2 is company-confidential
     // normal, since omission of a sensitivity is normal.
 
-    CommonData.sensitivity[0] = argv[this_arg+1][0];
-    CommonData.sensitivity[1] = __T('\0');
+    CommonData.sensitivity = argv[this_arg+1][0];
 
     return(1);
 }
@@ -2136,10 +2096,9 @@ static int checkCharset ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.charset, argv[this_arg+1], 40-1 );
-    CommonData.charset[40-1] = __T('\0');
-    _tcsupr( CommonData.charset );
-    if ( _tcscmp( CommonData.charset, __T("UTF-8") ) == 0 ) {
+    CommonData.charset = argv[this_arg+1];
+    _tcsupr( CommonData.charset.Get() );
+    if ( _tcscmp( CommonData.charset.Get(), __T("UTF-8") ) == 0 ) {
         CommonData.utf = UTF_REQUESTED;
 #if BLAT_LITE
         CommonData.mime = 1;
@@ -2147,7 +2106,7 @@ static int checkCharset ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
         CommonData.eightBitMimeRequested = TRUE;
 #endif
     } else
-    if ( _tcscmp( CommonData.charset, __T("UTF-7") ) == 0 ) {
+    if ( _tcscmp( CommonData.charset.Get(), __T("UTF-7") ) == 0 ) {
         CommonData.utf = UTF_REQUESTED;
 #if BLAT_LITE
         CommonData.mime = 1;
@@ -2287,7 +2246,7 @@ static int checkBase64Enc ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
 
 static int checkEnriched ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    _tcscpy( CommonData.textmode, __T("enriched") );
+    CommonData.textmode = __T("enriched");
 
     return checkMime( CommonData, argc, argv, this_arg, startargv );
 }
@@ -2295,7 +2254,7 @@ static int checkEnriched ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkHTML ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    _tcscpy( CommonData.textmode, __T("html") );
+    CommonData.textmode = __T("html");
 
     return checkMime( CommonData, argc, argv, this_arg, startargv );
 }
@@ -2338,16 +2297,15 @@ static int addToAttachments ( COMMON_DATA & CommonData, LPTSTR * argv, int this_
 
             if ( i == CommonData.attach ) {
                 CommonData.attachtype[CommonData.attach] = aType;
-                _tcsncpy( (LPTSTR)CommonData.attachfile[CommonData.attach], srcptr, _MAX_PATH-1 );
-                CommonData.attachfile[CommonData.attach++][_MAX_PATH-1] = __T('\0');
+                CommonData.attachfile[CommonData.attach] = srcptr;
+                CommonData.attach++;
             } else {
                 for ( int j = 63; j > i; j-- ) {
                     CommonData.attachtype[j] = CommonData.attachtype[j-1];
-                    memcpy( CommonData.attachfile[j], CommonData.attachfile[j-1], sizeof(CommonData.attachfile[0]) );
+                    CommonData.attachfile[j] = CommonData.attachfile[j-1];
                 }
                 CommonData.attachtype[i] = aType;
-                _tcsncpy( (LPTSTR)CommonData.attachfile[i], srcptr, _MAX_PATH-1 );
-                CommonData.attachfile[i][_MAX_PATH-1] = __T('\0');
+                CommonData.attachfile[i] = srcptr;
                 CommonData.attach++;
             }
 
@@ -2578,15 +2536,14 @@ static int checkLogMessages ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
          (argv[this_arg+1][0] == __T('\0')) ||
          (argv[this_arg+1][0] == __T('-') ) ||
          (argv[this_arg+1][0] == __T('/') ) ) {
-        CommonData.logFile[0] = __T('\0');
+        CommonData.logFile.Clear();
         CommonData.logOut = stdout;
         return(0);
     }
 
-    _tcsncpy( CommonData.logFile, argv[this_arg+1], _MAX_PATH - 1 );
-    CommonData.logFile[_MAX_PATH - 1] = __T('\0');
+    CommonData.logFile = argv[this_arg+1];
 
-    if ( CommonData.logFile[0] ) {
+    if ( CommonData.logFile.Get()[0] ) {
         if ( CommonData.clearLogFirst ) {
             CommonData.logOut = _tfopen(CommonData.logFile, fileCreateAttribute);
 #if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER < 1400)
@@ -2653,9 +2610,7 @@ static int checkAttempts ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.Try, argv[this_arg+1], TRY_SIZE );
-    CommonData.Try[TRY_SIZE] = __T('\0');
-
+    CommonData.Try = argv[this_arg+1];
     return(1);
 }
 
@@ -2676,9 +2631,7 @@ static int checkHostname ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.my_hostname_wanted, argv[this_arg+1], 1024-1 );
-    CommonData.my_hostname_wanted[1024-1] = __T('\0');
-
+    CommonData.my_hostname_wanted = argv[this_arg+1];
     return(1);
 }
 
@@ -2687,9 +2640,7 @@ static int checkMailFrom ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.loginname, argv[this_arg+1], SENDER_SIZE );
-    CommonData.loginname[SENDER_SIZE] = __T('\0');
-
+    CommonData.loginname = argv[this_arg+1];
     return(1);
 }
 
@@ -2698,9 +2649,7 @@ static int checkWhoFrom ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.fromid, argv[this_arg+1], SENDER_SIZE );
-    CommonData.fromid[SENDER_SIZE] = __T('\0');
-
+    CommonData.fromid = argv[this_arg+1];
     return(1);
 }
 
@@ -2709,9 +2658,7 @@ static int checkReplyTo ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.replytoid, argv[this_arg+1], SENDER_SIZE );
-    CommonData.replytoid[SENDER_SIZE] = __T('\0');
-
+    CommonData.replytoid = argv[this_arg+1];
     return(1);
 }
 
@@ -2720,9 +2667,7 @@ static int checkReturnPath ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.returnpathid, argv[this_arg+1], SENDER_SIZE );
-    CommonData.returnpathid[SENDER_SIZE] = __T('\0');
-
+    CommonData.returnpathid = argv[this_arg+1];
     return(1);
 }
 
@@ -2731,9 +2676,7 @@ static int checkSender ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int 
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
-    _tcsncpy( CommonData.sendername, argv[this_arg+1], SENDER_SIZE );
-    CommonData.sendername[SENDER_SIZE] = __T('\0');
-
+    CommonData.sendername = argv[this_arg+1];
     return(1);
 }
 
@@ -3384,6 +3327,8 @@ _BLATOPTIONS blatOptionsList[] = {
     { __T("-attach")        , CGI_HIDDEN             , FALSE, 1, checkBinFileAttach  ,        __T(" <file>  : attach binary file(s) to message (filenames comma separated)") },
     { __T("-attacht")       , CGI_HIDDEN             , FALSE, 1, checkTxtFileAttach  ,         __T(" <file> : attach text file(s) to message (filenames comma separated)") },
     { __T("-attachi")       , CGI_HIDDEN             , FALSE, 1, checkInlineAttach   ,         __T(" <file> : attach text file(s) as INLINE (filenames comma separated)") },
+    { __T("-imaf")          ,              NULL      , FALSE, 0, checkMissingAttach  ,      __T("           : ignore missing attachment files.  Do not stop for missing") },
+    {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  files.") },
 #if BLAT_LITE
 #else
     { __T("-embed")         , CGI_HIDDEN             , FALSE, 1, checkBinFileEmbed   ,       __T(" <file>   : embed file(s) in HTML.  Object tag in HTML must specify") },
@@ -3394,8 +3339,6 @@ _BLATOPTIONS blatOptionsList[] = {
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  separated)") },
     { __T("-aef")           ,              NULL      , FALSE, 1, checkEmbFileAttFil  ,     __T(" <file>     : file containing list of embed file(s) to attach (comma") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  separated)") },
-    { __T("-imaf")          ,              NULL      , FALSE, 0, checkMissingAttach  ,      __T("           : ignore missing attachment files.  Do not stop for missing") },
-    {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  files.") },
     { __T("-base64")        ,              NULL      , FALSE, 0, checkBase64Enc      ,        __T("         : send binary files using base64 (binary MIME)") },
     { __T("-uuencodel")     ,              NULL      , FALSE, 0, checkLongUUEncode   , NULL },
     { __T("-uuencode")      ,              NULL      , FALSE, 0, checkUUEncode       ,          __T("       : send binary files UUEncoded") },
@@ -3557,12 +3500,12 @@ void print_usage_line( COMMON_DATA & CommonData, LPTSTR pUsageLine )
                 {
                     CommonData.pGss = &CommonData.TheSession;
                 }
-                CommonData.pGss->MechtypeText(CommonData.mechtype);
+                CommonData.pGss->MechtypeText(CommonData.mechtype.Get());
             }
             catch (GssSession::GssException &e) {
                 printMsg(CommonData, __T("GssSession Error: %s\n"), e.message());
                 CommonData.pGss = NULL;
-                _tcscpy( CommonData.mechtype, __T("UNAVAILABLE") );
+                CommonData.mechtype = __T("UNAVAILABLE");
             }
 
             CommonData.have_mechtype = TRUE;
@@ -3574,7 +3517,7 @@ void print_usage_line( COMMON_DATA & CommonData, LPTSTR pUsageLine )
             beginning[match - pUsageLine] = __T('\0');
 
             pMyPrintDLL(beginning);
-            pMyPrintDLL(CommonData.mechtype);
+            pMyPrintDLL(CommonData.mechtype.Get());
             pMyPrintDLL(match + _tcslen(MECHTYPE));
             fflush(stdout);
             return;
