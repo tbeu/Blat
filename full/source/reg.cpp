@@ -225,7 +225,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
     strRegisterKey = SoftwareRegKey;
     strRegisterKey.Add( Wow6432NodeKey );
     strRegisterKey.Add( MainRegKey );
-    if ( CommonData.Profile[0] != __T('\0') ) {
+    if ( CommonData.Profile.Get()[0] != __T('\0') ) {
         strRegisterKey.Add(__T("\\"));
         strRegisterKey.Add(CommonData.Profile);
     }
@@ -242,7 +242,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
     {
         strRegisterKey = SoftwareRegKey;
         strRegisterKey.Add( MainRegKey );
-        if ( CommonData.Profile[0] != __T('\0') ) {
+        if ( CommonData.Profile.Get()[0] != __T('\0') ) {
             strRegisterKey.Add(__T("\\"));
             strRegisterKey.Add(CommonData.Profile);
         }
@@ -601,7 +601,7 @@ static int DeleteRegTree( COMMON_DATA & CommonData, HKEY rootKeyLevel, Buf & pst
             lRetCode = DeleteRegTree( CommonData, rootKeyLevel, newProfile );
         }
         if ( lRetCode == 0 ) {
-            lRetCode = RegDeleteKey( hKey1, CommonData.Profile );
+            lRetCode = RegDeleteKey( hKey1, CommonData.Profile.Get() );
             if ( lRetCode != ERROR_SUCCESS ) {
                 if ( !CommonData.quiet ) {
                     pMyPrintDLL( __T("Error in deleting profile ") );
@@ -678,7 +678,7 @@ int DeleteRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile, int useHKCU )
             }
 
             if ( lRetCode == 0 ) {
-                lRetCode = RegDeleteValue( hKey1, CommonData.Profile );
+                lRetCode = RegDeleteValue( hKey1, CommonData.Profile.Get() );
                 if ( lRetCode != ERROR_SUCCESS ) {
                     if ( !CommonData.quiet ) {
                         pMyPrintDLL( __T("Error in deleting profile ") );
@@ -1010,7 +1010,9 @@ int GetRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile )
 {
     int lRetVal;
 
-    pstrProfile.Alloc(65536);
+    if (pstrProfile.Length() == 0)
+        pstrProfile.Clear();
+
     lRetVal = GetRegEntryKeyed( CommonData, HKEY_CURRENT_USER, pstrProfile.Get() );
     if ( lRetVal )
         lRetVal = GetRegEntryKeyed( CommonData, HKEY_LOCAL_MACHINE, pstrProfile.Get() );
@@ -1119,7 +1121,7 @@ static void DumpProfiles( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR ps
                                       &lftLastWriteTime                 // address for time key last written to);
                                    );
             if ( lRetCode == 0 ) {
-                if ( !_tcscmp(pstrProfile, CommonData.Profile.Get()) || 
+                if ( !_tcscmp(pstrProfile, CommonData.Profile.Get()) ||
                      !_tcscmp(pstrProfile, __T("<all>")) ) {
                     DisplayThisProfile( CommonData, rootKeyLevel, CommonData.Profile.Get() );
                 }

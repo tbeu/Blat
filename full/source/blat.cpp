@@ -26,7 +26,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.14")
+#define BLAT_VERSION    __T("3.2.15")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -632,7 +632,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             size_t  nextEntry = 0;
 
             memset( secondArgV, 0, (maxEntries + 1) * sizeof(LPTSTR) );
-            if ( !fileh.OpenThisFile(CommonData.optionsFile) ) {
+            if ( !fileh.OpenThisFile(CommonData.optionsFile.Get()) ) {
                 free( secondArgV );
                 printMsg( CommonData, __T("Options file \"%s\" not found or could not be opened.\n"), CommonData.optionsFile.Get() );
 
@@ -876,7 +876,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         if ( useCreateFile ) {  // For Windows 2000 and newer.
             HANDLE fh;
 
-            fh = CreateFile( CommonData.bodyFilename, FILE_READ_DATA, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
+            fh = CreateFile( CommonData.bodyFilename.Get(), FILE_READ_DATA, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
             if ( fh == INVALID_HANDLE_VALUE ) {
                 DWORD lastError = GetLastError();
                 if ( lastError )
@@ -895,7 +895,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         } else {                        // Windows 95 through NT 4.0
             FILE * fh;
 
-            fh = _tfopen(CommonData.bodyFilename, __T("r"));
+            fh = _tfopen(CommonData.bodyFilename.Get(), __T("r"));
             if ( fh == NULL ) {
                 printMsg(CommonData, __T("%s does not exist\n"),CommonData.bodyFilename.Get());
 
@@ -1048,7 +1048,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         DWORD dummy;
 
         //get the text of the file into a string buffer
-        if ( !fileh.OpenThisFile(CommonData.bodyFilename) ) {
+        if ( !fileh.OpenThisFile(CommonData.bodyFilename.Get()) ) {
             printMsg(CommonData, __T("error reading %s, aborting\n"),CommonData.bodyFilename.Get());
 
             printMsg( CommonData, NULL );
@@ -1102,7 +1102,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     CommonData.utf = 0;
     checkInputForUnicode ( CommonData, CommonData.TempConsole );
     if ( CommonData.utf == UTF_REQUESTED ) {
-        if ( CommonData.charset[0] == __T('\0') )
+        if ( CommonData.charset.Get()[0] == __T('\0') )
             CommonData.charset = __T("utf-8");              // Set to lowercase to distinguish between our determination and user specified.
     } else {
   #if BLAT_LITE
@@ -1646,7 +1646,7 @@ void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... )
     bool   converted;
     int    len;
 
-    if ( _tcsicmp( CommonData.charset, __T("UTF-8") ) == 0 ) {
+    if ( _tcsicmp( CommonData.charset.Get(), __T("UTF-8") ) == 0 ) {
         // Convert UTF-8 data to Unicode for correct string output
         converted = TRUE;
         y = (int)_tcslen(buf);
@@ -1769,7 +1769,7 @@ void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... )
             fflush( CommonData.logOut );
             if ( CommonData.logOut != stdout ) {
                 fclose( CommonData.logOut );
-                CommonData.logOut = _tfopen(CommonData.logFile, fileAppendAttribute);
+                CommonData.logOut = _tfopen(CommonData.logFile.Get(), fileAppendAttribute);
             }
         } else {
 #ifdef BLATDLL_EXPORTS

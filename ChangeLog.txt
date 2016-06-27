@@ -5,6 +5,10 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.15
+[-] Missed some edits that use the Buf class where earlier versions used _TCHAR
+    array.
+-------------------------------------------------------------------------------
 3.2.14
 [-] Vishnu Raju reported a string overflow when processing the profile option,
     leading to a program crash.  I changed the string processing so this cannot

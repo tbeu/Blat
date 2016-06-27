@@ -79,10 +79,10 @@ int add_message_body ( COMMON_DATA & CommonData,
 
 #if BLAT_LITE
 #else
-            if ( lstrcmpi(CommonData.charset, __T("UTF-7")) == 0 )
+            if ( lstrcmpi(CommonData.charset.Get(), __T("UTF-7")) == 0 )
                 utfRequested = 7;
             else
-            if ( (CommonData.eightBitMimeSupported && CommonData.eightBitMimeRequested) || (lstrcmpi(CommonData.charset, __T("UTF-8")) == 0) )
+            if ( (CommonData.eightBitMimeSupported && CommonData.eightBitMimeRequested) || (lstrcmpi(CommonData.charset.Get(), __T("UTF-8")) == 0) )
                 utfRequested = 8;
             else
 #endif
@@ -266,7 +266,7 @@ int add_message_body ( COMMON_DATA & CommonData,
 
                         messageBuffer.Add( __T("--") BOUNDARY_MARKER );
                         messageBuffer.Add( attachment_boundary );
-                        if (_memicmp(CommonData.charset, __T("UTF-"),4*sizeof(_TCHAR)) == 0) {
+                        if (_memicmp(CommonData.charset.Get(), __T("UTF-"),4*sizeof(_TCHAR)) == 0) {
 #if BLAT_LITE
 #else
                             if ( CommonData.eightBitMimeSupported || yEnc_This ) {
@@ -501,7 +501,7 @@ int add_message_body ( COMMON_DATA & CommonData,
 
                 pUChar = fileBuffer.Get();
                 for ( x = 0; *pUChar != __T('\0'); pUChar++ ) {
-                    if ( (*pUChar > 0x00FF) || ((memcmp(CommonData.charset, __T("UTF-"),4*sizeof(_TCHAR)) == 0) && (*pUChar > 0x007F)) ) {
+                    if ( (*pUChar > 0x00FF) || ((memcmp(CommonData.charset.Get(), __T("UTF-"),4*sizeof(_TCHAR)) == 0) && (*pUChar > 0x007F)) ) {
                         tempUTF = NATIVE_16BIT_UTF;
                         convertPackedUnicodeToUTF( fileBuffer, holdingPen, &tempUTF, NULL, utfRequested );
                         if ( tempUTF )

@@ -2529,7 +2529,7 @@ static int checkLogMessages ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     if ( CommonData.logOut ) {
         if ( CommonData.logOut != stdout ) {
             fclose( CommonData.logOut );
-            CommonData.logOut = 0;
+            CommonData.logOut = NULL;
         }
     }
     if ( !argv[this_arg+1]                  ||
@@ -2545,14 +2545,14 @@ static int checkLogMessages ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
     if ( CommonData.logFile.Get()[0] ) {
         if ( CommonData.clearLogFirst ) {
-            CommonData.logOut = _tfopen(CommonData.logFile, fileCreateAttribute);
+            CommonData.logOut = _tfopen(CommonData.logFile.Get(), fileCreateAttribute);
 #if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER < 1400)
             if ( CommonData.logOut )
                 _ftprintf( CommonData.logOut, __T("%s"), utfHeader );
 #endif
         }
         else
-            CommonData.logOut = _tfopen(CommonData.logFile, fileAppendAttribute);
+            CommonData.logOut = _tfopen(CommonData.logFile.Get(), fileAppendAttribute);
     }
 
     // if all goes well the file is closed normally
@@ -2573,7 +2573,7 @@ static int checkLogOverwrite ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
     if ( CommonData.logOut )
     {
         fclose( CommonData.logOut );
-        CommonData.logOut = _tfopen(CommonData.logFile, fileCreateAttribute);
+        CommonData.logOut = _tfopen(CommonData.logFile.Get(), fileCreateAttribute);
 #if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER < 1400)
         if ( CommonData.logOut )
             _ftprintf( CommonData.logOut, __T("%s"), utfHeader );

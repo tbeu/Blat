@@ -35,10 +35,10 @@ private:
         if (p) {
             memcpy(buffer, p, len*sizeof(_TCHAR));
             buffer[buflen] = __T('\0');
-            }
+        }
         else
             memset(buffer, 0, bufsize*sizeof(_TCHAR));
-        }
+    }
     void SetString(LPCTSTR p) {
         Free();
         if (p)
@@ -51,7 +51,7 @@ private:
             _tcscpy(buffer, p);
         else
             buffer[0] = __T('\0');
-        }
+    }
 #if defined(_UNICODE) || defined(UNICODE)
     void SetStringLen(const char * p, size_t len) {
         Free();
@@ -62,12 +62,12 @@ private:
             while( len ) {
                 --len;
                 buffer[len] = (_TCHAR)p[len];
-                }
-            buffer[buflen] = __T('\0');
             }
+            buffer[buflen] = __T('\0');
+        }
         else
             memset(buffer, 0, bufsize*sizeof(_TCHAR));
-        }
+    }
     void SetString(const char * p) {
         size_t len;
         Free();
@@ -79,57 +79,57 @@ private:
             while( len ) {
                 --len;
                 buffer[len] = (_TCHAR)p[len];
-                }
-            buffer[buflen] = __T('\0');;
             }
+            buffer[buflen] = __T('\0');;
         }
+    }
 #endif
 
 public:
     ~Buf() {
         if (buffer)
             delete [] buffer;
-        }
+    }
     Buf() {
         buffer = 0;
         buflen = 0;
         bufsize = 0;
-        }
+    }
     Buf(LPCTSTR p) {
         SetString(p);
-        }
+    }
     Buf(LPCTSTR p, size_t len) {
         SetStringLen(p, len);
-        }
+    }
 #if defined(_UNICODE) || defined(UNICODE)
     Buf(const char * p) {
         SetString(p);
-        }
+    }
     Buf(const char * p, size_t len) {
         SetStringLen(p, len);
-        }
+    }
 #endif
     Buf(size_t alloclen) {
         Free();
         bufsize = alloclen;
         buffer = new _TCHAR[bufsize];
-        }
+    }
     void Clear() {
         buflen = 0;
         if (!bufsize) {
             buffer = new _TCHAR[1];
             bufsize = 1;
-        }
+    }
         buffer[0] = __T('\0');
-        }
+    }
     void Free() {
         buflen = 0;
         if (buffer) {
             delete [] buffer;
             buffer = 0;
             bufsize = 0;
-            }
         }
+    }
     void Clone(const Buf &buf) {
         if (buf.bufsize) {
             Alloc(buf.buflen + 1);
@@ -138,18 +138,18 @@ public:
 
             buflen = buf.buflen;
             buffer[buflen] = __T('\0');
-            }
+        }
         else
             Free();
-        }
+    }
     Buf(const Buf &buf) {
         Clear();
         Clone(buf);
-        }
+    }
     Buf & operator=( const Buf &buf ) {
         Clone(buf);
         return *this;
-        }
+    }
     void Move(Buf &buf) {
         Free();
         buffer = buf.buffer;
@@ -158,7 +158,7 @@ public:
         buf.buffer = 0;
         buf.bufsize = 0;
         buf.buflen = 0;
-        }
+    }
     void Alloc(size_t size) {
         if (size > bufsize) {
             bufsize = (size + (Buf_Increment - 1)) & (-1 ^ (Buf_Increment - 1));// 0x7FFFE000;
@@ -166,10 +166,10 @@ public:
             if (buffer) {
                 memcpy(newbuffer, buffer, (buflen + 1)*sizeof(_TCHAR));
                 delete [] buffer;
-                }
-            buffer = newbuffer;
             }
+            buffer = newbuffer;
         }
+    }
     void AllocExact(size_t size) {
         if (size > bufsize) {
             bufsize = size;
@@ -177,10 +177,10 @@ public:
             if (buffer) {
                 memcpy(newbuffer, buffer, (buflen + 1)*sizeof(_TCHAR));
                 delete [] buffer;
-                }
-            buffer = newbuffer;
             }
+            buffer = newbuffer;
         }
+    }
     void Add(LPCTSTR text, size_t textlen) {
         if (text) {
             size_t newlen = buflen + textlen;
@@ -189,20 +189,20 @@ public:
                 memcpy(buffer + buflen, text, textlen*sizeof(_TCHAR));
             buffer[newlen] = __T('\0');
             buflen = newlen;
-            }
         }
+    }
     void Add(LPCTSTR text) {
         if (text)
             Add(text, _tcslen(text));
         else
             Add(__T(""), 0);
-        }
+    }
     void Add(_TCHAR ch) {
         Add(&ch, 1);
-        }
+    }
     void Add(const Buf &buf) {
         Add(buf.buffer, buf.buflen);
-        }
+    }
 #if defined(_UNICODE) || defined(UNICODE)
     void Add(const char * text, size_t textlen) {
         if (text && textlen) {
@@ -211,79 +211,86 @@ public:
             while( textlen ) {
                 textlen--;
                 buffer[buflen+textlen] = (_TCHAR)text[textlen];
-                }
+            }
             buffer[newlen] = __T('\0');
             buflen = newlen;
-            }
         }
+    }
     void Add(const char * text) {
         if (text)
             Add(text, strlen(text));
-        }
+    }
     void Add(char ch) {
         Add(&ch, 1);
-        }
+    }
 #endif
     LPTSTR Get() {
         return buffer;
-        }
+    }
     size_t Length() const {
         return buflen;
-        }
+    }
     LPTSTR GetTail() {
         return buffer + buflen;
-        }
+    }
     void Expand(size_t size) {
         Alloc(buflen + size);
-        }
+    }
     void Adjust() {
         if ( buffer )
             buflen += _tcslen(buffer + buflen);
-        }
+    }
     void SetLength() {
         if (buffer)
             buflen = _tcslen(buffer);
-        }
+    }
     void SetLength(size_t newlen) {
         if (newlen < bufsize)
             buflen = newlen;
-        }
+    }
     void Remove() {
         if (buflen)
             buflen--;
-        }
+    }
     void Remove(size_t position) {
         if (buffer) {
             if (position < buflen) {
                 do {
                     buffer[position] = buffer[position+1];
                     position++;
-                    } while (position < buflen);
+                } while (position < buflen);
                 buflen--;
-                }
             }
         }
+    }
     operator LPCTSTR () const{
         return buffer;
-        }
+    }
     void operator=(LPCTSTR p) {
         if (buffer) {
             Clear();
             Add(p);
-            }
+        }
         else
             SetString(p);
-        }
+    }
 #if defined(_UNICODE) || defined(UNICODE)
     void operator=(const char * p) {
         if (buffer) {
             Clear();
             Add(p);
-            }
+        }
         else
             SetString(p);
-        }
+    }
 #endif
-    };
+
+    void operator=(_TCHAR c) {
+        if (buffer) {
+            Clear();
+        }
+        Add(c);
+    }
+};
 
 #endif

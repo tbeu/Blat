@@ -259,7 +259,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
 #endif
         yEnc_This = FALSE;
 
-    if ( memcmp( CommonData.charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 )
+    if ( memcmp( CommonData.charset.Get(), __T("utf-"), 4*sizeof(_TCHAR) ) == 0 )
         localCharset[0] = __T('\0');
     else
         _tcscpy( localCharset, CommonData.charset.Get() );

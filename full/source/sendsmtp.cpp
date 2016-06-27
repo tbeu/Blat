@@ -609,7 +609,7 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bA
                     if ( (memcmp(&index[4], __T("8bitmime"),  8*sizeof(_TCHAR)) == 0) ||    // RFC 6152 calls out "8BITMIME"
                          (memcmp(&index[4], __T("8 bitmime"), 9*sizeof(_TCHAR)) == 0) ) {   // "250-8 BITMIME found with AT&T, in violation of RFC 6152
                         CommonData.eightBitMimeSupported = TRUE;
-                        //_tcsupr( CommonData.charset );
+                        //_tcsupr( CommonData.charset.Get() );
 //                        printMsg( CommonData, __T(" ... Server supports 8 bit MIME\n") );
                     } else
                     if ( memcmp(&index[4], __T("binarymime"), 10*sizeof(_TCHAR)) == 0 ) {

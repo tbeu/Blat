@@ -153,7 +153,7 @@ void fixup( COMMON_DATA & CommonData, LPTSTR string, Buf * outString, int header
 #endif
         utfRequested = 7;
 
-    if ( memcmp(CommonData.charset, __T("utf-"), 4*sizeof(_TCHAR)) == 0 ) {
+    if ( memcmp(CommonData.charset.Get(), __T("utf-"), 4*sizeof(_TCHAR)) == 0 ) {
         localCharset[0] = __T('\0');
         charsetLen   = 0;
     } else {
@@ -338,7 +338,7 @@ void fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString,
 
     for ( size_t x = 0; ; x++ ) {
         if ( x || (shortname[0] != 0xFEFF) ) {
-            if ( ((_TUCHAR)shortname[x] > 0x00FF) || ((memcmp(CommonData.charset, __T("UTF-"), 4*sizeof(_TCHAR)) == 0) && ((_TUCHAR)shortname[x] > 0x007F)) ) {
+            if ( ((_TUCHAR)shortname[x] > 0x00FF) || ((memcmp(CommonData.charset.Get(), __T("UTF-"), 4*sizeof(_TCHAR)) == 0) && ((_TUCHAR)shortname[x] > 0x007F)) ) {
                 shortNameBuf.Clear();
                 if ( shortname[0] != 0xFEFF )
                     shortNameBuf.Add( (_TCHAR)0xFEFF );
@@ -385,7 +385,7 @@ void fixupEmailHeaders(COMMON_DATA & CommonData, LPTSTR string, Buf * outString,
     savedBinaryMimeSupported   = CommonData.binaryMimeSupported;
 #endif
 
-    if ( memcmp( CommonData.charset, __T("utf-"), 4*sizeof(_TCHAR) ) == 0 ) {
+    if ( memcmp( CommonData.charset.Get(), __T("utf-"), 4*sizeof(_TCHAR) ) == 0 ) {
         localCharset[0] = __T('\0');
         charsetLen = 0;
     } else {
@@ -971,7 +971,7 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
             // Toby Korn tkorn@snl.com 8/4/1999
             // If priority is specified on the command line, add it to the header
             // The latter two options are X.400, mainly for Lotus Notes (blah)
-            if ( CommonData.priority [0] == __T('0')) {
+            if ( CommonData.priority.Get()[0] == __T('0')) {
                 bldHdrs.header->Add( __T("X-MSMail-Priority: Low\r\n") \
                                      __T("X-Priority: 5\r\n") \
                                      __T("Priority: normal\r\n") \
@@ -980,7 +980,7 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                 bldHdrs.header->Add( blatVersion );
                 bldHdrs.header->Add( __T("\r\n") );
             }
-            else if (CommonData.priority [0] == __T('1')) {
+            else if (CommonData.priority.Get()[0] == __T('1')) {
                 bldHdrs.header->Add( __T("X-MSMail-Priority: High\r\n") \
                                      __T("X-Priority: 1\r\n") \
                                      __T("Priority: urgent\r\n") \
@@ -991,13 +991,13 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
             }
             // If sensitivity is specified on the command line, add it to the header
             // These are X.400
-            if ( CommonData.sensitivity [0] == __T('0')) {
+            if ( CommonData.sensitivity.Get()[0] == __T('0')) {
                 bldHdrs.header->Add( __T("Sensitivity: Personal\r\n") );
             }
-            else if (CommonData.sensitivity [0] == __T('1')) {
+            else if (CommonData.sensitivity.Get()[0] == __T('1')) {
                 bldHdrs.header->Add( __T("Sensitivity: Private\r\n") );
             }
-            else if (CommonData.sensitivity [0] == __T('2')) {
+            else if (CommonData.sensitivity.Get()[0] == __T('2')) {
                 bldHdrs.header->Add( __T("Sensitivity: Company-Confidential\r\n") );
             }
 #if INCLUDE_NNTP
@@ -1233,10 +1233,10 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                 _tcscpy( foundType, __T("text/") );
                 _tcscat( foundType, CommonData.textmode.Get() );
 #endif
-                if (_memicmp(CommonData.charset, __T("UTF-"),4*sizeof(_TCHAR)) == 0) {
+                if (_memicmp(CommonData.charset.Get(), __T("UTF-"),4*sizeof(_TCHAR)) == 0) {
 #if BLAT_LITE
 #else
-                    if ( (CommonData.charset[4] == __T('8')) && CommonData.eightBitMimeSupported )
+                    if ( (CommonData.charset.Get()[4] == __T('8')) && CommonData.eightBitMimeSupported )
                         contentType.Add( __T("Content-Transfer-Encoding: 8BIT\r\n") );
                     else
 #endif
@@ -1287,7 +1287,7 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                     contentType.Add( __T(" message body\r\n") );
   #if SMART_CONTENT_TYPE
                     if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode.Get(), __T("plain")) )
-                        getContentType( CommonData, NULL, foundType, foundType, getShortFileName( CommonData.bodyFilename ) );
+                        getContentType( CommonData, NULL, foundType, foundType, getShortFileName( CommonData.bodyFilename.Get() ) );
 
                     contentType.Add( __T("Content-Type: ") );
                     contentType.Add( foundType );
@@ -1363,7 +1363,7 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                     contentType.Add( __T(" message body\r\n") );
   #if SMART_CONTENT_TYPE
                     if ( !CommonData.ConsoleDone && !_tcscmp( CommonData.textmode.Get(), __T("plain")) )
-                        getContentType( CommonData, NULL, foundType, foundType, getShortFileName( CommonData.bodyFilename ) );
+                        getContentType( CommonData, NULL, foundType, foundType, getShortFileName( CommonData.bodyFilename.Get() ) );
 
                     contentType.Add( __T("Content-Type: ") );
                     contentType.Add( foundType );
