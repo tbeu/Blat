@@ -5,6 +5,16 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.16
+[+] Added a feature to allow users to specify an attachment's content
+    description.  Someone in Europe requested special Content-Description:
+    values for their project, so now users may give a content description
+    with the -attach options by including the description between <> characters
+    after the attachment filename.  For example: -attacht "*.txt<NASCAR>"
+    Filenames may not have < or > characters, which is why the program looks
+    for these two characters to identify content descriptions.  I must stress
+    this is only for attachments.
+-------------------------------------------------------------------------------
 3.2.15
 [-] Missed some edits that use the Buf class where earlier versions used _TCHAR
     array.

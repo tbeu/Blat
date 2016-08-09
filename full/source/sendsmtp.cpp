@@ -50,7 +50,7 @@ extern void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs /* Buf & 
 extern int  add_one_attachment( COMMON_DATA & CommonData, Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
                                 DWORD startOffset, DWORD & length,
                                 int part, int totalparts, int attachNbr, int * prevAttachType );
-extern void getAttachmentInfo( COMMON_DATA & CommonData, int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType );
+extern void getAttachmentInfo( COMMON_DATA & CommonData, int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType, LPTSTR & attachDescription );
 extern void getMaxMsgSize( COMMON_DATA & CommonData, int buildSMTP, DWORD & length );
 #endif
 extern int  add_message_body( COMMON_DATA & CommonData, Buf & messageBuffer, size_t msgBodySize, Buf & multipartHdrs, int buildSMTP,
@@ -1619,6 +1619,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
     int     serverOpen;
     BLDHDRS bldHdrs;
     int     userAuthenticated;
+    LPTSTR  attachDescription;
 
     retcode=0;
     if ( !CommonData.SMTPHost.Get()[0] || !CommonData.Recipients.Length() )
@@ -1776,7 +1777,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
         prevAttachType = -1;
         partsCount = 0;
         for ( attachNbr = 0; attachNbr < nbrOfAttachments; attachNbr++ ) {
-            getAttachmentInfo( CommonData, attachNbr, attachName, attachSize, attachType );
+            getAttachmentInfo( CommonData, attachNbr, attachName, attachSize, attachType, attachDescription );
             partsCount = (int)(attachSize / msgSize);
             if ( attachSize % msgSize )
                 partsCount++;
@@ -1836,7 +1837,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
                     break;
             }
 
-            getAttachmentInfo( CommonData, attachNbr, attachName, attachSize, attachType );
+            getAttachmentInfo( CommonData, attachNbr, attachName, attachSize, attachType, attachDescription );
             partsCount = (int)(attachSize / msgSize);
             if ( attachSize % msgSize )
                 partsCount++;

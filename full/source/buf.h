@@ -119,7 +119,7 @@ public:
         if (!bufsize) {
             buffer = new _TCHAR[1];
             bufsize = 1;
-    }
+        }
         buffer[0] = __T('\0');
     }
     void Free() {

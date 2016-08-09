@@ -12,6 +12,7 @@ typedef struct NODES {
     LPTSTR  attachmentName;
     int     fileType;
     DWORD   fileSize;
+    LPTSTR  description;
 } _NODES;
 
 typedef struct _COMMON_DATA

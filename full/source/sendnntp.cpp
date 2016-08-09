@@ -35,7 +35,7 @@ extern int  add_one_attachment( COMMON_DATA & CommonData,
                                 Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
                                 DWORD startOffset, DWORD & length,
                                 int part, int totalparts, int attachNbr, int * prevAttachType );
-extern void getAttachmentInfo( COMMON_DATA & CommonData, int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType );
+extern void getAttachmentInfo( COMMON_DATA & CommonData, int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType, LPTSTR & attachDescription );
 extern void getMaxMsgSize( COMMON_DATA & CommonData, int buildSMTP, DWORD & length );
   #endif
 extern int  add_message_body( COMMON_DATA & CommonData,
@@ -199,6 +199,7 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
     _TCHAR  savedChunkingSupport;
     BLDHDRS bldHdrs;
     Buf     tmpBuf;
+    LPTSTR  attachDescription;
 
 
     if ( !CommonData.NNTPHost.Get()[0] || !CommonData.groups.Length() )
@@ -323,7 +324,7 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
             if ( retcode )
                 break;
 
-            getAttachmentInfo( CommonData, attachNbr, attachName, attachSize, attachType );
+            getAttachmentInfo( CommonData, attachNbr, attachName, attachSize, attachType, attachDescription );
             partsCount = (int)(attachSize / msgSize);
             if ( attachSize % msgSize )
                 partsCount++;
