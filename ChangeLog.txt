@@ -5,6 +5,10 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.17
+[-] Fixed -profile option that could cause the program to crash when using an
+    improperly initialized variable.
+-------------------------------------------------------------------------------
 3.2.16
 [+] Added a feature to allow users to specify an attachment's content
     description.  Someone in Europe requested special Content-Description:

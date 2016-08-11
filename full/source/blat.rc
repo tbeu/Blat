@@ -30,8 +30,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 #ifdef _WIN64
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION    3,2,16,0
- PRODUCTVERSION 3,2,16,0
+ FILEVERSION    3,2,17,0
+ PRODUCTVERSION 3,2,17,0
  FILEFLAGSMASK  0x3fL
 #ifdef _DEBUG
  FILEFLAGS      0x01L
@@ -49,14 +49,14 @@ BEGIN
             VALUE __T("Comments"),         __T("Authors and contributors include P.Mendes, M.Neal, G.Vollant, T.Charron, T.Musson, H.Pesonen, A.Donchey, C.Hyde")
             VALUE __T("CompanyName"),      __T("http://www.blat.net/")
             VALUE __T("FileDescription"),  __T("A Win64 (AMD64) command line eMail tool")
-            VALUE __T("FileVersion"),      __T("3.2.16")
+            VALUE __T("FileVersion"),      __T("3.2.17")
             VALUE __T("InternalName"),     __T("blat")
             VALUE __T("LegalCopyright"),   __T("No copyright at all")
             VALUE __T("LegalTrademarks"),  __T("")
             VALUE __T("OriginalFilename"), __T("blat.exe")
             VALUE __T("PrivateBuild"),     __T("")
             VALUE __T("ProductName"),      __T("Blat")
-            VALUE __T("ProductVersion"),   __T("3.2.16")
+            VALUE __T("ProductVersion"),   __T("3.2.17")
             VALUE __T("SpecialBuild"),     __T("")
         END
     END
@@ -67,8 +67,8 @@ BEGIN
 END
 #else
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION    3,2,16,0
- PRODUCTVERSION 3,2,16,0
+ FILEVERSION    3,2,17,0
+ PRODUCTVERSION 3,2,17,0
  FILEFLAGSMASK  0x3fL
 #ifdef _DEBUG
  FILEFLAGS      0x01L
@@ -86,14 +86,14 @@ BEGIN
             VALUE __T("Comments"),         __T("Authors and contributors include P.Mendes, M.Neal, G.Vollant, T.Charron, T.Musson, H.Pesonen, A.Donchey, C.Hyde")
             VALUE __T("CompanyName"),      __T("http://www.blat.net/")
             VALUE __T("FileDescription"),  __T("A Win32 command line eMail tool")
-            VALUE __T("FileVersion"),      __T("3.2.16")
+            VALUE __T("FileVersion"),      __T("3.2.17")
             VALUE __T("InternalName"),     __T("blat")
             VALUE __T("LegalCopyright"),   __T("No copyright at all")
             VALUE __T("LegalTrademarks"),  __T("")
             VALUE __T("OriginalFilename"), __T("blat.exe")
             VALUE __T("PrivateBuild"),     __T("")
             VALUE __T("ProductName"),      __T("Blat")
-            VALUE __T("ProductVersion"),   __T("3.2.16")
+            VALUE __T("ProductVersion"),   __T("3.2.17")
             VALUE __T("SpecialBuild"),     __T("")
         END
     END

@@ -578,8 +578,8 @@ static int DeleteRegTree( COMMON_DATA & CommonData, HKEY rootKeyLevel, Buf & pst
     dwIndex = 0;
     for ( ; lRetCode == 0; ) {
         dwBytesRead = TRY_SIZE+1;
-        CommonData.Profile.Clear();;
-        CommonData.Profile.Alloc(dwBytesRead);
+        CommonData.Profile.Clear();
+        CommonData.Profile.Alloc(dwBytesRead * 4);
         lRetCode = RegEnumKeyEx(  hKey1,                                // handle of key to enumerate
                                   dwIndex++,                            // index of subkey to enumerate
                                   CommonData.Profile.Get(),             // address of buffer for subkey name
@@ -1103,6 +1103,7 @@ static void DumpProfiles( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR ps
     } else {
         CommonData.quiet = FALSE;
         CommonData.Profile.Clear();
+        CommonData.Profile.Alloc(SERVER_SIZE * 4);
 
         if ( !_tcscmp(pstrProfile, __T("<default>")) || !_tcscmp(pstrProfile, __T("<all>")) ) {
             DisplayThisProfile( CommonData, rootKeyLevel, __T("") );
@@ -1121,6 +1122,7 @@ static void DumpProfiles( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR ps
                                       &lftLastWriteTime                 // address for time key last written to);
                                    );
             if ( lRetCode == 0 ) {
+                CommonData.Profile.SetLength();
                 if ( !_tcscmp(pstrProfile, CommonData.Profile.Get()) ||
                      !_tcscmp(pstrProfile, __T("<all>")) ) {
                     DisplayThisProfile( CommonData, rootKeyLevel, CommonData.Profile.Get() );
