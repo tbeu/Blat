@@ -117,8 +117,8 @@ public:
     void Clear() {
         buflen = 0;
         if (!bufsize) {
-            buffer = new _TCHAR[1];
-            bufsize = 1;
+            buffer = new _TCHAR[Buf_Increment];
+            bufsize = Buf_Increment;
         }
         buffer[0] = __T('\0');
     }

@@ -10,9 +10,11 @@
 #include <string.h>
 
 #include "blat.h"
-#include "common_data.h"
-#include "buf.h"
 #include "winfile.h"
+#include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
+#include "blatcgi.hpp"
 
 /***************************************************************************/
 // begin of CGI stuff

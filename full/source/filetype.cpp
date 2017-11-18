@@ -11,9 +11,10 @@
 
 #include "blat.h"
 #include "common_data.h"
-
-
-extern void fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString, int headerLen, int linewrap );
+#include "blatext.hpp"
+#include "macros.h"
+#include "filetype.hpp"
+#include "bldhdrs.hpp"
 
 static struct {
     LPTSTR extension;
@@ -53,6 +54,7 @@ void getContentType (COMMON_DATA & CommonData, Buf & sDestBuffer, LPTSTR foundTy
     // the content type line appropriately.  This is returned in sDestBuffer.
     // sDestBuffer must have it's own memory (I don't alloc any here).
 
+    FUNCTION_ENTRY();
 #define CONTENT_TYPE_LENGTH 80
     _TCHAR        sType [CONTENT_TYPE_LENGTH];
     _TCHAR        sExt [_MAX_PATH];
@@ -108,4 +110,6 @@ void getContentType (COMMON_DATA & CommonData, Buf & sDestBuffer, LPTSTR foundTy
 
     if ( foundType )
         _tcscpy( foundType, tmpStr );
+
+    FUNCTION_EXIT();
 }

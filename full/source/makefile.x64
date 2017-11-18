@@ -261,199 +261,199 @@ $(dllDbgDir)\blat.dll : $(dllDbgDir) $(dll_DEF_FILE) $(dllDbgDir)\blatproj.lib \
 #
 # EXE Release files
 #
-$(exeRelDir)\attach.obj       : .\attach.cpp      $(exeRelDir) .\blat.h .\buf.h .\winfile.h
+$(exeRelDir)\attach.obj       : attach.cpp      $(exeRelDir) declarations.h buf.h blat.h common_data.h attach.hpp base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h unicode.hpp uuencode.hpp win-mac.h winfile.h yenc.hpp
 
-$(exeRelDir)\base64.obj       : .\base64.cpp      $(exeRelDir) .\blat.h .\buf.h
+$(exeRelDir)\base64.obj       : base64.cpp      $(exeRelDir) declarations.h buf.h blat.h base64.hpp macros.h
 
-$(exeRelDir)\blat.obj         : .\blat.cpp        $(exeRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(exeRelDir)\blat.obj         : blat.cpp        $(exeRelDir) declarations.h buf.h blat.h common_data.h attach.hpp blatcgi.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h makeargv.hpp options.hpp reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(exeRelDir)\blat.res         : .\blat.rc         $(exeRelDir)
-        $(RSC) $(exeRel_RSC_PROJ) .\blat.rc
+$(exeRelDir)\blat.res         : blat.rc         $(exeRelDir)
+        $(RSC) $(exeRel_RSC_PROJ) blat.rc
 
-$(exeRelDir)\blatcgi.obj      : .\blatcgi.cpp     $(exeRelDir) .\blat.h .\buf.h
+$(exeRelDir)\blatcgi.obj      : blatcgi.cpp     $(exeRelDir) declarations.h buf.h blat.h common_data.h blatcgi.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h win-mac.h winfile.h
 
-$(exeRelDir)\bldhdrs.obj      : .\bldhdrs.cpp     $(exeRelDir) .\blat.h .\buf.h .\gensock.h
+$(exeRelDir)\bldhdrs.obj      : bldhdrs.cpp     $(exeRelDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp sendsmtp.hpp unicode.hpp win-mac.h
 
-$(exeRelDir)\filetype.obj     : .\filetype.cpp    $(exeRelDir) .\blat.h .\buf.h
+$(exeRelDir)\filetype.obj     : filetype.cpp    $(exeRelDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h win-mac.h
 
-$(exeRelDir)\gensock.obj      : .\gensock.cpp     $(exeRelDir) .\blat.h .\buf.h .\gensock.h .\punycode.h
+$(exeRelDir)\gensock.obj      : gensock.cpp     $(exeRelDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h punycode.h server.hpp win-mac.h
 
-$(exeRelDir)\gssfuncs.obj     : .\gssfuncs.cpp    $(exeRelDir) .\blat.h .\buf.h .\gensock.h .\gssapi_generic.h .\gssapi\gssapi.h .\win-mac.h
+$(exeRelDir)\gssfuncs.obj     : gssfuncs.cpp    $(exeRelDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h win-mac.h
 
-$(exeRelDir)\makeargv.obj     : .\makeargv.cpp    $(exeRelDir)
+$(exeRelDir)\makeargv.obj     : makeargv.cpp    $(exeRelDir) declarations.h macros.h makeargv.hpp
 
-$(exeRelDir)\md5.obj          : .\md5.c           $(exeRelDir) .\md5.h
+$(exeRelDir)\md5.obj          : md5.c           $(exeRelDir) declarations.h md5.h
 
-$(exeRelDir)\mime.obj         : .\mime.cpp        $(exeRelDir) .\blat.h .\buf.h
+$(exeRelDir)\mime.obj         : mime.cpp        $(exeRelDir) declarations.h buf.h blat.h common_data.h connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp win-mac.h
 
-$(exeRelDir)\msgbody.obj      : .\msgbody.cpp     $(exeRelDir) .\blat.h .\buf.h .\winfile.h
+$(exeRelDir)\msgbody.obj      : msgbody.cpp     $(exeRelDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp msgbody.hpp sendsmtp.hpp unicode.hpp uuencode.hpp win-mac.h winfile.h
 
-$(exeRelDir)\options.obj      : .\options.cpp     $(exeRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(exeRelDir)\options.obj      : options.cpp     $(exeRelDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h options.hpp parsing.hpp reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(exeRelDir)\parsing.obj      : .\parsing.cpp     $(exeRelDir) .\blat.h .\buf.h
+$(exeRelDir)\parsing.obj      : parsing.cpp     $(exeRelDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h parsing.hpp win-mac.h
 
-$(exeRelDir)\punycode.obj     : .\punycode.cpp    $(exeRelDir) .\blat.h .\buf.h .\punycode.h
+$(exeRelDir)\punycode.obj     : punycode.cpp    $(exeRelDir) declarations.h buf.h blat.h common_data.h macros.h punycode.h
 
-$(exeRelDir)\reg.obj          : .\reg.cpp         $(exeRelDir) .\blat.h .\buf.h
+$(exeRelDir)\reg.obj          : reg.cpp         $(exeRelDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(exeRelDir)\sendnntp.obj     : .\sendnntp.cpp    $(exeRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(exeRelDir)\sendnntp.obj     : sendnntp.cpp    $(exeRelDir) declarations.h buf.h blat.h common_data.h attach.hpp blatext.hpp bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h msgbody.hpp sendnntp.hpp server.hpp unicode.hpp win-mac.h winfile.h
 
-$(exeRelDir)\sendsmtp.obj     : .\sendsmtp.cpp    $(exeRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h .\md5.h
+$(exeRelDir)\sendsmtp.obj     : sendsmtp.cpp    $(exeRelDir) declarations.h buf.h blat.h common_data.h attach.hpp base64.hpp blatext.hpp bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h md5.h msgbody.hpp parsing.hpp sendsmtp.hpp server.hpp unicode.hpp win-mac.h winfile.h
 
-$(exeRelDir)\server.obj       : .\server.cpp      $(exeRelDir) .\blat.h .\buf.h
+$(exeRelDir)\server.obj       : server.cpp      $(exeRelDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h server.hpp win-mac.h
 
-$(exeRelDir)\unicode.obj      : .\unicode.cpp     $(exeRelDir) .\blat.h .\buf.h
+$(exeRelDir)\unicode.obj      : unicode.cpp     $(exeRelDir) declarations.h buf.h blat.h common_data.h base64.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h unicode.hpp win-mac.h
 
-$(exeRelDir)\uuencode.obj     : .\uuencode.cpp    $(exeRelDir) .\blat.h .\buf.h
+$(exeRelDir)\uuencode.obj     : uuencode.cpp    $(exeRelDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h uuencode.hpp win-mac.h
 
-$(exeRelDir)\yenc.obj         : .\yenc.cpp        $(exeRelDir) .\blat.h .\buf.h
+$(exeRelDir)\yenc.obj         : yenc.cpp        $(exeRelDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h win-mac.h yenc.hpp
 
 #
 # EXE Debug files
 #
-$(exeDbgDir)\attach.obj       : .\attach.cpp      $(exeDbgDir) .\blat.h .\buf.h .\winfile.h
+$(exeDbgDir)\attach.obj       : attach.cpp      $(exeDbgDir) declarations.h buf.h blat.h common_data.h attach.hpp base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h unicode.hpp uuencode.hpp win-mac.h winfile.h yenc.hpp
 
-$(exeDbgDir)\base64.obj       : .\base64.cpp      $(exeDbgDir) .\blat.h .\buf.h
+$(exeDbgDir)\base64.obj       : base64.cpp      $(exeDbgDir) declarations.h buf.h blat.h base64.hpp macros.h
 
-$(exeDbgDir)\blat.obj         : .\blat.cpp        $(exeDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(exeDbgDir)\blat.obj         : blat.cpp        $(exeDbgDir) declarations.h buf.h blat.h common_data.h attach.hpp blatcgi.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h makeargv.hpp options.hpp reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(exeDbgDir)\blat.res         : .\blat.rc         $(exeDbgDir)
-        $(RSC) $(exeDbg_RSC_PROJ) .\blat.rc
+$(exeDbgDir)\blat.res         : blat.rc         $(exeDbgDir)
+        $(RSC) $(exeDbg_RSC_PROJ) blat.rc
 
-$(exeDbgDir)\blatcgi.obj      : .\blatcgi.cpp     $(exeDbgDir) .\blat.h .\buf.h
+$(exeDbgDir)\blatcgi.obj      : blatcgi.cpp     $(exeDbgDir) declarations.h buf.h blat.h common_data.h blatcgi.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h win-mac.h winfile.h
 
-$(exeDbgDir)\bldhdrs.obj      : .\bldhdrs.cpp     $(exeDbgDir) .\blat.h .\buf.h .\gensock.h
+$(exeDbgDir)\bldhdrs.obj      : bldhdrs.cpp     $(exeDbgDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp sendsmtp.hpp unicode.hpp win-mac.h
 
-$(exeDbgDir)\filetype.obj     : .\filetype.cpp    $(exeDbgDir) .\blat.h .\buf.h
+$(exeDbgDir)\filetype.obj     : filetype.cpp    $(exeDbgDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h win-mac.h
 
-$(exeDbgDir)\gensock.obj      : .\gensock.cpp     $(exeDbgDir) .\blat.h .\buf.h .\gensock.h .\punycode.h
+$(exeDbgDir)\gensock.obj      : gensock.cpp     $(exeDbgDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h punycode.h server.hpp win-mac.h
 
-$(exeDbgDir)\gssfuncs.obj     : .\gssfuncs.cpp    $(exeDbgDir) .\blat.h .\buf.h .\gensock.h .\gssapi_generic.h .\gssapi\gssapi.h .\win-mac.h
+$(exeDbgDir)\gssfuncs.obj     : gssfuncs.cpp    $(exeDbgDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h win-mac.h
 
-$(exeDbgDir)\makeargv.obj     : .\makeargv.cpp    $(exeDbgDir)
+$(exeDbgDir)\makeargv.obj     : makeargv.cpp    $(exeDbgDir) declarations.h macros.h makeargv.hpp
 
-$(exeDbgDir)\md5.obj          : .\md5.c           $(exeDbgDir) .\md5.h
+$(exeDbgDir)\md5.obj          : md5.c           $(exeDbgDir) declarations.h md5.h
 
-$(exeDbgDir)\mime.obj         : .\mime.cpp        $(exeDbgDir) .\blat.h .\buf.h
+$(exeDbgDir)\mime.obj         : mime.cpp        $(exeDbgDir) declarations.h buf.h blat.h common_data.h connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp win-mac.h
 
-$(exeDbgDir)\msgbody.obj      : .\msgbody.cpp     $(exeDbgDir) .\blat.h .\buf.h .\winfile.h
+$(exeDbgDir)\msgbody.obj      : msgbody.cpp     $(exeDbgDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp msgbody.hpp sendsmtp.hpp unicode.hpp uuencode.hpp win-mac.h winfile.h
 
-$(exeDbgDir)\options.obj      : .\options.cpp     $(exeDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(exeDbgDir)\options.obj      : options.cpp     $(exeDbgDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h options.hpp parsing.hpp reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(exeDbgDir)\parsing.obj      : .\parsing.cpp     $(exeDbgDir) .\blat.h .\buf.h
+$(exeDbgDir)\parsing.obj      : parsing.cpp     $(exeDbgDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h parsing.hpp win-mac.h
 
-$(exeDbgDir)\punycode.obj     : .\punycode.cpp    $(exeDbgDir) .\blat.h .\buf.h .\punycode.h
+$(exeDbgDir)\punycode.obj     : punycode.cpp    $(exeDbgDir) declarations.h buf.h blat.h common_data.h macros.h punycode.h
 
-$(exeDbgDir)\reg.obj          : .\reg.cpp         $(exeDbgDir) .\blat.h .\buf.h
+$(exeDbgDir)\reg.obj          : reg.cpp         $(exeDbgDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(exeDbgDir)\sendnntp.obj     : .\sendnntp.cpp    $(exeDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(exeDbgDir)\sendnntp.obj     : sendnntp.cpp    $(exeDbgDir) declarations.h buf.h blat.h common_data.h attach.hpp blatext.hpp bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h msgbody.hpp sendnntp.hpp server.hpp unicode.hpp win-mac.h winfile.h
 
-$(exeDbgDir)\sendsmtp.obj     : .\sendsmtp.cpp    $(exeDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h .\md5.h
+$(exeDbgDir)\sendsmtp.obj     : sendsmtp.cpp    $(exeDbgDir) declarations.h buf.h blat.h common_data.h attach.hpp base64.hpp blatext.hpp bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h md5.h msgbody.hpp parsing.hpp sendsmtp.hpp server.hpp unicode.hpp win-mac.h winfile.h
 
-$(exeDbgDir)\server.obj       : .\server.cpp      $(exeDbgDir) .\blat.h .\buf.h
+$(exeDbgDir)\server.obj       : server.cpp      $(exeDbgDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h server.hpp win-mac.h
 
-$(exeDbgDir)\unicode.obj      : .\unicode.cpp     $(exeDbgDir) .\blat.h .\buf.h
+$(exeDbgDir)\unicode.obj      : unicode.cpp     $(exeDbgDir) declarations.h buf.h blat.h common_data.h base64.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h unicode.hpp win-mac.h
 
-$(exeDbgDir)\uuencode.obj     : .\uuencode.cpp    $(exeDbgDir) .\blat.h .\buf.h
+$(exeDbgDir)\uuencode.obj     : uuencode.cpp    $(exeDbgDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h uuencode.hpp win-mac.h
 
-$(exeDbgDir)\yenc.obj         : .\yenc.cpp        $(exeDbgDir) .\blat.h .\buf.h
+$(exeDbgDir)\yenc.obj         : yenc.cpp        $(exeDbgDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h win-mac.h yenc.hpp
 
 #
 # DLL Release files
 #
-$(dllRelDir)\attach.obj       : .\attach.cpp      $(dllRelDir) .\blat.h .\buf.h .\winfile.h
+$(dllRelDir)\attach.obj       : attach.cpp      $(dllRelDir) declarations.h buf.h blat.h common_data.h attach.hpp base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h unicode.hpp uuencode.hpp win-mac.h winfile.h yenc.hpp
 
-$(dllRelDir)\base64.obj       : .\base64.cpp      $(dllRelDir) .\blat.h .\buf.h
+$(dllRelDir)\base64.obj       : base64.cpp      $(dllRelDir) declarations.h buf.h blat.h base64.hpp macros.h
 
-$(dllRelDir)\blat.obj         : .\blat.cpp        $(dllRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(dllRelDir)\blat.obj         : blat.cpp        $(dllRelDir) declarations.h buf.h blat.h common_data.h attach.hpp blatcgi.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h makeargv.hpp options.hpp reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(dllRelDir)\blat.res         : .\blatdll\blat.rc $(dllRelDir)
-        $(RSC) $(dllRel_RSC_PROJ) .\blatdll\blat.rc
+$(dllRelDir)\blat.res         : blatdll\blat.rc $(dllRelDir)
+        $(RSC) $(dllRel_RSC_PROJ) blatdll\blat.rc
 
-$(dllRelDir)\blatcgi.obj      : .\blatcgi.cpp     $(dllRelDir) .\blat.h .\buf.h
+$(dllRelDir)\blatcgi.obj      : blatcgi.cpp     $(dllRelDir) declarations.h buf.h blat.h common_data.h blatcgi.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h win-mac.h winfile.h
 
-$(dllRelDir)\bldhdrs.obj      : .\bldhdrs.cpp     $(dllRelDir) .\blat.h .\buf.h .\gensock.h
+$(dllRelDir)\bldhdrs.obj      : bldhdrs.cpp     $(dllRelDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp sendsmtp.hpp unicode.hpp win-mac.h
 
-$(dllRelDir)\filetype.obj     : .\filetype.cpp    $(dllRelDir) .\blat.h .\buf.h
+$(dllRelDir)\filetype.obj     : filetype.cpp    $(dllRelDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h win-mac.h
 
-$(dllRelDir)\gensock.obj      : .\gensock.cpp     $(dllRelDir) .\blat.h .\buf.h .\gensock.h .\punycode.h
+$(dllRelDir)\gensock.obj      : gensock.cpp     $(dllRelDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h punycode.h server.hpp win-mac.h
 
-$(dllRelDir)\gssfuncs.obj     : .\gssfuncs.cpp    $(dllRelDir) .\blat.h .\buf.h .\gensock.h .\gssapi_generic.h .\gssapi\gssapi.h .\win-mac.h
+$(dllRelDir)\gssfuncs.obj     : gssfuncs.cpp    $(dllRelDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h win-mac.h
 
-$(dllRelDir)\makeargv.obj     : .\makeargv.cpp    $(dllRelDir)
+$(dllRelDir)\makeargv.obj     : makeargv.cpp    $(dllRelDir) declarations.h macros.h makeargv.hpp
 
-$(dllRelDir)\md5.obj          : .\md5.c           $(dllDbgDir) .\md5.h
+$(dllRelDir)\md5.obj          : md5.c           $(dllDbgDir) declarations.h md5.h
 
-$(dllRelDir)\mime.obj         : .\mime.cpp        $(dllRelDir) .\blat.h .\buf.h
+$(dllRelDir)\mime.obj         : mime.cpp        $(dllRelDir) declarations.h buf.h blat.h common_data.h connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp win-mac.h
 
-$(dllRelDir)\msgbody.obj      : .\msgbody.cpp     $(dllRelDir) .\blat.h .\buf.h .\winfile.h
+$(dllRelDir)\msgbody.obj      : msgbody.cpp     $(dllRelDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp msgbody.hpp sendsmtp.hpp unicode.hpp uuencode.hpp win-mac.h winfile.h
 
-$(dllRelDir)\options.obj      : .\options.cpp     $(dllRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(dllRelDir)\options.obj      : options.cpp     $(dllRelDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h options.hpp parsing.hpp reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(dllRelDir)\parsing.obj      : .\parsing.cpp     $(dllRelDir) .\blat.h .\buf.h
+$(dllRelDir)\parsing.obj      : parsing.cpp     $(dllRelDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h parsing.hpp win-mac.h
 
-$(dllRelDir)\punycode.obj     : .\punycode.cpp    $(dllRelDir) .\blat.h .\buf.h .\punycode.h
+$(dllRelDir)\punycode.obj     : punycode.cpp    $(dllRelDir) declarations.h buf.h blat.h common_data.h macros.h punycode.h
 
-$(dllRelDir)\reg.obj          : .\reg.cpp         $(dllRelDir) .\blat.h .\buf.h
+$(dllRelDir)\reg.obj          : reg.cpp         $(dllRelDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(dllRelDir)\sendnntp.obj     : .\sendnntp.cpp    $(dllRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(dllRelDir)\sendnntp.obj     : sendnntp.cpp    $(dllRelDir) declarations.h buf.h blat.h common_data.h attach.hpp blatext.hpp bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h msgbody.hpp sendnntp.hpp server.hpp unicode.hpp win-mac.h winfile.h
 
-$(dllRelDir)\sendsmtp.obj     : .\sendsmtp.cpp    $(dllRelDir) .\blat.h .\buf.h .\gensock.h .\winfile.h .\md5.h
+$(dllRelDir)\sendsmtp.obj     : sendsmtp.cpp    $(dllRelDir) declarations.h buf.h blat.h common_data.h attach.hpp base64.hpp blatext.hpp bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h md5.h msgbody.hpp parsing.hpp sendsmtp.hpp server.hpp unicode.hpp win-mac.h winfile.h
 
-$(dllRelDir)\server.obj       : .\server.cpp      $(dllRelDir) .\blat.h .\buf.h
+$(dllRelDir)\server.obj       : server.cpp      $(dllRelDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h server.hpp win-mac.h
 
-$(dllRelDir)\unicode.obj      : .\unicode.cpp     $(dllRelDir) .\blat.h .\buf.h
+$(dllRelDir)\unicode.obj      : unicode.cpp     $(dllRelDir) declarations.h buf.h blat.h common_data.h base64.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h unicode.hpp win-mac.h
 
-$(dllRelDir)\uuencode.obj     : .\uuencode.cpp    $(dllRelDir) .\blat.h .\buf.h
+$(dllRelDir)\uuencode.obj     : uuencode.cpp    $(dllRelDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h uuencode.hpp win-mac.h
 
-$(dllRelDir)\yenc.obj         : .\yenc.cpp        $(dllRelDir) .\blat.h .\buf.h
+$(dllRelDir)\yenc.obj         : yenc.cpp        $(dllRelDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h win-mac.h yenc.hpp
 
 #
 # DLL Debug files
 #
-$(dllDbgDir)\attach.obj       : .\attach.cpp      $(dllDbgDir) .\blat.h .\buf.h .\winfile.h
+$(dllDbgDir)\attach.obj       : attach.cpp      $(dllDbgDir) declarations.h buf.h blat.h common_data.h attach.hpp base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h unicode.hpp uuencode.hpp win-mac.h winfile.h yenc.hpp
 
-$(dllDbgDir)\base64.obj       : .\base64.cpp      $(dllDbgDir) .\blat.h .\buf.h
+$(dllDbgDir)\base64.obj       : base64.cpp      $(dllDbgDir) declarations.h buf.h blat.h base64.hpp macros.h
 
-$(dllDbgDir)\blat.obj         : .\blat.cpp        $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(dllDbgDir)\blat.obj         : blat.cpp        $(dllDbgDir) declarations.h buf.h blat.h common_data.h attach.hpp blatcgi.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h makeargv.hpp options.hpp reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(dllDbgDir)\blat.res         : .\blatdll\blat.rc $(dllDbgDir)
-        $(RSC) $(dllDbg_RSC_PROJ) .\blatdll\blat.rc
+$(dllDbgDir)\blat.res         : blatdll\blat.rc $(dllDbgDir)
+        $(RSC) $(dllDbg_RSC_PROJ) blatdll\blat.rc
 
-$(dllDbgDir)\blatcgi.obj      : .\blatcgi.cpp     $(dllDbgDir) .\blat.h .\buf.h
+$(dllDbgDir)\blatcgi.obj      : blatcgi.cpp     $(dllDbgDir) declarations.h buf.h blat.h common_data.h blatcgi.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h win-mac.h winfile.h
 
-$(dllDbgDir)\bldhdrs.obj      : .\bldhdrs.cpp     $(dllDbgDir) .\blat.h .\buf.h .\gensock.h
+$(dllDbgDir)\bldhdrs.obj      : bldhdrs.cpp     $(dllDbgDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp sendsmtp.hpp unicode.hpp win-mac.h
 
-$(dllDbgDir)\filetype.obj     : .\filetype.cpp    $(dllDbgDir) .\blat.h .\buf.h
+$(dllDbgDir)\filetype.obj     : filetype.cpp    $(dllDbgDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h win-mac.h
 
-$(dllDbgDir)\gensock.obj      : .\gensock.cpp     $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\punycode.h
+$(dllDbgDir)\gensock.obj      : gensock.cpp     $(dllDbgDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h punycode.h server.hpp win-mac.h
 
-$(dllDbgDir)\gssfuncs.obj     : .\gssfuncs.cpp    $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\gssapi_generic.h .\gssapi\gssapi.h .\win-mac.h
+$(dllDbgDir)\gssfuncs.obj     : gssfuncs.cpp    $(dllDbgDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h win-mac.h
 
-$(dllDbgDir)\makeargv.obj     : .\makeargv.cpp    $(dllDbgDir)
+$(dllDbgDir)\makeargv.obj     : makeargv.cpp    $(dllDbgDir) declarations.h macros.h makeargv.hpp
 
-$(dllDbgDir)\md5.obj          : .\md5.c           $(dllDbgDir) .\md5.h
+$(dllDbgDir)\md5.obj          : md5.c           $(dllDbgDir) declarations.h md5.h
 
-$(dllDbgDir)\mime.obj         : .\mime.cpp        $(dllDbgDir) .\blat.h .\buf.h
+$(dllDbgDir)\mime.obj         : mime.cpp        $(dllDbgDir) declarations.h buf.h blat.h common_data.h connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp win-mac.h
 
-$(dllDbgDir)\msgbody.obj      : .\msgbody.cpp     $(dllDbgDir) .\blat.h .\buf.h .\winfile.h
+$(dllDbgDir)\msgbody.obj      : msgbody.cpp     $(dllDbgDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp msgbody.hpp sendsmtp.hpp unicode.hpp uuencode.hpp win-mac.h winfile.h
 
-$(dllDbgDir)\options.obj      : .\options.cpp     $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(dllDbgDir)\options.obj      : options.cpp     $(dllDbgDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h options.hpp parsing.hpp reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(dllDbgDir)\parsing.obj      : .\parsing.cpp     $(dllDbgDir) .\blat.h .\buf.h
+$(dllDbgDir)\parsing.obj      : parsing.cpp     $(dllDbgDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h parsing.hpp win-mac.h
 
-$(dllDbgDir)\punycode.obj     : .\punycode.cpp    $(dllDbgDir) .\blat.h .\buf.h .\punycode.h
+$(dllDbgDir)\punycode.obj     : punycode.cpp    $(dllDbgDir) declarations.h buf.h blat.h common_data.h macros.h punycode.h
 
-$(dllDbgDir)\reg.obj          : .\reg.cpp         $(dllDbgDir) .\blat.h .\buf.h
+$(dllDbgDir)\reg.obj          : reg.cpp         $(dllDbgDir) declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
 
-$(dllDbgDir)\sendnntp.obj     : .\sendnntp.cpp    $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h
+$(dllDbgDir)\sendnntp.obj     : sendnntp.cpp    $(dllDbgDir) declarations.h buf.h blat.h common_data.h attach.hpp blatext.hpp bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h msgbody.hpp sendnntp.hpp server.hpp unicode.hpp win-mac.h winfile.h
 
-$(dllDbgDir)\sendsmtp.obj     : .\sendsmtp.cpp    $(dllDbgDir) .\blat.h .\buf.h .\gensock.h .\winfile.h .\md5.h
+$(dllDbgDir)\sendsmtp.obj     : sendsmtp.cpp    $(dllDbgDir) declarations.h buf.h blat.h common_data.h attach.hpp base64.hpp blatext.hpp bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h md5.h msgbody.hpp parsing.hpp sendsmtp.hpp server.hpp unicode.hpp win-mac.h winfile.h
 
-$(dllDbgDir)\server.obj       : .\server.cpp      $(dllDbgDir) .\blat.h .\buf.h
+$(dllDbgDir)\server.obj       : server.cpp      $(dllDbgDir) declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h server.hpp win-mac.h
 
-$(dllDbgDir)\unicode.obj      : .\unicode.cpp     $(dllDbgDir) .\blat.h .\buf.h
+$(dllDbgDir)\unicode.obj      : unicode.cpp     $(dllDbgDir) declarations.h buf.h blat.h common_data.h base64.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h unicode.hpp win-mac.h
 
-$(dllDbgDir)\uuencode.obj     : .\uuencode.cpp    $(dllDbgDir) .\blat.h .\buf.h
+$(dllDbgDir)\uuencode.obj     : uuencode.cpp    $(dllDbgDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h uuencode.hpp win-mac.h
 
-$(dllDbgDir)\yenc.obj         : .\yenc.cpp        $(dllDbgDir) .\blat.h .\buf.h
+$(dllDbgDir)\yenc.obj         : yenc.cpp        $(dllDbgDir) declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h win-mac.h yenc.hpp

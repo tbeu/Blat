@@ -12,11 +12,12 @@
 
 #include "blat.h"
 #include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
 
 /* generic socket DLL support */
 #include "gensock.h"
-
-extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
+#include "server.hpp"
 
 #ifdef BLATDLL_TC_WCX
 #ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
@@ -63,6 +64,7 @@ void gensock_error (COMMON_DATA & CommonData, LPTSTR function, int retval, LPTST
 
 int open_server_socket( COMMON_DATA & CommonData, LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR portName )
 {
+    FUNCTION_ENTRY();
     int    retval;
     LPTSTR ptr;
 
@@ -109,12 +111,14 @@ int open_server_socket( COMMON_DATA & CommonData, LPTSTR host, LPTSTR userPort, 
         }
     }
 
+    FUNCTION_EXIT();
     return(0);
 }
 
 
 int close_server_socket( COMMON_DATA & CommonData )
 {
+    FUNCTION_ENTRY();
     int retval;
 
     if ( CommonData.ServerSocket ) {
@@ -133,6 +137,7 @@ int close_server_socket( COMMON_DATA & CommonData )
         }
     }
 
+    FUNCTION_EXIT();
     return(0);
 }
 
@@ -161,6 +166,7 @@ int close_server_socket( COMMON_DATA & CommonData )
 
 int get_server_response( COMMON_DATA & CommonData, Buf * responseStr, int * validateResp  )
 {
+    FUNCTION_ENTRY();
     _TCHAR ch;
     _TCHAR in_data [MAXOUTLINE];
     Buf    received;
@@ -281,6 +287,7 @@ int get_server_response( COMMON_DATA & CommonData, Buf * responseStr, int * vali
         }
     }
     received.Free();
+    FUNCTION_EXIT();
     return(_tstoi(in_data));  // the RFCs say a multiline response is required to have the same value for each line.
 }
 
@@ -291,6 +298,7 @@ int get_server_response( COMMON_DATA & CommonData, Buf * responseStr, int * vali
 //   overloading get_server_response so it CAN output to LPTSTR instead of Buf*
 int get_server_response( COMMON_DATA & CommonData, LPTSTR responseStr )
 {
+    FUNCTION_ENTRY();
     int enhancedStatusCode;
     int ret;
     Buf buf;
@@ -300,6 +308,7 @@ int get_server_response( COMMON_DATA & CommonData, LPTSTR responseStr )
         _tcscpy(responseStr, buf.Get());
 
     buf.Free();
+    FUNCTION_EXIT();
     return ret;
 }
 #endif
@@ -308,6 +317,7 @@ int get_server_response( COMMON_DATA & CommonData, LPTSTR responseStr )
 
 int get_pop3_server_response( COMMON_DATA & CommonData, Buf * responseStr )
 {
+    FUNCTION_ENTRY();
     _TCHAR ch;
     _TCHAR in_data [MAXOUTLINE];
     Buf    received;
@@ -397,6 +407,7 @@ int get_pop3_server_response( COMMON_DATA & CommonData, Buf * responseStr )
         retval = 2;
 
     received.Free();
+    FUNCTION_EXIT();
     return retval;
 }
 #endif
@@ -405,6 +416,7 @@ int get_pop3_server_response( COMMON_DATA & CommonData, Buf * responseStr )
 
 int get_imap_untagged_server_response( COMMON_DATA & CommonData, Buf * responseStr  )
 {
+    FUNCTION_ENTRY();
     _TCHAR ch;
     _TCHAR in_data [MAXOUTLINE];
     Buf    received;
@@ -500,12 +512,14 @@ int get_imap_untagged_server_response( COMMON_DATA & CommonData, Buf * responseS
     }
 
     received.Free();
+    FUNCTION_EXIT();
     return (in_data[1] == __T(' '));
 }
 
 
 int get_imap_tagged_server_response( COMMON_DATA & CommonData, Buf * responseStr, LPTSTR tag  )
 {
+    FUNCTION_ENTRY();
     _TCHAR ch;
     _TCHAR in_data [MAXOUTLINE];
     Buf    received;
@@ -602,6 +616,7 @@ int get_imap_tagged_server_response( COMMON_DATA & CommonData, Buf * responseStr
     }
 
     received.Free();
+    FUNCTION_EXIT();
     return ( (memcmp( in_data, tag, _tcslen(tag)*sizeof(_TCHAR)) != 0) );
 }
 #endif
@@ -609,6 +624,7 @@ int get_imap_tagged_server_response( COMMON_DATA & CommonData, Buf * responseStr
 
 int put_message_line( COMMON_DATA & CommonData, socktag sock, LPTSTR line )
 {
+    FUNCTION_ENTRY();
     size_t nchars;
     int retval;
 
@@ -660,12 +676,14 @@ int put_message_line( COMMON_DATA & CommonData, socktag sock, LPTSTR line )
     else
         retval = -retval;
 
+    FUNCTION_EXIT();
     return(retval);
 }
 
 
 int finish_server_message( COMMON_DATA & CommonData )
 {
+    FUNCTION_ENTRY();
     int enhancedStatusCode;
     int ret;
 
@@ -689,12 +707,14 @@ int finish_server_message( COMMON_DATA & CommonData )
     else
         ret = -ret;
 
+    FUNCTION_EXIT();
     return(ret);
 }
 
 
 void server_error( COMMON_DATA & CommonData, LPTSTR message )
 {
+    FUNCTION_ENTRY();
     Buf      outString;
     _TCHAR * pChar;
 
@@ -717,11 +737,13 @@ void server_error( COMMON_DATA & CommonData, LPTSTR message )
             printMsg( CommonData, outString.Get() );
         outString.Free();
     }
+    FUNCTION_EXIT();
 }
 
 
 void server_warning( COMMON_DATA & CommonData, LPTSTR message)
 {
+    FUNCTION_ENTRY();
     Buf      outString;
     _TCHAR * pChar;
 
@@ -744,6 +766,7 @@ void server_warning( COMMON_DATA & CommonData, LPTSTR message)
             printMsg( CommonData, outString.Get() );
         outString.Free();
     }
+    FUNCTION_EXIT();
 }
 
 
@@ -753,6 +776,7 @@ int transform_and_send_edit_data( COMMON_DATA & CommonData, LPTSTR editptr, DWOR
 int transform_and_send_edit_data( COMMON_DATA & CommonData, LPTSTR editptr )
 #endif
 {
+    FUNCTION_ENTRY();
     LPTSTR index;
     LPTSTR header_end;
     LPTSTR msg_end;
@@ -861,7 +885,11 @@ int transform_and_send_edit_data( COMMON_DATA & CommonData, LPTSTR editptr )
         gensockSaveLastError(CommonData, retval);
     }
     /* now make sure it's all sent... */
-    return (retval ? retval : gensock_put_data_flush(CommonData, CommonData.ServerSocket));
+    if (retval == 0)
+        retval = gensock_put_data_flush(CommonData, CommonData.ServerSocket);
+
+    FUNCTION_EXIT();
+    return (retval);
 }
 
 
@@ -873,6 +901,7 @@ int send_edit_data (COMMON_DATA & CommonData, LPTSTR message, Buf * responseStr,
 int send_edit_data (COMMON_DATA & CommonData, LPTSTR message, Buf * responseStr )
 #endif
 {
+    FUNCTION_ENTRY();
     int retval;
 
 #ifdef BLATDLL_TC_WCX
@@ -880,16 +909,15 @@ int send_edit_data (COMMON_DATA & CommonData, LPTSTR message, Buf * responseStr 
 #else
     retval = transform_and_send_edit_data( CommonData, message );
 #endif
-    if ( retval )
-        return(retval);
-
-    if ( get_pop3_server_response( CommonData, responseStr ) ) {
-        server_error (CommonData, __T("Message not accepted by server\n"));
-        finish_server_message(CommonData);
-        return(-1);
+    if ( retval == 0 ) {
+        if ( get_pop3_server_response( CommonData, responseStr ) ) {
+            server_error (CommonData, __T("Message not accepted by server\n"));
+            finish_server_message(CommonData);
+            retval = -1;
+        }
     }
-
-    return(0);
+    FUNCTION_EXIT();
+    return(retval);
 }
 #endif
 
@@ -900,6 +928,7 @@ int send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, int expected_resp
 int send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, int expected_response, Buf * responseStr )
 #endif
 {
+    FUNCTION_ENTRY();
     int enhancedStatusCode;
     int retval;
     int serverResponse;
@@ -909,17 +938,16 @@ int send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, int expected_resp
 #else
     retval = transform_and_send_edit_data( CommonData, message );
 #endif
-    if ( retval )
-        return(retval);
-
-    serverResponse = get_server_response( CommonData, responseStr, &enhancedStatusCode );
-    if ( serverResponse != expected_response ) {
-        server_error (CommonData, __T("Message not accepted by server\n"));
-        finish_server_message(CommonData);
-        return(-1);
+    if ( retval == 0 ) {
+        serverResponse = get_server_response( CommonData, responseStr, &enhancedStatusCode );
+        if ( serverResponse != expected_response ) {
+            server_error (CommonData, __T("Message not accepted by server\n"));
+            finish_server_message(CommonData);
+            retval = -1;
+        }
     }
-
-    return(0);
+    FUNCTION_EXIT();
+    return(retval);
 }
 
 

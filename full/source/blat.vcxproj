@@ -284,21 +284,40 @@
     <ClCompile Include="yenc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="attach.hpp" />
+    <ClInclude Include="base64.hpp" />
     <ClInclude Include="blat.h" />
+    <ClInclude Include="blatcgi.hpp" />
     <ClInclude Include="blatdll.h" />
+    <ClInclude Include="blatext.hpp" />
+    <ClInclude Include="bldhdrs.hpp" />
     <ClInclude Include="buf.h" />
     <ClInclude Include="common_data.h" />
     <ClInclude Include="connections.h" />
     <ClInclude Include="declarations.h" />
+    <ClInclude Include="filetype.hpp" />
     <ClInclude Include="gensock.h" />
     <ClInclude Include="Gssapi\gssapi.h" />
     <ClInclude Include="gssapi_generic.h" />
     <ClInclude Include="gssfuncs.h" />
+    <ClInclude Include="macros.h" />
+    <ClInclude Include="makeargv.hpp" />
     <ClInclude Include="md5.h" />
+    <ClInclude Include="mime.hpp" />
+    <ClInclude Include="msgbody.hpp" />
+    <ClInclude Include="options.hpp" />
+    <ClInclude Include="parsing.hpp" />
     <ClInclude Include="punycode.h" />
+    <ClInclude Include="reg.hpp" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="sendnntp.hpp" />
+    <ClInclude Include="sendsmtp.hpp" />
+    <ClInclude Include="server.hpp" />
+    <ClInclude Include="unicode.hpp" />
+    <ClInclude Include="uuencode.hpp" />
     <ClInclude Include="win-mac.h" />
     <ClInclude Include="WinFile.h" />
+    <ClInclude Include="yenc.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="blat.rc" />

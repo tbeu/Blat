@@ -1,12 +1,13 @@
 /**********************************************************/
 /* Implementation (would normally go in its own .c file): */
 
-#define _CRT_SECURE_NO_WARNINGS 1
+#include "declarations.h"
+
 #include <tchar.h>
 #include <windows.h>
 #include <string.h>
-#include "punycode.h"
 #include "buf.h"
+#include "punycode.h"
 
 
 /*** Bootstring parameters for Punycode ***/
@@ -16,20 +17,6 @@ enum { base = 36, tmin = 1, tmax = 26, skew = 38, damp = 700,
 
 /* basic(cp) tests whether cp is a basic code point: */
 #define basic(cp) ((punycode_uint)(cp) < 0x80)
-
-/* delim(cp) tests whether cp is a delimiter: */
-#define delim(cp) ((cp) == delimiter)
-
-/* decode_digit(cp) returns the numeric value of a basic code */
-/* point (for use in representing integers) in the range 0 to */
-/* base-1, or base if cp is does not represent a value.       */
-
-static punycode_uint decode_digit(punycode_uint cp)
-{
-    return  ((cp - 48) < 10) ? (cp - 22) :
-            ((cp - 65) < 26) ? (cp - 65) :
-            ((cp - 97) < 26) ? (cp - 97) : base;
-}
 
 /* encode_digit(d,flag) returns the basic code point whose value      */
 /* (when used for representing integers) is d, which needs to be in   */
@@ -43,12 +30,6 @@ static _TCHAR encode_digit(punycode_uint d, int flag)
     /*  0..25 map to ASCII a..z or A..Z */
     /* 26..35 map to ASCII 0..9         */
 }
-
-/* flagged(bcp) tests whether a basic code point is flagged */
-/* (uppercase).  The behavior is undefined if bcp is not a  */
-/* basic code point.                                        */
-
-#define flagged(bcp) ((punycode_uint)(bcp) - 65 < 26)
 
 /* encode_basic(bcp,flag) forces a basic code point to lowercase */
 /* if flag is zero, uppercase if flag is nonzero, and returns    */
@@ -183,6 +164,29 @@ punycode_status punycode_encode( punycode_uint input_length,
     return punycode_success;
 }
 
+#if defined(PUNYCODE_TEST)
+
+/* delim(cp) tests whether cp is a delimiter: */
+#define delim(cp) ((cp) == delimiter)
+
+/* flagged(bcp) tests whether a basic code point is flagged */
+/* (uppercase).  The behavior is undefined if bcp is not a  */
+/* basic code point.                                        */
+
+#define flagged(bcp) ((punycode_uint)(bcp) - 65 < 26)
+
+
+/* decode_digit(cp) returns the numeric value of a basic code */
+/* point (for use in representing integers) in the range 0 to */
+/* base-1, or base if cp is does not represent a value.       */
+
+static punycode_uint decode_digit(punycode_uint cp)
+{
+    return  ((cp - 48) < 10) ? (cp - 22) :
+            ((cp - 65) < 26) ? (cp - 65) :
+            ((cp - 97) < 26) ? (cp - 97) : base;
+}
+
 /*** Main decode function ***/
 
 punycode_status punycode_decode( punycode_uint input_length,
@@ -291,8 +295,6 @@ punycode_status punycode_decode( punycode_uint input_length,
     *output_length = out;
     return punycode_success;
 }
-
-#if defined(PUNYCODE_TEST)
 
 /******************************************************************/
 /* Wrapper for testing (would normally go in a separate .c file): */

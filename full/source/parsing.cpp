@@ -15,13 +15,14 @@
 
 #include "blat.h"
 #include "common_data.h"
-
-
-extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
+#include "blatext.hpp"
+#include "macros.h"
+#include "parsing.hpp"
 
 
 void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & parsed_strings, int pathNames )
 {
+    FUNCTION_ENTRY();
     LPTSTR tmpstr;
     LPTSTR srcptr;
     LPTSTR endptr;
@@ -194,4 +195,5 @@ void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & pa
 
     parsed_strings.Add( __T('\0') ); // The end of strings is identified by a null.
     free (tmpstr);
+    FUNCTION_EXIT();
 }

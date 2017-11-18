@@ -9,48 +9,26 @@
 #include <stdio.h>
 
 #include "blat.h"
-#include "common_data.h"
 #include "winfile.h"
+#include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
 #include "gensock.h"
+#include "sendnntp.hpp"
+#include "server.hpp"
+#include "bldhdrs.hpp"
+#include "unicode.hpp"
+#include "attach.hpp"
+#include "msgbody.hpp"
 
 #if INCLUDE_NNTP
-
-extern int  open_server_socket( COMMON_DATA & CommonData, LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR portName );
-extern int  get_server_response( COMMON_DATA & CommonData, Buf * responseStr, int * enhancedStatusCode );
-extern int  put_message_line( COMMON_DATA & CommonData, socktag sock, LPTSTR line );
-extern int  finish_server_message( COMMON_DATA & CommonData );
-extern int  close_server_socket( COMMON_DATA & CommonData );
-extern void server_error( COMMON_DATA & CommonData, LPTSTR message );
-extern void server_warning( COMMON_DATA & CommonData, LPTSTR message );
-#ifdef BLATDLL_TC_WCX
-extern int  send_edit_data (COMMON_DATA & CommonData, LPTSTR message, int expected_response, Buf * responseStr, DWORD attachmentSize );
-#else
-extern int  send_edit_data (COMMON_DATA & CommonData, LPTSTR message, int expected_response, Buf * responseStr );
-#endif
-extern int  noftry(COMMON_DATA & CommonData);
-extern void build_headers( COMMON_DATA & CommonData, BLDHDRS &bldHdrs );
-extern void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
-  #if SUPPORT_MULTIPART
-extern int  add_one_attachment( COMMON_DATA & CommonData,
-                                Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
-                                DWORD startOffset, DWORD & length,
-                                int part, int totalparts, int attachNbr, int * prevAttachType );
-extern void getAttachmentInfo( COMMON_DATA & CommonData, int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType, LPTSTR & attachDescription );
-extern void getMaxMsgSize( COMMON_DATA & CommonData, int buildSMTP, DWORD & length );
-  #endif
-extern int  add_message_body( COMMON_DATA & CommonData,
-                              Buf &messageBuffer, size_t msgBodySize, Buf &multipartHdrs, int buildSMTP,
-                              LPTSTR attachment_boundary, DWORD startOffset, int part, int attachNbr );
-extern int  add_attachments( COMMON_DATA & CommonData, Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary, int nbrOfAttachments );
-extern void add_msg_boundary( COMMON_DATA & CommonData, Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary );
-
-extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
 
 LPTSTR defaultNNTPPort = __T("119");
 
 
 static int authenticate_nntp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LPTSTR pwdAuth)
 {
+    FUNCTION_ENTRY();
     _TCHAR out_data[MAXOUTLINE];
     int    ret_temp;
     int    enhancedStatusCode;
@@ -58,27 +36,32 @@ static int authenticate_nntp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
     if ( loginAuth == NULL) {
         server_error (CommonData, __T("The NNTP server requires authentication,\n and you did not provide a userid.\n"));
         finish_server_message(CommonData);
+        FUNCTION_EXIT();
         return(-2);
     }
 
     _stprintf(out_data, __T("AUTHINFO USER %s\r\n"), loginAuth);
     if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) ) {
+        FUNCTION_EXIT();
         return(-1);
     }
 
     ret_temp = get_server_response( CommonData, NULL, &enhancedStatusCode );
     if ( ret_temp == 281 ) {
+        FUNCTION_EXIT();
         return(0);   // authentication accepted.
     }
 
     if ( ret_temp != 381 ) {
         server_error (CommonData, __T("The NNTP server did not accept Auth userid/pwd value.\n"));
         finish_server_message(CommonData);
+        FUNCTION_EXIT();
         return(-2);
     }
 
     _stprintf(out_data, __T("AUTHINFO PASS %s\r\n"), pwdAuth);
     if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) ) {
+        FUNCTION_EXIT();
         return(-1);
     }
 
@@ -86,48 +69,60 @@ static int authenticate_nntp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
     if ( ret_temp != 281 ) {
         server_error (CommonData, __T("The NNTP server did not accept Auth userid/pwd value.\n"));
         finish_server_message(CommonData);
+        FUNCTION_EXIT();
         return(-2);
     }
 
+    FUNCTION_EXIT();
     return(0);
 }
 
 
 static int say_hello ( COMMON_DATA & CommonData, LPTSTR loginAuth, LPTSTR pwdAuth )
 {
+    FUNCTION_ENTRY();
     int ret_temp;
     int enhancedStatusCode;
 
-    if ( open_server_socket( CommonData, CommonData.NNTPHost.Get(), CommonData.NNTPPort.Get(), defaultNNTPPort, __T("nntp") ) )
+    if ( open_server_socket( CommonData, CommonData.NNTPHost.Get(), CommonData.NNTPPort.Get(), defaultNNTPPort, __T("nntp") ) ) {
+        FUNCTION_EXIT();
         return(-1);
+    }
 
     ret_temp = get_server_response( CommonData, NULL, &enhancedStatusCode );
     if ( ret_temp == 201 ) {
         server_error (CommonData, __T("NNTP server does not allow posting\n"));
         finish_server_message(CommonData);
+        FUNCTION_EXIT();
         return(-1);
     }
 
     if ( ret_temp == 480 ) {
         ret_temp = authenticate_nntp_user(CommonData, loginAuth, pwdAuth);
-        if ( ret_temp )
+        if ( ret_temp ) {
+            FUNCTION_EXIT();
             return (ret_temp);
+        }
     } else {
         if ( ret_temp != 200 ) {
             server_error (CommonData, __T("NNTP server error\n"));
             finish_server_message(CommonData);
+            FUNCTION_EXIT();
             return(-1);
         }
 
         if ( loginAuth[0] ) {
             ret_temp = authenticate_nntp_user(CommonData, loginAuth, pwdAuth);
-            if ( ret_temp )
+            if ( ret_temp ) {
+                FUNCTION_EXIT();
                 return (ret_temp);
+            }
         }
     }
 
     for ( ret_temp = 0; ret_temp != 200; ) {
         if ( put_message_line( CommonData, CommonData.ServerSocket, __T("MODE READER\r\n") ) ) {
+            FUNCTION_EXIT();
             return(-1);
         }
 
@@ -135,50 +130,61 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR loginAuth, LPTSTR pwdAut
         if ( ret_temp == 201 ) {
             server_error (CommonData, __T("NNTP server does not allow posting\n"));
             finish_server_message(CommonData);
+            FUNCTION_EXIT();
             return(-1);
         }
 
         if ( ret_temp == 480 ) {
             ret_temp = authenticate_nntp_user(CommonData, loginAuth, pwdAuth);
-            if ( ret_temp )
+            if ( ret_temp ) {
+                FUNCTION_EXIT();
                 return (ret_temp);
+            }
         } else {
             if ( ret_temp != 200 ) {
                 server_error (CommonData, __T("NNTP server error\n"));
                 finish_server_message(CommonData);
+                FUNCTION_EXIT();
                 return(-1);
             }
         }
     }
 
+    FUNCTION_EXIT();
     return(0);
 }
 
 
 static int prepare_nntp_message( COMMON_DATA & CommonData, LPTSTR loginAuth, LPTSTR pwdAuth )
 {
+    FUNCTION_ENTRY();
     int ret_temp;
     int enhancedStatusCode;
 
     for ( ret_temp = 0; ret_temp != 340; ) {
         if ( put_message_line( CommonData, CommonData.ServerSocket, __T("POST\r\n") ) ) {
+            FUNCTION_EXIT();
             return(-1);
         }
 
         ret_temp = get_server_response( CommonData, NULL, &enhancedStatusCode );
         if ( ret_temp == 480 ) {
             ret_temp = authenticate_nntp_user(CommonData, loginAuth, pwdAuth);
-            if ( ret_temp )
+            if ( ret_temp ) {
+                FUNCTION_EXIT();
                 return (ret_temp);
+            }
         } else {
             if ( ret_temp != 340 ) {
                 server_error (CommonData, __T("NNTP server error\n"));
                 finish_server_message(CommonData);
+                FUNCTION_EXIT();
                 return(-1);
             }
         }
     }
 
+    FUNCTION_EXIT();
     return(0);
 }
 
@@ -188,6 +194,7 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
                LPTSTR attachment_boundary, LPTSTR multipartID,
                int nbrOfAttachments, DWORD totalsize )
 {
+    FUNCTION_ENTRY();
     Buf     messageBuffer;
     Buf     multipartHdrs;
     Buf     varHeaders;
@@ -202,8 +209,10 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
     LPTSTR  attachDescription;
 
 
-    if ( !CommonData.NNTPHost.Get()[0] || !CommonData.groups.Length() )
+    if ( !CommonData.NNTPHost.Get()[0] || !CommonData.groups.Length() ) {
+        FUNCTION_EXIT();
         return(0);
+    }
 
     bldHdrs.messageBuffer         = &messageBuffer;
     bldHdrs.header                = &header;
@@ -289,6 +298,7 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
         varHeaders.Free();
         multipartHdrs.Free();
         messageBuffer.Free();
+        FUNCTION_EXIT();
         return 14;
     }
 
@@ -353,6 +363,7 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
                     varHeaders.Free();
                     multipartHdrs.Free();
                     messageBuffer.Free();
+                    FUNCTION_EXIT();
                     return retcode;
                 }
                 msgBodySize = 0;    // Do not include the body in subsequent messages.
@@ -374,6 +385,7 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
                     varHeaders.Free();
                     multipartHdrs.Free();
                     messageBuffer.Free();
+                    FUNCTION_EXIT();
                     return retcode;
                 }
                 // send the message to the NNTP server!
@@ -434,6 +446,7 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
             varHeaders.Free();
             multipartHdrs.Free();
             messageBuffer.Free();
+            FUNCTION_EXIT();
             return retcode;
         }
 
@@ -448,6 +461,7 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
             varHeaders.Free();
             multipartHdrs.Free();
             messageBuffer.Free();
+            FUNCTION_EXIT();
             return retcode;
         }
         // send the message to the NNTP server!
@@ -489,6 +503,7 @@ int send_news( COMMON_DATA & CommonData, size_t msgBodySize,
     multipartHdrs.Free();
     messageBuffer.Free();
 
+    FUNCTION_EXIT();
     return(retcode);
 }
 #endif

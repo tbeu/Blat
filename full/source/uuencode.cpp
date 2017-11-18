@@ -9,21 +9,21 @@
 
 #include "blat.h"
 #include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
+#include "uuencode.hpp"
+#include "bldhdrs.hpp"
 
 #if BLAT_LITE
 #else
 
-  #define INCLUDE_XXENCODE  FALSE
-
 static unsigned int encodedLineLength;
-
-extern void fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString, int headerLen, int linewrap );
-
 
   #define UU_Mask(Ch) (_TCHAR) ((((Ch) - 1) & 0x3F) + 0x21)
 
 void douuencode(COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filename, int part, int lastpart)
 {
+    FUNCTION_ENTRY();
     DWORD         filesize;
     DWORD         tempLength;
     _TCHAR        tmpstr[88];
@@ -33,8 +33,10 @@ void douuencode(COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filena
     Buf           shortNameBuf;
 
     p = source.Get();
-    if ( !p )
+    if ( !p ) {
+        FUNCTION_EXIT();
         return;
+    }
 
     fixupFileName( CommonData, filename, shortNameBuf, 0, FALSE );
     if ( part < 2 ) {
@@ -103,6 +105,8 @@ void douuencode(COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filena
 
     if ( part == lastpart )
         out.Add( __T("\x60\r\nend\r\n") );   // x60 represents a zero length record, marking the end.
+
+    FUNCTION_EXIT();
 }
 
 
@@ -122,8 +126,9 @@ void xxencode(Buf & source, Buf & out, LPTSTR filename, int part, int lastpart )
     Buf             shortNameBuf;
 
     p = (_TUCHAR *) source.Get();
-    if ( !p )
+    if ( !p ) {
         return;
+    }
 
     fixupFileName( CommonData, filename, shortNameBuf, 0, FALSE );
     if ( part < 2 ) {

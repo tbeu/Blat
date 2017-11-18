@@ -1,5 +1,5 @@
 /*
-    blathdrs.cpp
+    bldhdrs.cpp
 */
 
 #include "declarations.h"
@@ -16,26 +16,15 @@
 
 #include "blat.h"
 #include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
 #include "gensock.h"
-
-extern LPTSTR getShortFileName (LPTSTR fileName);
-extern int    CheckIfNeedQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHeader);
-extern int    GetLengthQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHeader);
-extern void   ConvertToQuotedPrintable(COMMON_DATA & CommonData, Buf & source, Buf & out, int inHeader);
-extern void   base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
-extern void   convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
-
-#if SMART_CONTENT_TYPE
-extern void   getContentType(COMMON_DATA & CommonData, Buf & sDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName);
-#endif
-#if SUPPORT_SALUTATIONS
-extern void   find_and_strip_salutation( COMMON_DATA & CommonData, Buf & email_addresses );
-#endif
-
-extern _TCHAR blatVersion[];
-extern _TCHAR blatVersionSuf[];
-
-extern LPTSTR days[];
+#include "bldhdrs.hpp"
+#include "filetype.hpp"
+#include "mime.hpp"
+#include "base64.hpp"
+#include "unicode.hpp"
+#include "sendsmtp.hpp"
 
 static _TCHAR base64_marker[] = __T("?B?"); // RFC 2047 section 4.1. The "B" encoding
 static _TCHAR mime_marker[]   = __T("?Q?"); // RFC 2047 section 4.2. The "Q" encoding
@@ -130,6 +119,7 @@ void addStringToHeaderNoQuoting(LPTSTR string, Buf & outS, int & headerLen, int 
 
 void fixup( COMMON_DATA & CommonData, LPTSTR string, Buf * outString, int headerLen, int linewrap )
 {
+    FUNCTION_ENTRY();
     int    i, qLen, bLen;
     Buf    outS;
     Buf    fixupString;
@@ -173,14 +163,16 @@ void fixup( COMMON_DATA & CommonData, LPTSTR string, Buf * outString, int header
     if ( CheckIfNeedQuotedPrintable( CommonData, tempstring.Get(), TRUE ) ) {
         Buf       tmpstr;
         LPTSTR    pStr;
-
-//#if defined(_UNICODE) || defined(UNICODE)
         _TUCHAR * pStr1;
         size_t    x;
 
         pStr1 = (_TUCHAR *) tempstring.Get();
         for ( x = 0; *pStr1 != __T('\0'); pStr1++ ) {
-            if ( (*pStr1 > 0x00FF) || ((memcmp(localCharset, __T("UTF-"), 4*sizeof(_TCHAR)) == 0) && (*pStr1 > 0x007F)) ) {
+            if ( ((memcmp(localCharset, __T("UTF-"), 4*sizeof(_TCHAR)) == 0) && (*pStr1 > 0x007F))
+#if defined(_UNICODE) || defined(UNICODE)
+                 || (*pStr1 > 0x00FF)
+#endif
+                ) {
                 tempUTF = NATIVE_16BIT_UTF;
                 convertPackedUnicodeToUTF( tempstring, fixupString, &tempUTF, localCharset, utfRequested );
                 if ( tempUTF )
@@ -191,7 +183,6 @@ void fixup( COMMON_DATA & CommonData, LPTSTR string, Buf * outString, int header
                 break;
             }
         }
-//#endif
 
 #if BLAT_LITE
 #else
@@ -320,12 +311,14 @@ void fixup( COMMON_DATA & CommonData, LPTSTR string, Buf * outString, int header
     tempstring.Free();
     fixupString.Free();
     outS.Free();
+    FUNCTION_EXIT();
     return;
 }
 
 
 void fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString, int headerLen, int linewrap )
 {
+    FUNCTION_ENTRY();
     LPTSTR  shortname;
 
     if ( !filename )
@@ -356,10 +349,12 @@ void fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString,
 #else
     fixup(CommonData, shortname, &outString, headerLen, linewrap);
 #endif
+    FUNCTION_EXIT();
 }
 
 void fixupEmailHeaders(COMMON_DATA & CommonData, LPTSTR string, Buf * outString, int headerLen, int linewrap )
 {
+    FUNCTION_ENTRY();
     int    doBase64;
     int    i, qLen, bLen;
     Buf    outS;
@@ -399,9 +394,11 @@ void fixupEmailHeaders(COMMON_DATA & CommonData, LPTSTR string, Buf * outString,
     charsetLen += 7;    // =? ?q? ?=
 
     stringOffset = 0;
+
+#if defined(_UNICODE) || defined(UNICODE)
     if ( *string == 0xFEFF )
         string++;
-
+#endif
     tempstring = string;
 
     outS.Clear();
@@ -434,15 +431,15 @@ void fixupEmailHeaders(COMMON_DATA & CommonData, LPTSTR string, Buf * outString,
             fixupString.Clear();
 
             if ( i && CheckIfNeedQuotedPrintable( CommonData, tempstring.Get(), TRUE ) ) {
-                int tempUTF;
-                Buf holdingPen;
+                int       tempUTF;
+                Buf       holdingPen;
+                size_t    x;
 
                 tempUTF = 0;
                 holdingPen.Add( tempstring.Get() );
 
 #if defined(_UNICODE) || defined(UNICODE)
                 _TUCHAR * pStr;
-                size_t    x;
                 Buf       outputText;
                 int       utfRequested;
 
@@ -506,7 +503,7 @@ void fixupEmailHeaders(COMMON_DATA & CommonData, LPTSTR string, Buf * outString,
                 outS.Add( fixupString );
                 headerLen += (int)fixupString.Length();
                 for ( ; linewrap && ((int)tmpstr.Length() > (73-headerLen)); ) { // minimum fixup length too long?
-                    size_t x = (size_t)(73-headerLen);
+                    x = (size_t)(73-headerLen);
 
                     pStr1 = tmpstr.Get();
                     if ( doBase64 )
@@ -678,12 +675,13 @@ void fixupEmailHeaders(COMMON_DATA & CommonData, LPTSTR string, Buf * outString,
     tempstring.Free();
     fixupString.Free();
     outS.Free();
-    return;
+    FUNCTION_EXIT();
 }
 
 
 LPTSTR getCharsetString( COMMON_DATA & CommonData )
 {
+    FUNCTION_ENTRY();
     static _TCHAR localCharset[40];
 
 
@@ -693,12 +691,14 @@ LPTSTR getCharsetString( COMMON_DATA & CommonData )
         _tcscpy( localCharset, defaultCharset );
 
     _tcsupr( localCharset );
+    FUNCTION_EXIT();
     return( localCharset );
 }
 
 
 void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
 {
+    FUNCTION_ENTRY();
     int                   i;
     int                   yEnc_This;
     int                   hours, minutes;
@@ -974,8 +974,8 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
             if ( CommonData.priority.Get()[0] == __T('0')) {
                 bldHdrs.header->Add( __T("X-MSMail-Priority: Low\r\n") \
                                      __T("X-Priority: 5\r\n") \
-                                     __T("Priority: normal\r\n") \
-                                     __T("Importance: normal\r\n") );
+                                     __T("Priority: non-urgent\r\n") \
+                                     __T("Importance: low\r\n") );
                 bldHdrs.header->Add( __T("X-MimeOLE: Produced by Blat v") );
                 bldHdrs.header->Add( blatVersion );
                 bldHdrs.header->Add( __T("\r\n") );
@@ -1200,7 +1200,27 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
         fixedSubject.Free();
     }
 
-    memcpy(boundary2, bldHdrs.attachment_boundary, 21 * sizeof(_TCHAR) );
+    memcpy( boundary2, bldHdrs.attachment_boundary, 21 * sizeof(_TCHAR) );
+    boundary2[21] = __T('\0');
+
+#if BLAT_LITE
+#else
+    if ( CommonData.mdn_type != MDN_UNKNOWN ) {
+        CommonData.mimeHeader = __T("MIME-Version: 1.0\r\n");
+
+        CommonData.mdnHeader.Add( __T("Content-Type:") );
+        CommonData.mdnHeader.Add( __T(" multipart/report;\r\n") );
+        CommonData.mdnHeader.Add( __T(" report-type=disposition-notification;\r\n") );
+        CommonData.mdnHeader.Add( __T(" boundary=\"") );
+
+        CommonData.mdnBoundary.Add( BOUNDARY_MARKER );
+        CommonData.mdnBoundary.Get()[CommonData.mdnBoundary.Length() - 2] ^= 0x20;  // Change the case of our last character from lowercase to uppercase, to not match a string search.
+        CommonData.mdnBoundary.Add( boundary2 );
+
+        CommonData.mdnHeader.Add( CommonData.mdnBoundary.Get() );
+        CommonData.mdnHeader.Add( __T("\"\r\n") );
+    }
+#endif
     _tcscpy( &boundary2[21], __T("\"\r\n") );
 
     // This is either mime, base64, uuencoded, or neither.  With or without attachments.  Whew!
@@ -1208,7 +1228,8 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
         // Indicate MIME version and type
 
         if ( !bldHdrs.attachNbr || (bldHdrs.totalparts > 1) || CommonData.alternateText.Length() ) {
-            contentType.Add( __T("MIME-Version: 1.0\r\n") );
+            CommonData.mimeHeader = __T("MIME-Version: 1.0\r\n");
+
             if ( CommonData.attach || CommonData.alternateText.Length() ) {
                 contentType.Add( __T("Content-Type:") );
                 if ( CommonData.haveAttachments ) {
@@ -1262,11 +1283,12 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
         else {
             if ( bldHdrs.attachNbr ) {
 #if BLAT_LITE
-                contentType.Add( __T("MIME-Version: 1.0\r\n") );
+                CommonData.mimeHeader = __T("MIME-Version: 1.0\r\n");
+
                 contentType.Add( __T("Content-Type:") );
                 contentType.Add( __T(" multipart/mixed;\r\n") );
                 contentType.Add( __T(" boundary=\"") BOUNDARY_MARKER );
-                contentType.Add( boundary2);
+                contentType.Add( boundary2 );
                 contentType.Add( __T("\r\nThis is a multi-part message in MIME format.\r\n") );
 #else
                 if ( CommonData.uuencode || yEnc_This || !bldHdrs.buildSMTP ) {
@@ -1300,11 +1322,12 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                     contentType.Add( __T("\"\r\n") );
   */
                 } else {
-                    contentType.Add( __T("MIME-Version: 1.0\r\n") );
+                    CommonData.mimeHeader = __T("MIME-Version: 1.0\r\n");
+
                     contentType.Add( __T("Content-Type:") );
                     contentType.Add( __T(" multipart/mixed;\r\n") );
                     contentType.Add( __T(" boundary=\"") BOUNDARY_MARKER );
-                    contentType.Add( boundary2);
+                    contentType.Add( boundary2 );
                 }
 #endif
             }
@@ -1314,7 +1337,8 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
 #else
         if ( CommonData.base64 ) {
             // Indicate MIME version and type
-            contentType.Add( __T("MIME-Version: 1.0\r\n") );
+            CommonData.mimeHeader = __T("MIME-Version: 1.0\r\n");
+
             contentType.Add( __T("Content-Type:") );
             if ( CommonData.haveAttachments ) {
                 contentType.Add( __T(" multipart/mixed;\r\n") );
@@ -1338,11 +1362,12 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
         {
             if ( CommonData.attach ) {
 #if BLAT_LITE
-                contentType.Add( __T("MIME-Version: 1.0\r\n") );
+                CommonData.mimeHeader = __T("MIME-Version: 1.0\r\n");
+
                 contentType.Add( __T("Content-Type:") );
                 contentType.Add( __T(" multipart/mixed;\r\n") );
                 contentType.Add( __T(" boundary=\"") BOUNDARY_MARKER );
-                contentType.Add( boundary2);
+                contentType.Add( boundary2 );
                 contentType.Add( __T("\r\nThis is a multi-part message in MIME format.\r\n") );
 #else
                 if ( CommonData.uuencode || yEnc_This || !bldHdrs.buildSMTP ) {
@@ -1376,11 +1401,12 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                     contentType.Add( __T("\"\r\n") );
   */
                 } else {
-                    contentType.Add( __T("MIME-Version: 1.0\r\n") );
+                    CommonData.mimeHeader = __T("MIME-Version: 1.0\r\n");
+
                     contentType.Add( __T("Content-Type:") );
                     contentType.Add( __T(" multipart/mixed;\r\n") );
                     contentType.Add( __T(" boundary=\"") BOUNDARY_MARKER );
-                    contentType.Add( boundary2);
+                    contentType.Add( boundary2 );
   #if SUPPORT_MULTIPART
                     if ( !bldHdrs.attachNbr )
   #endif
@@ -1440,9 +1466,21 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
         }
     }
 
+#if BLAT_LITE
+#else
+    if ( CommonData.mdn_type != MDN_UNKNOWN ) {
+        bldHdrs.header->Add( CommonData.mimeHeader );
+        bldHdrs.header->Add( CommonData.mdnHeader.Get() );
+        bldHdrs.header->Add( __T("\r\n--") );
+        bldHdrs.header->Add( CommonData.mdnBoundary.Get() );
+        bldHdrs.header->Add( __T("\r\n") );
+    }
+#endif
 #if SUPPORT_MULTIPART
     if ( bldHdrs.totalparts > 1 ) {
-        bldHdrs.header->Add(     __T("MIME-Version: 1.0\r\n") );
+        if ( CommonData.mdn_type == MDN_UNKNOWN )
+            bldHdrs.header->Add(     __T("MIME-Version: 1.0\r\n") );
+
         bldHdrs.header->Add(     __T("Content-Type:") );
         bldHdrs.header->Add(     __T(" message/partial;\r\n") );
         _stprintf( tmpstr, __T("    id=\"%s\";\r\n") \
@@ -1453,9 +1491,16 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
         bldHdrs.multipartHdrs->Add( contentType );
     } else {
         bldHdrs.multipartHdrs->Clear();
+
+        if ( CommonData.mdn_type == MDN_UNKNOWN )
+            bldHdrs.header->Add( CommonData.mimeHeader );
+
         bldHdrs.header->Add( contentType );
     }
 #else
+    if ( CommonData.mdn_type == MDN_UNKNOWN )
+        bldHdrs.header->Add( CommonData.mimeHeader );
+
     bldHdrs.header->Add( contentType );
 #endif
 
@@ -1485,5 +1530,5 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
     fixedFromId.Free();
     tempstring.Free();
     tmpBuf.Free();
-    return;
+    FUNCTION_EXIT();
 }

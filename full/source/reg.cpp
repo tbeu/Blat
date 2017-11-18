@@ -11,36 +11,13 @@
 
 #include "blat.h"
 #include "common_data.h"
-
-
-#ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
-#if defined(__cplusplus)
-extern "C" {
-#endif
-extern void (*pMyPrintDLL)(LPTSTR);
-#if defined(__cplusplus)
-}
-#endif
-#else
-#define pMyPrintDLL _tprintf
-#endif
-
-extern void base64_encode(_TUCHAR * in, size_t length, LPTSTR out, int inclCrLf);
-extern int  base64_decode(_TUCHAR * in, LPTSTR out);
-extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
-
-extern LPTSTR       defaultSMTPPort;
-
-#if INCLUDE_NNTP
-extern LPTSTR       defaultNNTPPort;
-#endif
-
-#if INCLUDE_POP3
-extern LPTSTR       defaultPOP3Port;
-#endif
-#if INCLUDE_IMAP
-extern LPTSTR       defaultIMAPPort;
-#endif
+#include "blatext.hpp"
+#include "macros.h"
+#include "reg.hpp"
+#include "base64.hpp"
+#include "sendsmtp.hpp"
+#include "sendnntp.hpp"
+#include "unicode.hpp"
 
 static const _TCHAR SoftwareRegKey[]     = __T("SOFTWARE");
 
@@ -74,9 +51,6 @@ static const _TCHAR RegKeyTry[]          = __T("Try");
 
 #if defined(_UNICODE) || defined(UNICODE)
 
-extern void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
-
-
 static void encodeThis( _TUCHAR * in, LPTSTR out, int inclCrLf )
 {
     size_t byteCount;
@@ -87,34 +61,33 @@ static void encodeThis( _TUCHAR * in, LPTSTR out, int inclCrLf )
     int    tempUTF;
 
 
-    if ( !in || !out )
-        return;
+    if ( in && out ) {
+        tmpStr.Clear();
+        *out = __T('\0');
 
-    tmpStr.Clear();
-    *out = __T('\0');
-
-    for ( len = 0; ; len++ ) {
-        if ( in[len] == __T('\0') )
-            break;
-        if ( in[len] > 0x00FF ) {
-            tempUTF = sizeof(_TCHAR);
-            inputString = (LPTSTR)in;
-            convertPackedUnicodeToUTF( inputString, tmpStr, &tempUTF, NULL, 8 );
-            break;
+        for ( len = 0; ; len++ ) {
+            if ( in[len] == __T('\0') )
+                break;
+            if ( in[len] > 0x00FF ) {
+                tempUTF = sizeof(_TCHAR);
+                inputString = (LPTSTR)in;
+                convertPackedUnicodeToUTF( inputString, tmpStr, &tempUTF, NULL, 8 );
+                break;
+            }
+            tmpStr.Add( (_TCHAR)in[len] );
         }
-        tmpStr.Add( (_TCHAR)in[len] );
-    }
 
-    byteCount = tmpStr.Length();
-    if ( byteCount ) {
-        msg.AllocExact( (byteCount+1) * 3 );
-        base64_encode( (_TUCHAR *)tmpStr.Get(), (size_t)byteCount, msg.Get(), inclCrLf );
-        _tcscpy( out, msg.Get() );
-    }
+        byteCount = tmpStr.Length();
+        if ( byteCount ) {
+            msg.AllocExact( (byteCount+1) * 3 );
+            base64_encode( (_TUCHAR *)tmpStr.Get(), (size_t)byteCount, msg.Get(), inclCrLf );
+            _tcscpy( out, msg.Get() );
+        }
 
-    inputString.Free();
-    msg.Free();
-    tmpStr.Free();
+        inputString.Free();
+        msg.Free();
+        tmpStr.Free();
+    }
 }
 
 //static void decodeThis(LPTSTR in, LPTSTR out)
@@ -215,6 +188,7 @@ static void encodeThis( _TUCHAR * in, LPTSTR out, int inclCrLf )
 // create registry entries for this program
 static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
 {
+    FUNCTION_ENTRY();
     HKEY   hKey1;
     DWORD  dwDisposition;
     LONG   lRetCode;
@@ -263,6 +237,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
                 pMyPrintDLL( __T("Error in creating blat key in the registry\n") );
         }
 
+        FUNCTION_EXIT();
         return(10);
     }
 
@@ -325,6 +300,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting SMTP server value in the registry\n"));
+            FUNCTION_EXIT();
             return(11);
         }
 
@@ -334,6 +310,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
+            FUNCTION_EXIT();
             return(11);
         }
 
@@ -343,6 +320,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting number of try value in the registry\n") );
+            FUNCTION_EXIT();
             return(11);
         }
 
@@ -368,6 +346,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting sender address value in the registry\n") );
+            FUNCTION_EXIT();
             return(11);
         }
     }
@@ -385,6 +364,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting NNTP server value in the registry\n") );
+            FUNCTION_EXIT();
             return(11);
         }
 
@@ -394,6 +374,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
+            FUNCTION_EXIT();
             return(11);
         }
 
@@ -403,6 +384,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting number of try value in the registry\n") );
+            FUNCTION_EXIT();
             return(11);
         }
 
@@ -428,6 +410,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting sender address value in the registry\n") );
+            FUNCTION_EXIT();
             return(11);
         }
     }
@@ -446,6 +429,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting POP3 server value in the registry\n") );
+            FUNCTION_EXIT();
             return(11);
         }
 
@@ -455,6 +439,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
+            FUNCTION_EXIT();
             return(11);
         }
 
@@ -488,6 +473,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting IMAP server value in the registry\n") );
+            FUNCTION_EXIT();
             return(11);
         }
 
@@ -497,6 +483,7 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
         /* if we failed, note it, and leave */
         if ( lRetCode != ERROR_SUCCESS ) {
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in setting port value in the registry\n") );
+            FUNCTION_EXIT();
             return(11);
         }
 
@@ -517,12 +504,14 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
     }
 #endif
 
+    FUNCTION_EXIT();
     return(0);
 }
 
 // create registry entries for this program
 int CreateRegEntry( COMMON_DATA & CommonData, int useHKCU )
 {
+    FUNCTION_ENTRY();
     int retval;
 
     retval = 1;     // assume useHKCU set, so the 2nd if() works.
@@ -532,6 +521,7 @@ int CreateRegEntry( COMMON_DATA & CommonData, int useHKCU )
     if ( retval )
         retval = CreateRegEntry( CommonData, HKEY_CURRENT_USER );
 
+    FUNCTION_EXIT();
     return retval;
 }
 
@@ -566,6 +556,7 @@ void ShowRegHelp( COMMON_DATA & CommonData )
 
 static int DeleteRegTree( COMMON_DATA & CommonData, HKEY rootKeyLevel, Buf & pstrProfile )
 {
+    FUNCTION_ENTRY();
     HKEY     hKey1=NULL;
     DWORD    dwBytesRead;
     LONG     lRetCode;
@@ -608,6 +599,7 @@ static int DeleteRegTree( COMMON_DATA & CommonData, HKEY rootKeyLevel, Buf & pst
                     pMyPrintDLL( pstrProfile.Get() );
                     pMyPrintDLL( __T(" in the registry\n") );
                 }
+                FUNCTION_EXIT();
                 return(11);
             }
             dwIndex--;
@@ -615,12 +607,14 @@ static int DeleteRegTree( COMMON_DATA & CommonData, HKEY rootKeyLevel, Buf & pst
     }
 
     RegCloseKey(hKey1);
+    FUNCTION_EXIT();
     return lRetCode;
 }
 
 // Delete registry entries for this program
 int DeleteRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile, int useHKCU )
 {
+    FUNCTION_ENTRY();
     HKEY   rootKeyLevel;
     HKEY   hKey1=NULL;
     LONG   lRetCode;
@@ -655,6 +649,7 @@ int DeleteRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile, int useHKCU )
             if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in finding blat default profile in the registry\n") );
 
             strRegisterKey.Free();
+            FUNCTION_EXIT();
             return(10);
         }
 
@@ -686,6 +681,7 @@ int DeleteRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile, int useHKCU )
                         pMyPrintDLL( __T(" in the registry\n") );
                     }
                     strRegisterKey.Free();
+                    FUNCTION_EXIT();
                     return(11);
                 }
                 dwIndex--;
@@ -726,6 +722,7 @@ int DeleteRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile, int useHKCU )
                 pMyPrintDLL( __T(" in the registry\n") );
             }
             strRegisterKey.Free();
+            FUNCTION_EXIT();
             return(11);
         }
 
@@ -742,11 +739,13 @@ int DeleteRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile, int useHKCU )
                 pMyPrintDLL( __T(" in the registry\n") );
             }
             strRegisterKey.Free();
+            FUNCTION_EXIT();
             return(10);
         }
 
     }
     strRegisterKey.Free();
+    FUNCTION_EXIT();
     return(0);
 }
 
@@ -756,6 +755,7 @@ int DeleteRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile, int useHKCU )
 // get the registry entries for this program
 static int GetRegEntryKeyed( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile )
 {
+    FUNCTION_ENTRY();
     HKEY   hKey1=NULL;
     DWORD  dwType;
     DWORD  dwBytesRead;
@@ -797,10 +797,13 @@ static int GetRegEntryKeyed( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR
 
     if ( lRetCode != ERROR_SUCCESS ) {
 //       printMsg( CommonData, __T("Failed to open registry key for Blat\n") );
-        if ( pstrProfile && *pstrProfile )
-            return GetRegEntryKeyed( CommonData, rootKeyLevel, NULL );
+        retval = 12;
+        if ( pstrProfile && *pstrProfile ) {
+            retval = GetRegEntryKeyed( CommonData, rootKeyLevel, NULL );
+        }
 
-        return(12);
+        FUNCTION_EXIT();
+        return retval;
     }
 
     // set the size of the buffer to contain the data returned from the registry
@@ -1002,12 +1005,14 @@ static int GetRegEntryKeyed( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR
 #endif
     }
 
+    FUNCTION_EXIT();
     return retval;
 }
 
 
 int GetRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile )
 {
+    FUNCTION_ENTRY();
     int lRetVal;
 
     if (pstrProfile.Length() == 0)
@@ -1017,11 +1022,13 @@ int GetRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile )
     if ( lRetVal )
         lRetVal = GetRegEntryKeyed( CommonData, HKEY_LOCAL_MACHINE, pstrProfile.Get() );
 
+    FUNCTION_EXIT();
     return lRetVal;
 }
 
 static void DisplayThisProfile( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile )
 {
+    FUNCTION_ENTRY();
     LPTSTR tmpstr;
 
     GetRegEntryKeyed( CommonData, rootKeyLevel, pstrProfile );
@@ -1065,10 +1072,12 @@ static void DisplayThisProfile( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPT
                  __T("IMAP"), CommonData.IMAPHost.Get(), CommonData.IMAPPort.Get(), CommonData.Profile.Get(), tmpstr);
     }
 #endif
+    FUNCTION_EXIT();
 }
 
 static void DumpProfiles( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile )
 {
+    FUNCTION_ENTRY();
     HKEY     hKey1=NULL;
     DWORD    dwBytesRead;
     LONG     lRetCode;
@@ -1133,11 +1142,13 @@ static void DumpProfiles( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR ps
         RegCloseKey(hKey1);
     }
     strRegisterKey.Free();
+    FUNCTION_EXIT();
 }
 
 // List all profiles
 void ListProfiles( COMMON_DATA & CommonData, LPTSTR pstrProfile )
 {
+    FUNCTION_ENTRY();
     HKEY     hKey1=NULL;
     LONG     lRetCode;
     Buf      strRegisterKey;
@@ -1174,4 +1185,5 @@ void ListProfiles( COMMON_DATA & CommonData, LPTSTR pstrProfile )
     printMsg( CommonData, __T("Profile(s) for all users of this computer --\n") );
     DumpProfiles( CommonData, HKEY_LOCAL_MACHINE, pstrProfile );
     strRegisterKey.Free();
+    FUNCTION_EXIT();
 }

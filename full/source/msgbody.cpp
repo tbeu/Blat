@@ -10,35 +10,21 @@
 #include <string.h>
 
 #include "blat.h"
-#include "common_data.h"
 #include "winfile.h"
+#include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
+#include "msgbody.hpp"
+#include "bldhdrs.hpp"
+#include "filetype.hpp"
+#include "mime.hpp"
+#include "base64.hpp"
+#include "unicode.hpp"
+#include "uuencode.hpp"
+#include "sendsmtp.hpp"
 
 #ifndef _MAX_PATH
     #define _MAX_PATH 260
-#endif
-
-extern LPTSTR getCharsetString( COMMON_DATA & CommonData );
-extern void   incrementBoundary( _TCHAR boundary[] );
-extern void   decrementBoundary( _TCHAR boundary[] );
-extern LPTSTR getShortFileName (LPTSTR fileName);
-extern void   fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString, int headerLen, int linewrap );
-extern int    CheckIfNeedQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHeader);
-extern void   ConvertToQuotedPrintable(COMMON_DATA & CommonData, Buf & source, Buf & out, int inHeader);
-extern void   base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
-extern void   convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
-#if BLAT_LITE
-#else
-extern void   douuencode(COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filename, int part, int lastpart);
-extern void   convertUnicode( Buf & sourceText, int * utf, LPTSTR charset, int utfRequested );
-#endif
-extern void   printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
-extern void   fixup(COMMON_DATA & CommonData, LPTSTR string, Buf * tempstring2, int headerLen, int linewrap );
-
-#if SMART_CONTENT_TYPE
-extern void   getContentType(COMMON_DATA & CommonData, Buf & sDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName);
-#endif
-#if SUPPORT_SALUTATIONS
-extern void   parse_email_addresses( COMMON_DATA & CommonData, LPTSTR email_addresses, Buf & parsed_addys );
 #endif
 
 int add_message_body ( COMMON_DATA & CommonData,
@@ -46,6 +32,7 @@ int add_message_body ( COMMON_DATA & CommonData,
                        LPTSTR attachment_boundary, DWORD startOffset, int part,
                        int attachNbr )
 {
+    FUNCTION_ENTRY();
     int     yEnc_This;
     Buf     tmpstr;
     Buf     fileBuffer;
@@ -606,12 +593,15 @@ int add_message_body ( COMMON_DATA & CommonData,
 
     fileBuffer.Free();
     tmpstr.Free();
+    FUNCTION_EXIT();
     return(0);
 }
 
 
 void add_msg_boundary ( COMMON_DATA & CommonData, Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary )
 {
+    FUNCTION_ENTRY();
+
 #if SUPPORT_YENC
     int yEnc_This;
 
@@ -639,4 +629,72 @@ void add_msg_boundary ( COMMON_DATA & CommonData, Buf &messageBuffer, int buildS
             messageBuffer.Add( __T("--\r\n") );
         }
     }
+
+#if BLAT_LITE
+#else
+    if ( CommonData.mdn_type != MDN_UNKNOWN ) {
+        LPTSTR pString;
+
+        messageBuffer.Add( __T("\r\n--") );
+        messageBuffer.Add( CommonData.mdnBoundary.Get() );
+        messageBuffer.Add( __T("\r\nContent-Type: message/disposition-notification\r\n") );
+        {
+            Buf    parsed_addys;
+            LPTSTR pa;
+
+            parse_email_addresses( CommonData, CommonData.Sender.Get(), parsed_addys );
+            pa = parsed_addys.Get();
+            if ( pa ) {
+                messageBuffer.Add( __T("\r\nFinal-recipient: RFC822; ") );
+                messageBuffer.Add( pa );
+            }
+            parsed_addys.Free();
+        }
+
+        pString = NULL;
+        if ( CommonData.aheaders1.Get() )
+            pString = _tcsstr( CommonData.aheaders1.Get(), __T("In-Reply-To:") );
+
+        if ( pString == NULL ) {
+            if ( CommonData.aheaders2.Get() )
+                pString = _tcsstr( CommonData.aheaders2.Get(), __T("In-Reply-To:") );
+        }
+        if ( pString != NULL ) {
+            messageBuffer.Add( __T("\r\nOriginal-Message-ID:") );
+            messageBuffer.Add( &pString[12] );
+        }
+        messageBuffer.Add( __T("\r\n") );
+        messageBuffer.Add( __T("Disposition: automatic-action/MDN-sent-automatically") );
+        switch( CommonData.mdn_type )
+        {
+            case MDN_DISPLAYED:
+                messageBuffer.Add( __T("; displayed") );
+                break;
+
+            case MDN_DISPATCHED:
+                messageBuffer.Add( __T("; dispatched") );
+                break;
+
+            case MDN_PROCESSED:
+                messageBuffer.Add( __T("; processed") );
+                break;
+
+            case MDN_DELETED:
+                messageBuffer.Add( __T("; deleted") );
+                break;
+
+            case MDN_DENIED:
+                messageBuffer.Add( __T("; denied") );
+                break;
+
+            case MDN_FAILED:
+                messageBuffer.Add( __T("; failed") );
+                break;
+        }
+        messageBuffer.Add( __T("\r\n\r\n--") );
+        messageBuffer.Add( CommonData.mdnBoundary.Get() );
+        messageBuffer.Add( __T("--\r\n") );
+    }
+#endif
+    FUNCTION_EXIT();
 }

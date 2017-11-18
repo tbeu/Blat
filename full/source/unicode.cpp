@@ -11,12 +11,12 @@
 
 #include "blat.h"
 #include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
+#include "unicode.hpp"
+#include "base64.hpp"
 
-extern LPTSTR base64table;
-
-extern void base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
-
-_TCHAR utf8BOM[] = { __T('\xEF'), __T('\xBB'), __T('\xBF'), 0 };
+_TCHAR const utf8BOM[] = { __T('\xEF'), __T('\xBB'), __T('\xBF'), __T('\0') };
 
 /*
  * This routine will convert 16-bit and 32-bit Unicode files into UTF-7 or
@@ -386,12 +386,12 @@ void convertUnicode( Buf &sourceText, int * pUTF, LPTSTR charset, int pUTFReques
                             unsigned short value;
 
                             if ( (_TUCHAR)*pp >= 0x00F0 ) {
-                                outputText.Free();        /* UTF-7 does not allow 32-bit */
-                                return;                   /* Unicode per RFC 2152        */
+                                outputText.Free();        /* UTF-7 does not allow 32-bit Unicode per RFC 2152 */
+                                return;
                             }
                             if ( (_TUCHAR)*pp < 0x00C0 ) {
-                                outputText.Free();        /* Marker bytes from 0x80 to   */
-                                return;                   /* 0xBF are invalid for UTF-8. */
+                                outputText.Free();        /* Marker bytes from 0x80 to 0xBF are invalid for UTF-8. */
+                                return;
                             }
                             if ( (_TUCHAR)*pp < 0x00E0 )
                                 count = 1;
@@ -661,12 +661,12 @@ void compactUnicodeFileData( Buf &sourceText )
                 }
                 do {
                     if ( (_TUCHAR)*pp >= 0x00FE ) {
-                        outputText.Free();        /* Marker bytes 0xFE and 0xFF  */
-                        return;                   /* are invalid for UTF-8.      */
+                        outputText.Free();        /* Marker bytes 0xFE and 0xFF are invalid for UTF-8. */
+                        return;
                     }
                     if ( (_TUCHAR)*pp < 0x00C0 ) {
-                        outputText.Free();        /* Marker bytes from 0x80 to   */
-                        return;                   /* 0xBF are invalid for UTF-8. */
+                        outputText.Free();        /* Marker bytes from 0x80 to 0xBF are invalid for UTF-8. */
+                        return;
                     }
                     if ( (_TUCHAR)*pp < 0x00E0 )
                         count = 1;
@@ -930,6 +930,7 @@ void compactUnicodeFileData( Buf &sourceText )
 
 void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
 {
+    FUNCTION_ENTRY();
     size_t    length;
     size_t    x;
     _TUCHAR * pStr;
@@ -1043,5 +1044,6 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
         }
     }
     newString.Free();
+    FUNCTION_EXIT();
 }
 #endif

@@ -22,13 +22,15 @@
 #else
   #include <winsock.h>
 #endif
-//#include <tchar.h>
 
 #include "blat.h"
+#include "common_data.h"
+#include "macros.h"
+#include "blatext.hpp"
 #include "gensock.h"
 #include "connections.h"
-#include "common_data.h"
 #include "punycode.h"
+#include "server.hpp"
 
 #define MAX_PRINTF_LENGTH   1000
 #define MAX_HOSTNAME_LENGTH 1025
@@ -53,9 +55,6 @@
 
 int  init_winsock (COMMON_DATA & CommonData);
 void deinit_winsock (COMMON_DATA & CommonData);
-
-extern int  noftry(COMMON_DATA & CommonData);
-extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );
 
 #if INCLUDE_SUPERDEBUG
 

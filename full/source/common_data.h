@@ -7,6 +7,16 @@
 #include "gssfuncs.h" // Please read the comments here for information about how to use GssSession
 #endif
 
+typedef enum {                                      // Define Message Disposition Notification types
+    MDN_UNKNOWN = 0,
+    MDN_DISPLAYED,
+    MDN_DISPATCHED,
+    MDN_PROCESSED,
+    MDN_DELETED,
+    MDN_DENIED,
+    MDN_FAILED
+} MDN_TYPES;
+
 typedef struct NODES {
     NODES * next;
     LPTSTR  attachmentName;
@@ -19,6 +29,7 @@ typedef struct _COMMON_DATA
 {
 #if INCLUDE_SUPERDEBUG
     _TCHAR        superDebug;
+    _TCHAR        superDuperDebug;
 #endif
     Buf           Profile;
     Buf           priority;
@@ -209,9 +220,13 @@ typedef struct _COMMON_DATA
     int           usagePrinted;
     int           logCommands;
 
-} COMMON_DATA;
+    MDN_TYPES     mdn_type;
+    Buf           mdnHeader;
+    Buf           mdnBoundary;
 
-#pragma pack(1)
+    Buf           mimeHeader;
+
+} COMMON_DATA;
 
 typedef struct _BLDHDRS {
     Buf  * messageBuffer;
@@ -243,7 +258,5 @@ typedef struct BLATOPTIONS {
     int (* initFunction)( COMMON_DATA & CommonData, int argc, LPTSTR* argv, int this_arg, int startargv );
     LPTSTR usageText;
 } _BLATOPTIONS;
-
-#pragma pack()
 
 #endif      // #if !defined __COMMON_DATA_H__

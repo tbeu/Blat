@@ -10,54 +10,17 @@
 #include <string.h>
 
 #include "blat.h"
-#include "common_data.h"
 #include "winfile.h"
+#include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
 #include "gensock.h"
-
-#ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
-#if defined(__cplusplus)
-extern "C" {
-#endif
-extern void (*pMyPrintDLL)(LPTSTR);
-#if defined(__cplusplus)
-}
-#endif
-#else
-#define pMyPrintDLL _tprintf
-#endif
-
-extern int  CreateRegEntry( COMMON_DATA & CommonData, int useHKCU );
-extern int  DeleteRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile, int useHKCU );
-extern void ShowRegHelp( COMMON_DATA & CommonData );
-extern void ListProfiles( COMMON_DATA & CommonData, LPTSTR pstrProfile );
-extern void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & parsed_addys, int pathNames );
-extern void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck );
-extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
-
-extern _TCHAR       blatVersion[];
-extern _TCHAR       blatVersionSuf[];
-extern _TCHAR       blatBuildDate[];
-extern _TCHAR       blatBuildTime[];
-
-extern LPTSTR       defaultSMTPPort;
-
-#if SUPPORT_GSSAPI
-  #if SUBMISSION_PORT
-extern LPTSTR       SubmissionPort;
-  #endif
-#endif
-
-#if INCLUDE_NNTP
-extern LPTSTR       defaultNNTPPort;
-#endif
-
-#if INCLUDE_POP3
-extern LPTSTR       defaultPOP3Port;
-#endif
-
-#if INCLUDE_IMAP
-extern LPTSTR       defaultIMAPPort;
-#endif
+#include "options.hpp"
+#include "reg.hpp"
+#include "parsing.hpp"
+#include "unicode.hpp"
+#include "sendsmtp.hpp"
+#include "sendnntp.hpp"
 
 static _TCHAR strInstall[]       = __T("-install");
 static _TCHAR strSaveSettings[]  = __T("-SaveSettings");
@@ -129,13 +92,6 @@ static _TCHAR strMailFrom[]      = __T("-mailfrom");
 static _TCHAR strFrom[]          = __T("-from");
 static _TCHAR strSender[]        = __T("-sender");
 
-
-#if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER < 1400)
-static _TCHAR utfHeader[] = { __T('\xEF'), __T('\xBB'), __T('\xBF'), __T('\0') };
-#endif
-
-
-int  printUsage( COMMON_DATA & CommonData, int optionPtr );
 
 #if BLAT_LITE
 #else
@@ -303,6 +259,7 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
         }
 
         if ( !_tcsicmp(argv[this_arg], strF       )
+          || !_tcsicmp(argv[this_arg], strFrom    )
           || !_tcsicmp(argv[this_arg], strI       )
           || !_tcsicmp(argv[this_arg], strSender  )
           || !_tcsicmp(argv[this_arg], strMailFrom)
@@ -363,8 +320,8 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
                 argc--;
                 this_arg++;
                 startargv++;
-                if ( _tcscmp(argv[this_arg], __T("-")) ) {          // If "-" found, then skip the profile.
-                    CommonData.Profile = argv[this_arg];            // Keep the profile if not "-"
+                if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the profile.
+                    CommonData.Profile = argv[this_arg];          // Keep the profile if not "-"
                     checkProfileNameLength( CommonData );
                 }
                 profileFound = TRUE;
@@ -502,8 +459,8 @@ static int checkInstallOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
         if ( !_tcscmp(CommonData.Try.Get(),__T("-")) ) CommonData.Try = __T("1");
         if ( !_tcscmp(CommonData.Try.Get(),__T("0")) ) CommonData.Try = __T("1");
 
-        if ( !_tcscmp(CommonData.SMTPPort.Get(),__T("-")) ) CommonData.SMTPPort = defaultSMTPPort;
-        if ( !_tcscmp(CommonData.SMTPPort.Get(),__T("0")) ) CommonData.SMTPPort = defaultSMTPPort;
+        if ( !_tcscmp(CommonData.SMTPPort.Get(), __T("-")) ) CommonData.SMTPPort = defaultSMTPPort;
+        if ( !_tcscmp(CommonData.SMTPPort.Get(), __T("0")) ) CommonData.SMTPPort = defaultSMTPPort;
 
 #if INCLUDE_NNTP
         CommonData.NNTPHost.Clear();
@@ -598,6 +555,7 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
         }
 
         if ( !_tcsicmp(argv[this_arg], strF       )
+          || !_tcsicmp(argv[this_arg], strFrom    )
           || !_tcsicmp(argv[this_arg], strI       )
           || !_tcsicmp(argv[this_arg], strSender  )
            ) {
@@ -631,10 +589,10 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
         }
 
         if ( !_tcsicmp(argv[this_arg], strPort    )
-#if BLAT_LITE
-#else
+  #if BLAT_LITE
+  #else
           || !_tcsicmp(argv[this_arg], strPortNNTP)
-#endif
+  #endif
            ) {
             if ( argc ) {
                 argc--;
@@ -784,8 +742,10 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     }
 
     if ( argc ) {
-        if ( !_tcsicmp(argv[++this_arg], __T("-hkcu")) ) {
+        if ( argv[this_arg+1] && !_tcsicmp(argv[this_arg+1], __T("-hkcu")) ) {
             useHKCU = TRUE;
+            argc--;
+            this_arg++;
             startargv++;
         }
     }
@@ -797,12 +757,12 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
         if ( !_tcscmp(CommonData.NNTPPort.Get(),__T("-")) ) CommonData.NNTPPort = defaultNNTPPort;
         if ( !_tcscmp(CommonData.NNTPPort.Get(),__T("0")) ) CommonData.NNTPPort = defaultNNTPPort;
 
-#if INCLUDE_POP3
+  #if INCLUDE_POP3
         CommonData.POP3Host.Clear();
-#endif
-#if INCLUDE_IMAP
+  #endif
+  #if INCLUDE_IMAP
         CommonData.IMAPHost.Clear();
-#endif
+  #endif
         CommonData.SMTPHost.Clear();
         if ( CreateRegEntry( CommonData, useHKCU ) == 0 ) {
             printMsg( CommonData, __T("NNTP server set to %s on port %s with user %s, retry %s time(s)\n"), CommonData.NNTPHost.Get(), CommonData.NNTPPort.Get(), CommonData.Sender.Get(), CommonData.Try.Get() );
@@ -929,6 +889,7 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
         }
 
         if ( !_tcsicmp(argv[this_arg], strF       )
+          || !_tcsicmp(argv[this_arg], strFrom    )
           || !_tcsicmp(argv[this_arg], strI       )
           || !_tcsicmp(argv[this_arg], strSender  )
            ) {
@@ -1015,7 +976,7 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 startargv++;
                 if ( _tcscmp(argv[this_arg], __T("-")) ) {        // If "-" found, then skip the login name.
                     CommonData.POP3Login = argv[this_arg];        // Keep the login name if not "-"
-                 }
+                }
                 loginFound = TRUE;
                 argState = INSTALL_STATE_LOGIN_ID+1;
                 continue;
@@ -1026,7 +987,7 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
         }
 
         if ( !_tcsicmp(argv[this_arg], strPw          )
-          || !_tcsicmp(argv[this_arg], strPwd     )
+          || !_tcsicmp(argv[this_arg], strPwd         )
           || !_tcsicmp(argv[this_arg], strPassword    )
   #if BLAT_LITE
   #else
@@ -1119,8 +1080,10 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     }
 
     if ( argc ) {
-        if ( !_tcsicmp(argv[++this_arg], __T("-hkcu")) ) {
+        if ( argv[this_arg+1] && !_tcsicmp(argv[this_arg+1], __T("-hkcu")) ) {
             useHKCU = TRUE;
+            argc--;
+            this_arg++;
             startargv++;
         }
     }
@@ -1223,6 +1186,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 startargv++;
                 CommonData.IMAPHost = argv[this_arg];
                 hostFound = TRUE;
+                argState = INSTALL_STATE_SERVER+1;
                 continue;
             }
 
@@ -1231,6 +1195,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
         }
 
         if ( !_tcsicmp(argv[this_arg], strF       )
+          || !_tcsicmp(argv[this_arg], strFrom    )
           || !_tcsicmp(argv[this_arg], strI       )
           || !_tcsicmp(argv[this_arg], strSender  )
            ) {
@@ -1240,6 +1205,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 startargv++;
                 CommonData.Sender = argv[this_arg];
                 senderFound = TRUE;
+                argState = INSTALL_STATE_SENDER+1;
                 continue;
             }
 
@@ -1254,6 +1220,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 startargv++;
                 CommonData.Try = argv[this_arg];
                 tryFound = TRUE;
+                argState = INSTALL_STATE_TRY+1;
                 continue;
             }
 
@@ -1273,6 +1240,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                 startargv++;
                 CommonData.IMAPPort = argv[this_arg];
                 portFound = TRUE;
+                argState = INSTALL_STATE_PORT+1;
                 continue;
             }
 
@@ -1292,6 +1260,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                     checkProfileNameLength( CommonData );
                 }
                 profileFound = TRUE;
+                argState = INSTALL_STATE_PROFILE+1;
                 continue;
             }
 
@@ -1315,6 +1284,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                     CommonData.IMAPLogin = argv[this_arg];        // Keep the login name if not "-"
                 }
                 loginFound = TRUE;
+                argState = INSTALL_STATE_LOGIN_ID+1;
                 continue;
             }
 
@@ -1339,6 +1309,7 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                     CommonData.IMAPPassword = argv[this_arg];     // Keep the password if not "-"
                 }
                 pwdFound = TRUE;
+                argState = INSTALL_STATE_PASSWORD+1;
                 continue;
             }
 
@@ -1415,15 +1386,17 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     }
 
     if ( argc ) {
-        if ( !_tcsicmp(argv[++this_arg], __T("-hkcu")) ) {
+        if ( argv[this_arg+1] && !_tcsicmp(argv[this_arg+1], __T("-hkcu")) ) {
             useHKCU = TRUE;
+            argc--;
+            this_arg++;
             startargv++;
         }
     }
 
     if ( argState ) {
-        if ( !_tcscmp(CommonData.IMAPPort.Get(),__T("-")) ) CommonData.IMAPPort = defaultIMAPPort;
-        if ( !_tcscmp(CommonData.IMAPPort.Get(),__T("0")) ) CommonData.IMAPPort = defaultIMAPPort;
+        if ( !_tcscmp(CommonData.IMAPPort.Get(), __T("-")) ) CommonData.IMAPPort = defaultIMAPPort;
+        if ( !_tcscmp(CommonData.IMAPPort.Get(), __T("0")) ) CommonData.IMAPPort = defaultIMAPPort;
 
   #if INCLUDE_NNTP
         CommonData.NNTPHost.Clear();
@@ -2091,6 +2064,58 @@ static int checkSensitivity ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     return(1);
 }
 
+#if BLAT_LITE
+#else
+static int checkMDN ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
+{
+    int ret;
+
+    argc      = argc;   // For eliminating compiler warnings.
+    startargv = startargv;
+
+    // Check for message disposition notification type.
+
+    ret = 0;
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("displayed") ) )
+    {
+        CommonData.mdn_type = MDN_DISPLAYED;
+        ret = 1;
+    }
+    else
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("dispatched") ) )
+    {
+        CommonData.mdn_type = MDN_DISPATCHED;
+        ret = 1;
+    }
+    else
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("processed") ) )
+    {
+        CommonData.mdn_type = MDN_PROCESSED;
+        ret = 1;
+    }
+    else
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("deleted") ) )
+    {
+        CommonData.mdn_type = MDN_DELETED;
+        ret = 1;
+    }
+    else
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("denied") ) )
+    {
+        CommonData.mdn_type = MDN_DENIED;
+        ret = 1;
+    }
+    else
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("failed") ) )
+    {
+        CommonData.mdn_type = MDN_FAILED;
+        ret = 1;
+    }
+
+    return ret;
+}
+#endif
+
 static int checkCharset ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
     argc      = argc;   // For eliminating compiler warnings.
@@ -2548,7 +2573,7 @@ static int checkLogMessages ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             CommonData.logOut = _tfopen(CommonData.logFile.Get(), fileCreateAttribute);
 #if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER < 1400)
             if ( CommonData.logOut )
-                _ftprintf( CommonData.logOut, __T("%s"), utfHeader );
+                _ftprintf( CommonData.logOut, __T("%s"), utf8BOM );
 #endif
         }
         else
@@ -2576,7 +2601,7 @@ static int checkLogOverwrite ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
         CommonData.logOut = _tfopen(CommonData.logFile.Get(), fileCreateAttribute);
 #if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER < 1400)
         if ( CommonData.logOut )
-            _ftprintf( CommonData.logOut, __T("%s"), utfHeader );
+            _ftprintf( CommonData.logOut, __T("%s"), utf8BOM );
 #endif
     }
 
@@ -2696,19 +2721,67 @@ static int checkRaw ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int thi
 
 static int checkA1Headers ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
+    unsigned index;
+    unsigned needCap;
+    LPTSTR   pString;
+
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
     CommonData.aheaders1.Add( argv[this_arg+1] );
+    pString = CommonData.aheaders1.Get();
+    if ( pString ) {
+        needCap = TRUE;
+        for ( index = 0; pString[index]; index++ ) {
+            if ( (pString[index] == __T(':')) ||
+                 (pString[index] == __T(' ')) )
+                break;
+
+            if ( isalpha(pString[index]) ) {
+                if ( needCap ) {
+                    pString[index] = (TCHAR)toupper(pString[index]);
+                    needCap = FALSE;
+                } else {
+                    pString[index] = (TCHAR)tolower(pString[index]);
+                }
+            } else {
+                needCap = TRUE;
+            }
+        }
+    }
     return(1);
 }
 
 static int checkA2Headers ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
+    unsigned index;
+    unsigned needCap;
+    LPTSTR   pString;
+
     argc      = argc;   // For eliminating compiler warnings.
     startargv = startargv;
 
     CommonData.aheaders2.Add( argv[this_arg+1] );
+    pString = CommonData.aheaders2.Get();
+    if ( pString ) {
+        needCap = TRUE;
+        for ( index = 0; pString[index]; index++ ) {
+            if ( (pString[index] == __T(':')) ||
+                 (pString[index] == __T(' ')) )
+                break;
+
+            if ( isalpha(pString[index]) ) {
+                if ( needCap ) {
+                    pString[index] = (TCHAR)toupper(pString[index]);
+                    needCap = FALSE;
+                } else {
+                    pString[index] = (TCHAR)tolower(pString[index]);
+                }
+            } else {
+                needCap = TRUE;
+            }
+        }
+    }
     return(1);
 }
 
@@ -3032,7 +3105,7 @@ static int checkDelayTime ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
 #if INCLUDE_SUPERDEBUG
 static int checkSuperDebug ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    CommonData.superDebug = TRUE;
+    CommonData.superDebug = 1;
     return checkDebugMode( CommonData, argc, argv, this_arg, startargv );
 }
 
@@ -3040,6 +3113,12 @@ static int checkSuperDebugT ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 {
     CommonData.superDebug = 2;
     return checkDebugMode( CommonData, argc, argv, this_arg, startargv );
+}
+
+static int checkSuperDuperDebug ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
+{
+    CommonData.superDuperDebug = TRUE;
+    return checkSuperDebug( CommonData, argc, argv, this_arg, startargv );
 }
 #endif
 
@@ -3322,6 +3401,12 @@ _BLATOPTIONS blatOptionsList[] = {
     { __T("-priority")      ,              NULL      , FALSE, 1, checkPriority       ,          __T(" <pr>  : set message priority 0 for low, 1 for high") },
     { __T("-sensitivity")   ,              NULL      , FALSE, 1, checkSensitivity    ,             __T(" <s>: set message sensitivity 0 for personal, 1 for private,") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  2 for company-confidential") },
+#if BLAT_LITE
+#else
+    { __T("-mdn")           ,              NULL      , FALSE, 1, checkMDN            ,     __T(" <type>     : set Message Disposition Notification to <type> where type") },
+    {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  can be displayed, dispatched, processed, deleted, denied, or") },
+    {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  failed.  The message will be marked \"MDN-sent-automatically\"") },
+#endif
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("----------------------- Attachment and encoding options -----------------------") },
     { __T("-attach")        , CGI_HIDDEN             , FALSE, 1, checkBinFileAttach  ,        __T(" <file>  : attach binary file(s) to message (filenames comma separated)") },
@@ -3423,7 +3508,10 @@ _BLATOPTIONS blatOptionsList[] = {
 #if INCLUDE_SUPERDEBUG
     { __T("-superdebug")    ,              NULL      , TRUE , 0, checkSuperDebug     ,            __T("     : hex/ascii dump the data between Blat and the server") },
     { __T("-superdebugT")   ,              NULL      , TRUE , 0, checkSuperDebugT    ,             __T("    : ascii dump the data between Blat and the server") },
+    { __T("-superDuperDebug"),             NULL      , TRUE , 0, checkSuperDuperDebug,                 __T(": log many more debugging messages about Blat's function calls") },
 #endif
+    { __T("-showCommandLineArguments"),    NULL      , TRUE , 0, NULL                , NULL },
+
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("-------------------------------------------------------------------------------") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("Note that if the '-i' option is used, <sender> is included in 'Reply-to:'") },
@@ -3608,6 +3696,7 @@ int printUsage( COMMON_DATA & CommonData, int optionPtr )
 
 int processOptions( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int startargv, int preprocessing )
 {
+    FUNCTION_ENTRY();
     int i, this_arg, retval;
 
 #if SUPPORT_GSSAPI
@@ -3643,9 +3732,17 @@ int processOptions( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int start
         if ( !argv[this_arg][0] )   // If we already dealt with a given option,
             continue;               // it will have been removed from the list.
 
-        if ( (argv[this_arg][0] == __T('/')) ||
-             (argv[this_arg][0] == 0x2013  ) )
+        if ( (argv[this_arg][0] == __T('/'))
+#if defined(_UNICODE) || defined(UNICODE)
+          || (argv[this_arg][0] == 0x2013  )
+#endif
+           ) {
             argv[this_arg][0] = __T('-');
+        }
+    }
+    for ( this_arg = startargv; this_arg < argc; this_arg++ ) {
+        if ( !argv[this_arg][0] )   // If we already dealt with a given option,
+            continue;               // it will have been removed from the list.
 
 #if INCLUDE_SUPERDEBUG
         if ( CommonData.superDebug ) {
@@ -3665,6 +3762,15 @@ int processOptions( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int start
 
             if ( !blatOptionsList[i].optionString )
                 continue;
+
+//#if INCLUDE_SUPERDEBUG
+//            if ( CommonData.superDuperDebug == TRUE ) {
+//                _TCHAR savedQuiet = CommonData.quiet;
+//                CommonData.quiet = FALSE;
+//                printMsg( CommonData, __T("superDuperDebug: comparing >>%s<< to >>%s<<\n"), blatOptionsList[i].optionString, argv[this_arg] );
+//                CommonData.quiet = savedQuiet;
+//            }
+//#endif
 
             if ( _tcsicmp(blatOptionsList[i].optionString, argv[this_arg]) == 0 ) {
                 int next_arg;
@@ -3710,10 +3816,18 @@ int processOptions( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int start
 
                 if ( blatOptionsList[i].additionArgC <= (next_arg - (this_arg + 1)) ) {
                     if ( blatOptionsList[i].preprocess == preprocessing ) {
-                        retval = (*blatOptionsList[i].initFunction)(CommonData, next_arg - (this_arg + 1), argv, this_arg, startargv);
+                        if ( blatOptionsList[i].initFunction == NULL )
+                            retval = 0;
+                        else
+                            retval = (*blatOptionsList[i].initFunction)(CommonData, next_arg - (this_arg + 1), argv, this_arg, startargv);
+
                         if ( CommonData.exitRequired || (retval < 0) ) {
                             CommonData.processedOptions.Free();
-                            return( 0 - retval );
+                            FUNCTION_EXIT();
+                            if ( retval < 0 )
+                                retval = 0 - retval;
+
+                            return( retval );
                         }
 
                         CommonData.processedOptions.Add( __T("    ") );
@@ -3747,6 +3861,7 @@ int processOptions( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int start
                         }
 
                         CommonData.processedOptions.Free();
+                        FUNCTION_EXIT();
                         return (1);
                     }
                 }
@@ -3764,6 +3879,7 @@ int processOptions( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int start
                                   argv[this_arg] );
             printUsage( CommonData, 0 );
             CommonData.processedOptions.Free();
+            FUNCTION_EXIT();
             return(1);
         }
     }
@@ -3775,5 +3891,6 @@ int processOptions( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int start
     }
 
     CommonData.processedOptions.Free();
+    FUNCTION_EXIT();
     return(0);
 }

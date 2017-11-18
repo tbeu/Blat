@@ -5,6 +5,57 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.19
+[+] Added -MDN option that allows Blat to be used for sending Message
+    Disposition Notifications in response to incoming emails through a third
+    party email client.  Supported MDN types are defined in RFCs 2298, 3798,
+    and 8098.  The defined types are: displayed, dispatched, processed,
+    deleted, denied, and failed.  When -MDN option is used with any of these
+    six values, the message headers will indicate "MDN-sent-automatically"
+    along with the requested MDN type, as part of a multipart MIME message.
+    This option will not work with attachments or embedded files.
+[*] When using -priority with a zero value, Blat will set message headers
+    "Priority: non-urgent" and "Importance: low".  Blat has for years set these
+    message headers "Priority: normal" and "Importance: normal" whenever
+    priority was defined to be zero.  Nissl Reinhard indicated Microsoft
+    Outlook 2013 has been treating Blat messages as normal priority instead of
+    the intended low priority.  This change should help Outlook 2013 identify
+    low priority messages properly.
+-------------------------------------------------------------------------------
+3.2.18
+[-] Found a workaround for a problem that exists in Microsoft Visual Studio
+    library routines that caused Blat to output an error message indicating
+    \blat.exe was not found.  The issue was reported by Tim H.  In his case,
+    his command window showed:
+
+        "C:\Program Files\NoInstallReqd\Blat"\blat.exe
+        Blat v3.2.17 (build : Aug 10 2016 22:32:21)
+        32-bit Windows, Full, Unicode
+
+        unknown error code 2 when trying to open \blat.exe
+
+    Blat is written in C++ programming language, which has its own command line
+    parser as part of the executable preamble.  This parsing of the command
+    line occurs before the first line of Blat.cpp is given control, because a
+    requirement by C standards is that C program entry points must be given a
+    count of the command line arguments, what those individual arguments are,
+    and a list of environment variables and values.  What you have stumbled
+    upon is a bug in Microsoft's Visual Studio 2010 32-bit library routines
+    that parse the command line argument in the preamble.  Apparently, the
+    library routines stop parsing the program's path at the second quotation
+    mark, before picking up at the following backslash to present \blat.exe as
+    the "first" argument to be given into the C code.
+
+    I solved this by looking for the program sees the first argument does not
+    end with .exe, and the second argument does end with .exe.  When these two
+    conditions exist, Blat will concatenate the two together and check if the
+    result is a valid filename.  If the result is a valid filename, I replace
+    the first argument with the new string, and remove the second argument from
+    the argument list given.
+
+    If Tim H had placed his closing quoation mark after \blat.exe instead, Blat
+    would have behaved as expected.
+-------------------------------------------------------------------------------
 3.2.17
 [-] Fixed -profile option that could cause the program to crash when using an
     improperly initialized variable.

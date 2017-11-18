@@ -10,70 +10,33 @@
 #include <string.h>
 
 #include "blat.h"
-#include "common_data.h"
 #include "winfile.h"
+#include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
 #include "gensock.h"
 #include "md5.h"
+#include "sendsmtp.hpp"
+#include "unicode.hpp"
+#include "base64.hpp"
+#include "server.hpp"
+#include "bldhdrs.hpp"
+#include "attach.hpp"
+#include "msgbody.hpp"
+#include "parsing.hpp"
 
 #define ALLOW_PIPELINING    FALSE
 #define ALLOW_CHUNKING      FALSE
 
-extern void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
-extern void base64_encode(_TUCHAR * in, size_t length, LPTSTR out, int inclCrLf);
-extern int  base64_decode(_TUCHAR * in, LPTSTR out);
-extern int  open_server_socket( COMMON_DATA & CommonData, LPTSTR host, LPTSTR userPort, LPTSTR defaultPort, LPTSTR portName );
-extern int  get_server_response( COMMON_DATA & CommonData, Buf * responseStr, int * enhancedStatusCode );
-#if INCLUDE_IMAP
-extern int  get_imap_untagged_server_response( COMMON_DATA & CommonData, Buf * responseStr  );
-extern int  get_imap_tagged_server_response( COMMON_DATA & CommonData, Buf * responseStr, LPTSTR tag  );
-#endif
-#if SUPPORT_GSSAPI
-extern int  get_server_response( COMMON_DATA & CommonData, LPTSTR responseStr );
-#endif
-extern int  put_message_line( COMMON_DATA & CommonData, socktag sock, LPTSTR line );
-extern int  finish_server_message( COMMON_DATA & CommonData );
-extern int  close_server_socket( COMMON_DATA & CommonData );
-extern void server_error( COMMON_DATA & CommonData, LPTSTR message );
-extern void server_warning( COMMON_DATA & CommonData, LPTSTR message );
-#ifdef BLATDLL_TC_WCX
-extern int  send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, Buf * responseStr, DWORD attachmentSize );
-extern int  send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, int expected_response, Buf * responseStr, DWORD attachmentSize );
-#else
-extern int  send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, Buf * responseStr );
-extern int  send_edit_data ( COMMON_DATA & CommonData, LPTSTR message, int expected_response, Buf * responseStr );
-#endif
-extern int  noftry( COMMON_DATA & CommonData );
-extern void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs /* Buf & messageBuffer, Buf & header, int buildSMTP,
-                           Buf & lpszFirstReceivedData, Buf & lpszOtherHeader,
-                           LPTSTR attachment_boundary, LPTSTR wanted_hostname, LPTSTR server */ );
-#if SUPPORT_MULTIPART
-extern int  add_one_attachment( COMMON_DATA & CommonData, Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary,
-                                DWORD startOffset, DWORD & length,
-                                int part, int totalparts, int attachNbr, int * prevAttachType );
-extern void getAttachmentInfo( COMMON_DATA & CommonData, int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType, LPTSTR & attachDescription );
-extern void getMaxMsgSize( COMMON_DATA & CommonData, int buildSMTP, DWORD & length );
-#endif
-extern int  add_message_body( COMMON_DATA & CommonData, Buf & messageBuffer, size_t msgBodySize, Buf & multipartHdrs, int buildSMTP,
-                              LPTSTR attachment_boundary, DWORD startOffset, int part, int attachNbr );
-extern int  add_attachments( COMMON_DATA & CommonData, Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary, int nbrOfAttachments );
-extern void add_msg_boundary( COMMON_DATA & CommonData, Buf & messageBuffer, int buildSMTP, LPTSTR attachment_boundary );
-extern void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & parsed_addys, int pathNames );
-
-extern void printMsg( COMMON_DATA & CommonData, LPTSTR p, ... );  // Added 23 Aug 2000 Craig Morrison
-
+LPTSTR defaultSMTPPort = __T("25");
 #if INCLUDE_POP3
-extern int   get_pop3_server_response( COMMON_DATA & CommonData, Buf * responseStr );
-#endif
-
-LPTSTR               defaultSMTPPort     = __T("25");
-#if INCLUDE_POP3
-LPTSTR               defaultPOP3Port     = __T("110");
+LPTSTR defaultPOP3Port = __T("110");
 #endif
 #if defined(SUBMISSION_PORT) && SUBMISSION_PORT
-LPTSTR               SubmissionPort      = __T("587");
+LPTSTR SubmissionPort  = __T("587");
 #endif
 #if INCLUDE_IMAP
-LPTSTR               defaultIMAPPort     = __T("143");
+LPTSTR defaultIMAPPort = __T("143");
 #endif
 
 #if SUPPORT_GSSAPI
@@ -94,6 +57,7 @@ BOOL getline ( COMMON_DATA & CommonData, LPTSTR line )
 
 void find_and_strip_salutation ( COMMON_DATA & CommonData, Buf &email_addresses )
 {
+    FUNCTION_ENTRY();
   #if 0
     // Old (working) version
 
@@ -111,104 +75,103 @@ void find_and_strip_salutation ( COMMON_DATA & CommonData, Buf &email_addresses 
     //_tprintf( __T("find_and_strip_salutation ()\n") );
     parseCommaDelimitString( CommonData, email_addresses.Get(), tmpstr, FALSE );
     srcptr = tmpstr.Get();
-    if ( !srcptr )
-        return;
+    if ( srcptr ) {
+        for ( x = 0; *srcptr; srcptr += len + 1 ) {
+            int addToSal = FALSE;
 
-    for ( x = 0; *srcptr; srcptr += len + 1 ) {
-        int addToSal = FALSE;
+            //_tprintf( __T("srcptr = '%s'\n"), srcptr );
+            len = _tcslen (srcptr);
 
-        //_tprintf( __T("srcptr = '%s'\n"), srcptr );
-        len = _tcslen (srcptr);
-
-        // 30 Jun 2000 Craig Morrison, parses out just email address in TO:,CC:,BCC:
-        // so that all we RCPT To with is the email address.
-        pp = _tcschr(srcptr, __T('<'));
-        if ( pp ) {
-            pp2 = _tcschr(++pp, __T('>'));
-            if ( pp2 ) {
-                *(++pp2) = __T('\0');
-                if ( (DWORD)(pp2 - srcptr) < len ) {
-                    pp2++;
-                    while ( *pp2 == __T(' ') )
+            // 30 Jun 2000 Craig Morrison, parses out just email address in TO:,CC:,BCC:
+            // so that all we RCPT To with is the email address.
+            pp = _tcschr(srcptr, __T('<'));
+            if ( pp ) {
+                pp2 = _tcschr(++pp, __T('>'));
+                if ( pp2 ) {
+                    *(++pp2) = __T('\0');
+                    if ( (DWORD)(pp2 - srcptr) < len ) {
                         pp2++;
+                        while ( *pp2 == __T(' ') )
+                            pp2++;
 
-                    if ( *pp2 == __T('\\') )
-                        pp2++;
+                        if ( *pp2 == __T('\\') )
+                            pp2++;
 
-                    if ( *pp2 == __T('"') )
-                        pp2++;
+                        if ( *pp2 == __T('"') )
+                            pp2++;
 
-                    for ( ; *pp2 && (*pp2 != __T('"')); pp2++ )
-                        if ( *pp2 != __T('\\') ) {
-                            CommonData.salutation.Add( *pp2 );
-                            addToSal = TRUE;
-                        }
+                        for ( ; *pp2 && (*pp2 != __T('"')); pp2++ )
+                            if ( *pp2 != __T('\\') ) {
+                                CommonData.salutation.Add( *pp2 );
+                                addToSal = TRUE;
+                            }
+                    }
                 }
-            }
-        } else {
-            pp = srcptr;
-            while (*pp == __T(' '))
-                pp++;
+            } else {
+                pp = srcptr;
+                while (*pp == __T(' '))
+                    pp++;
 
-            pp2 = _tcschr(pp, __T(' '));
-            if ( pp2 )
-                *pp2 = __T('\0');
-        }
-        if ( x++ )
-            new_addresses.Add( __T(", ") );
+                pp2 = _tcschr(pp, __T(' '));
+                if ( pp2 )
+                    *pp2 = __T('\0');
+            }
+            if ( x++ )
+                new_addresses.Add( __T(", ") );
 
 /*
-        if ( *srcptr == __T('"') ) {
-            srcptr++;
-            len--;
-        }
+            if ( *srcptr == __T('"') ) {
+                srcptr++;
+                len--;
+            }
  */
-        if ( *srcptr != __T('"') ) {
-            pp = _tcsrchr( srcptr, __T('<') );
-            if ( pp ) {
-                *pp = __T('\0');
-                pp2 = _tcschr( srcptr, __T(',') );
-                *pp = __T('<');
-                if ( pp2 ) {
-                    new_addresses.Add( __T('"') );
-                    pp2 = pp;
-                    for ( pp2 = pp; pp2 > srcptr; ) {
-                        if ( *(pp2-1) != __T(' ') )
-                            break;
+            if ( *srcptr != __T('"') ) {
+                pp = _tcsrchr( srcptr, __T('<') );
+                if ( pp ) {
+                    *pp = __T('\0');
+                    pp2 = _tcschr( srcptr, __T(',') );
+                    *pp = __T('<');
+                    if ( pp2 ) {
+                        new_addresses.Add( __T('"') );
+                        pp2 = pp;
+                        for ( pp2 = pp; pp2 > srcptr; ) {
+                            if ( *(pp2-1) != __T(' ') )
+                                break;
+                        }
+                        new_addresses.Add( srcptr, (size_t)(pp2 - srcptr)/sizeof(_TCHAR) );
+                        new_addresses.Add( __T("\" "), 2 );
+                        new_addresses.Add( pp );
+                        //_tprintf( __T("1 new_addresses.Add() = '%s' )\n"), new_addresses.Get() );
+                    } else {
+                        new_addresses.Add( srcptr );
+                        //_tprintf( __T("2 new_addresses.Add( '%s' )\n"), srcptr );
                     }
-                    new_addresses.Add( srcptr, (size_t)(pp2 - srcptr)/sizeof(_TCHAR) );
-                    new_addresses.Add( __T("\" "), 2 );
-                    new_addresses.Add( pp );
-                    //_tprintf( __T("1 new_addresses.Add() = '%s' )\n"), new_addresses.Get() );
                 } else {
                     new_addresses.Add( srcptr );
-                    //_tprintf( __T("2 new_addresses.Add( '%s' )\n"), srcptr );
+                    //_tprintf( __T("3 new_addresses.Add( '%s' )\n"), srcptr );
                 }
             } else {
                 new_addresses.Add( srcptr );
-                //_tprintf( __T("3 new_addresses.Add( '%s' )\n"), srcptr );
+                //_tprintf( __T("4 new_addresses.Add( '%s' )\n"), srcptr );
             }
-        } else {
-            new_addresses.Add( srcptr );
-            //_tprintf( __T("4 new_addresses.Add( '%s' )\n"), srcptr );
+            if ( addToSal )
+                CommonData.salutation.Add( __T('\0') );
         }
-        if ( addToSal )
+
+        if ( CommonData.salutation.Length() )
             CommonData.salutation.Add( __T('\0') );
+
+        //if ( CommonData.salutation.Length() )
+        //     _tprintf( __T("salutation = '%s'\n"), CommonData.salutation.Get() );
+
+        if ( x ) {
+            email_addresses.Move( new_addresses );
+        }
+
+        new_addresses.Free();
+        tmpstr.Free();
+        //_tprintf( __T("find_and_strip_salutation (), done\n") );
     }
-
-    if ( CommonData.salutation.Length() )
-        CommonData.salutation.Add( __T('\0') );
-
-    //if ( CommonData.salutation.Length() )
-    //     _tprintf( __T("salutation = '%s'\n"), CommonData.salutation.Get() );
-
-    if ( x ) {
-        email_addresses.Move( new_addresses );
-    }
-
-    new_addresses.Free();
-    tmpstr.Free();
-    //_tprintf( __T("find_and_strip_salutation (), done\n") );
   #else
     // New version
 
@@ -229,178 +192,179 @@ void find_and_strip_salutation ( COMMON_DATA & CommonData, Buf &email_addresses 
     //_tprintf( __T("find_and_strip_salutation ()\n") );
     parseCommaDelimitString( CommonData, email_addresses.Get(), tmpstr, FALSE );
     srcptr = tmpstr.Get();
-    if ( !srcptr )
-        return;
+    if ( srcptr ) {
+        addToSal = FALSE;
+        for ( x = 0; *srcptr; srcptr += len + 1 ) {
 
-    addToSal = FALSE;
-    for ( x = 0; *srcptr; srcptr += len + 1 ) {
+    #if defined(_UNICODE) || defined(UNICODE)
+            if ( *srcptr == 0xFEFF )
+                srcptr++;
+    #endif
+            //_tprintf( __T("srcptr = '%s'\n"), srcptr );
+            tempLen = len = _tcslen (srcptr);
 
-#if defined(_UNICODE) || defined(UNICODE)
-        if ( *srcptr == 0xFEFF )
-            srcptr++;
-#endif
-        //_tprintf( __T("srcptr = '%s'\n"), srcptr );
-        tempLen = len = _tcslen (srcptr);
+            while( srcptr[tempLen-1] == __T(' ') ) {
+                srcptr[--tempLen] = __T('\0');
+            }
 
-        while( srcptr[tempLen-1] == __T(' ') ) {
-            srcptr[--tempLen] = __T('\0');
-        }
+            // 30 Jun 2000 Craig Morrison, parses out just email address in TO:,CC:,BCC:
+            // so that all we RCPT To with is the email address.
+            pp = _tcschr(srcptr, __T('<'));
+            if ( pp ) {
+                pp2 = _tcschr(++pp, __T('>'));
+                if ( pp2 ) {
+                    ++pp2;
+                    c = *pp2;
+                    *pp2 = __T('\0');
+                    if ( x++ )
+                        new_addresses.Add( __T(", ") );
 
-        // 30 Jun 2000 Craig Morrison, parses out just email address in TO:,CC:,BCC:
-        // so that all we RCPT To with is the email address.
-        pp = _tcschr(srcptr, __T('<'));
-        if ( pp ) {
-            pp2 = _tcschr(++pp, __T('>'));
-            if ( pp2 ) {
-                ++pp2;
-                c = *pp2;
-                *pp2 = __T('\0');
+                    LPTSTR start;
+                    LPTSTR end;
+
+                    start = srcptr;
+                    end = pp-1;
+                    while ( end > start ) {
+                        if ( end[-1] != __T(' ') )
+                            break;
+                        end--;
+                    }
+                    foundQuote = 0;
+                    while ( end > start ) {
+                        new_addresses.Add( *start );
+                        if ( *start == __T('"') )
+                            foundQuote++;
+
+                        start++;
+                    }
+                    if ( foundQuote & 1 )
+                        new_addresses.Add( __T('"') );
+
+                    if ( end != &pp[-1] )
+                        new_addresses.Add( __T(' ') );
+
+                    new_addresses.Add( pp-1 );
+                    //_tprintf( __T("new_addresses.Add( '%s' )\n"), srcptr );
+                    tempLen -= (pp2 - srcptr);
+                    *pp2 = c;
+                    while ( *pp2 == __T(' ') ) {
+                        pp2++;
+                        tempLen--;
+                    }
+
+                    foundQuote = FALSE;
+                    while ( tempLen ) {
+                        if ( (*pp2 == __T('\\')) && (tempLen > 1) ) {
+                            CommonData.salutation.Add( pp2[1] );
+                            pp2 += 2;
+                            addToSal = TRUE;
+                            tempLen -= 2;
+                        } else
+                        if ( *pp2 == __T('"') ) {
+                            foundQuote ^= (TRUE ^ FALSE);
+                            pp2++;
+                            tempLen--;
+                        } else
+                        if ( *pp2 == __T('<') ) {
+                            if ( !foundQuote )
+                                break;
+
+                            CommonData.salutation.Add( *pp2++ );
+                            addToSal = TRUE;
+                            tempLen--;
+                        } else
+                        if ( *pp2 == __T('[') ) {
+                            CommonData.salutation.Add( __T('<') );
+                            pp2++;
+                            addToSal = TRUE;
+                            tempLen--;
+                        } else
+                        if ( *pp2 == __T(']') ) {
+                            CommonData.salutation.Add( __T('>') );
+                            pp2++;
+                            addToSal = TRUE;
+                            tempLen--;
+                        } else {
+                            CommonData.salutation.Add( *pp2++ );
+                            addToSal = TRUE;
+                            tempLen--;
+                        }
+                    }
+                    //if ( foundQuote ) {
+                    //    new_addresses.Add( __T('"') );
+                    //    foundQuote = FALSE;
+                    //}
+                }
+            } else {
+                pp = srcptr;
+                while (*pp == __T(' '))
+                    pp++;
+
+                pp2 = _tcschr(pp, __T(' '));
+                if ( pp2 )
+                    *pp2 = __T('\0');
+
                 if ( x++ )
                     new_addresses.Add( __T(", ") );
 
-                LPTSTR start;
-                LPTSTR end;
-
-                start = srcptr;
-                end = pp-1;
-                while ( end > start ) {
-                    if ( end[-1] != __T(' ') )
-                        break;
-                    end--;
-                }
-                foundQuote = 0;
-                while ( end > start ) {
-                    new_addresses.Add( *start );
-                    if ( *start == __T('"') )
-                        foundQuote++;
-
-                    start++;
-                }
-                if ( foundQuote & 1 )
-                    new_addresses.Add( __T('"') );
-
-                if ( end != &pp[-1] )
-                    new_addresses.Add( __T(' ') );
-
-                new_addresses.Add( pp-1 );
-                //_tprintf( __T("new_addresses.Add( '%s' )\n"), srcptr );
-                tempLen -= (pp2 - srcptr);
-                *pp2 = c;
-                while ( *pp2 == __T(' ') ) {
-                    pp2++;
-                    tempLen--;
-                }
-
-                foundQuote = FALSE;
-                while ( tempLen ) {
-                    if ( (*pp2 == __T('\\')) && (tempLen > 1) ) {
-                        CommonData.salutation.Add( pp2[1] );
-                        pp2 += 2;
-                        addToSal = TRUE;
-                        tempLen -= 2;
-                    } else
-                    if ( *pp2 == __T('"') ) {
-                        foundQuote ^= (TRUE ^ FALSE);
-                        pp2++;
-                        tempLen--;
-                    } else
-                    if ( *pp2 == __T('<') ) {
-                        if ( !foundQuote )
-                            break;
-
-                        CommonData.salutation.Add( *pp2++ );
-                        addToSal = TRUE;
-                        tempLen--;
-                    } else
-                    if ( *pp2 == __T('[') ) {
-                        CommonData.salutation.Add( __T('<') );
-                        pp2++;
-                        addToSal = TRUE;
-                        tempLen--;
-                    } else
-                    if ( *pp2 == __T(']') ) {
-                        CommonData.salutation.Add( __T('>') );
-                        pp2++;
-                        addToSal = TRUE;
-                        tempLen--;
-                    } else {
-                        CommonData.salutation.Add( *pp2++ );
-                        addToSal = TRUE;
-                        tempLen--;
-                    }
-                }
-//                if ( foundQuote ) {
-//                    new_addresses.Add( __T('"') );
-//                    foundQuote = FALSE;
-//                }
-            }
-        } else {
-            pp = srcptr;
-            while (*pp == __T(' '))
-                pp++;
-
-            pp2 = _tcschr(pp, __T(' '));
-            if ( pp2 )
-                *pp2 = __T('\0');
-
-            if ( x++ )
-                new_addresses.Add( __T(", ") );
-
-            if ( *srcptr != __T('"') ) {
-                pp = _tcsrchr( srcptr, __T('<') );
-                if ( pp ) {
-                    *pp = __T('\0');
-                    pp2 = _tcschr( srcptr, __T(',') );
-                    *pp = __T('<');
-                    if ( pp2 ) {
-                        new_addresses.Add( __T('"') );
-                        pp2 = pp;
-                        for ( pp2 = pp; pp2 > srcptr; ) {
-                            if ( *(pp2-1) != __T(' ') )
-                                break;
+                if ( *srcptr != __T('"') ) {
+                    pp = _tcsrchr( srcptr, __T('<') );
+                    if ( pp ) {
+                        *pp = __T('\0');
+                        pp2 = _tcschr( srcptr, __T(',') );
+                        *pp = __T('<');
+                        if ( pp2 ) {
+                            new_addresses.Add( __T('"') );
+                            pp2 = pp;
+                            for ( pp2 = pp; pp2 > srcptr; ) {
+                                if ( *(pp2-1) != __T(' ') )
+                                    break;
+                            }
+                            new_addresses.Add( srcptr, (size_t)(pp2 - srcptr) );
+                            new_addresses.Add( __T("\" "), 2 );
+                            new_addresses.Add( pp );
+                            //_tprintf( __T("1 new_addresses.Add() = '%s' )\n"), new_addresses.Get() );
+                        } else {
+                            new_addresses.Add( srcptr );
+                            //_tprintf( __T("2 new_addresses.Add( '%s' )\n"), srcptr );
                         }
-                        new_addresses.Add( srcptr, (size_t)(pp2 - srcptr) );
-                        new_addresses.Add( __T("\" "), 2 );
-                        new_addresses.Add( pp );
-                        //_tprintf( __T("1 new_addresses.Add() = '%s' )\n"), new_addresses.Get() );
                     } else {
                         new_addresses.Add( srcptr );
-                        //_tprintf( __T("2 new_addresses.Add( '%s' )\n"), srcptr );
+                        //_tprintf( __T("3 new_addresses.Add( '%s' )\n"), srcptr );
                     }
                 } else {
                     new_addresses.Add( srcptr );
-                    //_tprintf( __T("3 new_addresses.Add( '%s' )\n"), srcptr );
+                    //_tprintf( __T("4 new_addresses.Add( '%s' )\n"), srcptr );
                 }
-            } else {
-                new_addresses.Add( srcptr );
-                //_tprintf( __T("4 new_addresses.Add( '%s' )\n"), srcptr );
+            }
+            if ( addToSal ) {
+                CommonData.salutation.Add( __T('\0') );
+                addToSal = FALSE;
             }
         }
-        if ( addToSal ) {
+
+        if ( addToSal )
             CommonData.salutation.Add( __T('\0') );
-            addToSal = FALSE;
-        }
+
+        //if ( CommonData.salutation.Length() )
+        //     _tprintf( __T("salutation = '%s'\n"), CommonData.salutation.Get() );
+
+        if ( x )
+            email_addresses.Move( new_addresses );
+
+        new_addresses.Free();
+        tmpstr.Free();
+        //_tprintf( __T("find_and_strip_salutation (), done\n") );
     }
-
-    if ( addToSal )
-        CommonData.salutation.Add( __T('\0') );
-
-    //if ( CommonData.salutation.Length() )
-    //     _tprintf( __T("salutation = '%s'\n"), CommonData.salutation.Get() );
-
-    if ( x )
-        email_addresses.Move( new_addresses );
-
-    new_addresses.Free();
-    tmpstr.Free();
-    //_tprintf( __T("find_and_strip_salutation (), done\n") );
   #endif
+    FUNCTION_EXIT();
 }
 #endif
 
 
 void parse_email_addresses ( COMMON_DATA & CommonData, LPTSTR email_addresses, Buf & parsed_addys )
 {
+    FUNCTION_ENTRY();
     Buf    tmpstr;
     LPTSTR srcptr;
     LPTSTR pp;
@@ -409,75 +373,75 @@ void parse_email_addresses ( COMMON_DATA & CommonData, LPTSTR email_addresses, B
 
     parsed_addys.Free();
     len = (DWORD)_tcslen(email_addresses);
-    if ( !len )
-        return;
+    if ( len ) {
+        parseCommaDelimitString( CommonData, (LPTSTR )email_addresses, tmpstr, FALSE );
+        srcptr = tmpstr.Get();
+        if ( srcptr ) {
+            for ( ; *srcptr; ) {
+                len = (DWORD)_tcslen( srcptr );
+                pp = _tcschr(srcptr, __T('<'));
+                if ( pp ) {
+                    pp2 = _tcschr(++pp, __T('>'));
+                    if ( pp2 )
+                        *pp2 = __T('\0');
+                } else {        // if <address> not found, then skip blanks and parse for the first blank
+                    pp = srcptr;
+                    while (*pp == __T(' '))
+                        pp++;
 
-    parseCommaDelimitString( CommonData, (LPTSTR )email_addresses, tmpstr, FALSE );
-    srcptr = tmpstr.Get();
-    if ( !srcptr )
-        return;
+                    pp2 = _tcschr(pp, __T(' '));
+                    if ( pp2 )
+                        *pp2 = __T('\0');
+                }
+                parsed_addys.Add( pp, _tcslen(pp) + 1 );
+                srcptr += len + 1;
+            }
 
-    for ( ; *srcptr; ) {
-        len = (DWORD)_tcslen( srcptr );
-        pp = _tcschr(srcptr, __T('<'));
-        if ( pp ) {
-            pp2 = _tcschr(++pp, __T('>'));
-            if ( pp2 )
-                *pp2 = __T('\0');
-        } else {        // if <address> not found, then skip blanks and parse for the first blank
-            pp = srcptr;
-            while (*pp == __T(' '))
-                pp++;
-
-            pp2 = _tcschr(pp, __T(' '));
-            if ( pp2 )
-                *pp2 = __T('\0');
+            parsed_addys.Add( __T('\0') );
+            tmpstr.Free();
         }
-        parsed_addys.Add( pp, _tcslen(pp) + 1 );
-        srcptr += len + 1;
     }
-
-    parsed_addys.Add( __T('\0') );
-    tmpstr.Free();
+    FUNCTION_EXIT();
 }
 
 #define EMAIL_KEYWORD   __T("myself")
 
 void searchReplaceEmailKeyword (COMMON_DATA & CommonData, Buf & email_addresses)
 {
+    FUNCTION_ENTRY();
     Buf    tmpstr;
     LPTSTR srcptr;
     LPTSTR pp;
     DWORD  len;
 
     len = (DWORD) email_addresses.Length();
-    if ( !len )
-        return;
+    if ( len ) {
+        parseCommaDelimitString( CommonData, email_addresses.Get(), tmpstr, FALSE );
+        srcptr = tmpstr.Get();
+        if ( srcptr ) {
+            email_addresses.Clear();
+            for ( ; *srcptr; ) {
+                len = (DWORD)_tcslen( srcptr );
+                pp = srcptr;
+                if ( !_tcscmp( srcptr, EMAIL_KEYWORD ) )
+                    pp = CommonData.loginname.Get();
 
-    parseCommaDelimitString( CommonData, email_addresses.Get(), tmpstr, FALSE );
-    srcptr = tmpstr.Get();
-    if ( !srcptr )
-        return;
+                if ( email_addresses.Length() )
+                    email_addresses.Add( __T(',') );
 
-    email_addresses.Clear();
-    for ( ; *srcptr; ) {
-        len = (DWORD)_tcslen( srcptr );
-        pp = srcptr;
-        if ( !_tcscmp( srcptr, EMAIL_KEYWORD ) )
-            pp = CommonData.loginname.Get();
-
-        if ( email_addresses.Length() )
-            email_addresses.Add( __T(',') );
-
-        email_addresses.Add( pp, _tcslen(pp) );
-        srcptr += len + 1;
+                email_addresses.Add( pp, _tcslen(pp) );
+                srcptr += len + 1;
+            }
+            tmpstr.Free();
+        }
     }
-    tmpstr.Free();
+    FUNCTION_EXIT();
 }
 
 
 static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bAgain = FALSE)
 {
+    FUNCTION_ENTRY();
     _TCHAR out_data[MAXOUTLINE];
     Buf    responseStr;
     int    enhancedStatusCode;
@@ -741,6 +705,7 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bA
             CommonData.charset.Get()[4] = __T('7');
     }
 #endif
+    FUNCTION_EXIT();
     return(0);
 }
 
@@ -748,13 +713,20 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bA
 
 static int say_hello_again (COMMON_DATA & CommonData, LPTSTR wanted_hostname)
 {
-    return say_hello(CommonData, wanted_hostname, TRUE);
+    FUNCTION_ENTRY();
+    int retValue;
+
+    retValue = say_hello(CommonData, wanted_hostname, TRUE);
+
+    FUNCTION_EXIT();
+    return retValue;
 }
 #endif
 
 
 static void cram_md5( COMMON_DATA & CommonData, Buf &challenge, _TCHAR str[] )
 {
+    FUNCTION_ENTRY();
     md5_context   ctx;
     _TUCHAR       k_ipad[65];    /* inner padding - key XORd with ipad */
     _TUCHAR       k_opad[65];    /* outer padding - key XORd with opad */
@@ -845,10 +817,12 @@ static void cram_md5( COMMON_DATA & CommonData, Buf &challenge, _TCHAR str[] )
 
     tmp.Free();
     decodedResponse.Free();
+    FUNCTION_EXIT();
 }
 
 static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LPTSTR pwdAuth)
 {
+    FUNCTION_ENTRY();
     int    enhancedStatusCode;
     _TCHAR out_data[MAXOUTLINE];
     _TCHAR str[1024];
@@ -857,8 +831,10 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
     int    retval;
 
 #if INCLUDE_POP3
-    if ( CommonData.xtnd_xmit_supported )
-       return 0;
+    if ( CommonData.xtnd_xmit_supported ) {
+        FUNCTION_EXIT();
+        return 0;
+    }
 #endif
 
     /* NOW: auth */
@@ -868,6 +844,7 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
         if (!CommonData.gssapiAuthSupported) {
             server_error( CommonData, __T("The SMTP server will not accept AUTH GSSAPI value.\n") );
             finish_server_message(CommonData);
+            FUNCTION_EXIT();
             return(-2);
         }
         try{
@@ -887,8 +864,10 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
 
             if (CommonData.pGss->GetProtectionLevel()!=GSSAUTH_P_NONE)
             {
-                if (say_hello_again(CommonData, CommonData.my_hostname_wanted.Get())!=0)
+                if (say_hello_again(CommonData, CommonData.my_hostname_wanted.Get())!=0) {
+                    FUNCTION_EXIT();
                     return (-5);
+                }
             }
         }
         catch (GssSession::GssException& e)
@@ -898,20 +877,25 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
             server_error(CommonData, szMsg);
             finish_server_message(CommonData);
             CommonData.pGss=NULL;
+            FUNCTION_EXIT();
             return (-5);
         }
         return(0);
     }
 #endif
-    if ( !*loginAuth )
+    if ( !*loginAuth ) {
+        FUNCTION_EXIT();
         return(0);
+    }
 
     if ( CommonData.cramMd5AuthSupported && !CommonData.ByPassCRAM_MD5 ) {
         Buf response;
         Buf response1;
 
-        if ( put_message_line( CommonData, CommonData.ServerSocket, __T("AUTH CRAM-MD5\r\n") ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, __T("AUTH CRAM-MD5\r\n") ) ) {
+            FUNCTION_EXIT();
             return(-1);
+        }
 
         if ( get_server_response( CommonData, &response, &enhancedStatusCode ) == 334 ) {
             response1.Add( response.Get() + 4 );
@@ -920,9 +904,11 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
             response.Free();
 
             if ( put_message_line( CommonData, CommonData.ServerSocket, str ) ) {
+                FUNCTION_EXIT();
                 return(-1);
             }
             if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) == 235 ) {
+                FUNCTION_EXIT();
                 return(0);                  // cram-md5 authentication successful
             }
             server_warning( CommonData, __T("The SMTP server did not accept Auth CRAM-MD5 value.\n") \
@@ -979,14 +965,17 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
         base64_encode((_TUCHAR *)pwdAuth, _tcslen(pwdAuth), out, FALSE);
         _tcscat( out, __T("\r\n") );
 
-        if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) ) {
+            FUNCTION_EXIT();
             return(-1);
+        }
 
         retval = get_server_response( CommonData, &response, &enhancedStatusCode );
         if ( (retval != 334) && (retval != 235) ) {
             server_warning( CommonData, __T("The SMTP server does not require AUTH LOGIN.\n") \
                                         __T("Are you sure server supports AUTH?\n") );
             response.Free();
+            FUNCTION_EXIT();
             return(0);
         }
 
@@ -996,6 +985,7 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
                 server_error( CommonData, __T("The SMTP server did not accept LOGIN name.\n") );
                 finish_server_message(CommonData);
                 response.Free();
+                FUNCTION_EXIT();
                 return(-2);
             }
         }
@@ -1007,46 +997,60 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
                                           __T("Is your password correct?\n") );
                 finish_server_message(CommonData);
                 response.Free();
+                FUNCTION_EXIT();
                 return(-2);
             }
         }
         response.Free();
+        FUNCTION_EXIT();
         return(0);
     }
 #endif
 
-    if ( put_message_line( CommonData, CommonData.ServerSocket, __T("AUTH LOGIN\r\n") ) )
+    if ( put_message_line( CommonData, CommonData.ServerSocket, __T("AUTH LOGIN\r\n") ) ) {
+        FUNCTION_EXIT();
         return(-1);
+    }
 
     if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) != 334 ) {
         server_warning( CommonData, __T("The SMTP server does not require AUTH LOGIN.\n") \
                                     __T("Are you sure server supports AUTH?\n") );
+        FUNCTION_EXIT();
         return(0);
     }
 
     base64_encode((_TUCHAR *)loginAuth, _tcslen(loginAuth), out_data, FALSE);
     _tcscat(out_data, __T("\r\n"));
-    if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) )
+    if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) ) {
+        FUNCTION_EXIT();
         return(-1);
+    }
 
     retval = get_server_response( CommonData, NULL, &enhancedStatusCode );
-    if ( retval == 235 )
+    if ( retval == 235 ) {
+        FUNCTION_EXIT();
         return(0);
+    }
 
     if ( retval == 334 ) {
         base64_encode((_TUCHAR *)pwdAuth, _tcslen(pwdAuth), out_data, FALSE);
         _tcscat(out_data, __T("\r\n"));
-        if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) ) {
+            FUNCTION_EXIT();
             return(-1);
+        }
 
-        if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) == 235 )
+        if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) == 235 ) {
+            FUNCTION_EXIT();
             return(0);
+        }
 
         server_warning( CommonData, __T("The SMTP server did not accept Auth LOGIN PASSWD value.\n") );
     } else
         server_warning( CommonData, __T("The SMTP server did not accept LOGIN name.\n") );
 
     finish_server_message(CommonData);
+    FUNCTION_EXIT();
     return(-2);
 }
 
@@ -1055,6 +1059,7 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
 
 static int prepare_smtp_message( COMMON_DATA & CommonData, LPTSTR dest, DWORD msgLength )
 {
+    FUNCTION_ENTRY();
     int    enhancedStatusCode;
     int    yEnc_This;
     _TCHAR out_data[MAXOUTLINE];
@@ -1067,8 +1072,10 @@ static int prepare_smtp_message( COMMON_DATA & CommonData, LPTSTR dest, DWORD ms
     Buf    tmpBuf;
 
 #if INCLUDE_POP3
-    if ( CommonData.xtnd_xmit_supported )
+    if ( CommonData.xtnd_xmit_supported ) {
+        FUNCTION_EXIT();
         return 0;
+    }
 #endif
 
     parse_email_addresses (CommonData, CommonData.loginname.Get(), tmpBuf);
@@ -1077,6 +1084,7 @@ static int prepare_smtp_message( COMMON_DATA & CommonData, LPTSTR dest, DWORD ms
         server_error( CommonData, __T("No email address was found for the sender name.\n") \
                                   __T("Have you set your mail address correctly?\n") );
         finish_server_message(CommonData);
+        FUNCTION_EXIT();
         return(-2);
     }
 
@@ -1103,13 +1111,16 @@ static int prepare_smtp_message( COMMON_DATA & CommonData, LPTSTR dest, DWORD ms
     tmpBuf.Free();      // release the parsed login email address
 
     _tcscat (out_data, __T("\r\n") );
-    if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) )
+    if ( put_message_line( CommonData, CommonData.ServerSocket, out_data ) ) {
+        FUNCTION_EXIT();
         return(-1);
+    }
 
     if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) != 250 ) {
         server_error( CommonData, __T("The SMTP server does not like the sender name.\n") \
                                   __T("Have you set your mail address correctly?\n") );
         finish_server_message(CommonData);
+        FUNCTION_EXIT();
         return(-2);
     }
 
@@ -1120,6 +1131,7 @@ static int prepare_smtp_message( COMMON_DATA & CommonData, LPTSTR dest, DWORD ms
         server_error( CommonData, __T("No email address was found for recipients.\n") \
                                   __T("Have you set the 'To:' field correctly?\n") );
         finish_server_message(CommonData);
+        FUNCTION_EXIT();
         return(-2);
     }
 
@@ -1253,6 +1265,7 @@ static int prepare_smtp_message( COMMON_DATA & CommonData, LPTSTR dest, DWORD ms
     tmpBuf.Free();      // release the parsed email addresses
     if ( errorsFound == recipientsSent ) {
         finish_server_message(CommonData);
+        FUNCTION_EXIT();
         return(-1);
     }
 
@@ -1267,23 +1280,29 @@ static int prepare_smtp_message( COMMON_DATA & CommonData, LPTSTR dest, DWORD ms
         _TCHAR serverMessage[80];
 
         _stprintf( serverMessage, __T("BDAT %lu LAST\r\n"), msgLength );
-        if ( put_message_line( CommonData, CommonData.ServerSocket, serverMessage ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, serverMessage ) ) {
+            FUNCTION_EXIT();
             return(-1);
+        }
     } else
   #else
   #endif
 #endif
     {
-        if ( put_message_line( CommonData, CommonData.ServerSocket, __T("DATA\r\n") ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, __T("DATA\r\n") ) ) {
+            FUNCTION_EXIT();
             return(-1);
+        }
 
         if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) != 354 ) {
             server_error (CommonData, __T("SMTP server error accepting message data\n"));
             finish_server_message(CommonData);
+            FUNCTION_EXIT();
             return(-1);
         }
     }
 
+    FUNCTION_EXIT();
     return(0);
 }
 
@@ -1305,6 +1324,7 @@ static int prepare_smtp_message( COMMON_DATA & CommonData, LPTSTR dest, DWORD ms
 
 static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
 {
+    FUNCTION_ENTRY();
 #if INCLUDE_POP3
 
     if ( CommonData.POP3Login.Get()[0] || CommonData.POP3Password.Get()[0] )
@@ -1364,6 +1384,7 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
 
                     if ( get_pop3_server_response( CommonData, &responseStr ) == 0 ) {
                         CommonData.xtnd_xmit_supported = TRUE;
+                        FUNCTION_EXIT();
                         return 0;
                     }
                 }
@@ -1412,6 +1433,7 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
                     responseStr.Free();
                     close_server_socket( CommonData );
                     CommonData.quiet = saved_quiet;
+                    FUNCTION_EXIT();
                     return( retVal );
                 }
 
@@ -1429,6 +1451,7 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
                         responseStr.Free();
                         close_server_socket( CommonData );
                         CommonData.quiet = saved_quiet;
+                        FUNCTION_EXIT();
                         return( retVal );
                     }
                     _tcslwr( responseStr.Get() );
@@ -1489,6 +1512,7 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
                             responseStr.Free();
                             close_server_socket( CommonData );
                             CommonData.quiet = saved_quiet;
+                            FUNCTION_EXIT();
                             return( retVal );
                         }
                         challenge.Add( responseStr.Get()+2 );
@@ -1502,6 +1526,7 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
                             responseStr.Free();
                             close_server_socket( CommonData );
                             CommonData.quiet = saved_quiet;
+                            FUNCTION_EXIT();
                             return( retVal );
                         }
                         _tcslwr( responseStr.Get() );
@@ -1530,6 +1555,7 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
                             responseStr.Free();
                             close_server_socket( CommonData );
                             CommonData.quiet = saved_quiet;
+                            FUNCTION_EXIT();
                             return( retVal );
                         }
                         _tcslwr( responseStr.Get() );
@@ -1558,6 +1584,7 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
                             responseStr.Free();
                             close_server_socket( CommonData );
                             CommonData.quiet = saved_quiet;
+                            FUNCTION_EXIT();
                             return( retVal );
                         }
                         _tcslwr( responseStr.Get() );
@@ -1574,6 +1601,7 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
                     responseStr.Free();
                     close_server_socket( CommonData );
                     CommonData.quiet = saved_quiet;
+                    FUNCTION_EXIT();
                     return( retVal );
                 }
             }
@@ -1591,12 +1619,16 @@ static int prefetch_smtp_info(COMMON_DATA & CommonData, LPTSTR wanted_hostname)
             close_server_socket( CommonData );
         }
         CommonData.quiet = saved_quiet;
-        if ( retVal < 0 )
+        if ( retVal < 0 ) {
+            FUNCTION_EXIT();
             return( retVal );
+        }
     }
 #endif
 
-    return say_hello( CommonData, wanted_hostname );
+    int retVal = say_hello( CommonData, wanted_hostname );
+    FUNCTION_EXIT();
+    return( retVal );
 }
 
 
@@ -1605,6 +1637,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
                 LPTSTR attachment_boundary, LPTSTR multipartID,
                 int nbrOfAttachments, DWORD totalsize )
 {
+    FUNCTION_ENTRY();
     Buf     messageBuffer;
     Buf     multipartHdrs;
     Buf     varHeaders;
@@ -1619,11 +1652,12 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
     int     serverOpen;
     BLDHDRS bldHdrs;
     int     userAuthenticated;
-    LPTSTR  attachDescription;
 
     retcode=0;
-    if ( !CommonData.SMTPHost.Get()[0] || !CommonData.Recipients.Length() )
+    if ( !CommonData.SMTPHost.Get()[0] || !CommonData.Recipients.Length() ) {
+        FUNCTION_EXIT();
         return(0);
+    }
 
     bldHdrs.messageBuffer          = &messageBuffer;
     bldHdrs.header                 = &header;
@@ -1710,8 +1744,10 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
 
     retcode = prefetch_smtp_info( CommonData, CommonData.my_hostname_wanted.Get() );
 //    printMsg( CommonData, __T(" ... prefetch_smtp_info() returned %d\n"), retcode );
-    if ( retcode )
+    if ( retcode ) {
+        FUNCTION_EXIT();
         return retcode;
+    }
 
 #if INCLUDE_POP3
     if ( CommonData.xtnd_xmit_supported ) {
@@ -1755,6 +1791,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
         close_server_socket( CommonData );
         serverOpen = 0;
         userAuthenticated = FALSE;
+        FUNCTION_EXIT();
         return 14;
     }
 
@@ -1770,6 +1807,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
         LPTSTR   attachName;
         int      thisPart, partsCount;
         DWORD    startOffset;
+        LPTSTR   attachDescription;
 
         if ( totalParts > 1 )
             printMsg( CommonData, __T("Sending %lu parts for this message.\n"), totalParts );
@@ -1860,8 +1898,10 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
                 build_headers( CommonData, bldHdrs );
                 retcode= add_message_body( CommonData, messageBuffer, msgBodySize, multipartHdrs, TRUE,
                                            attachment_boundary, startOffset, thisPart, attachNbr );
-                if ( retcode )
+                if ( retcode ) {
+                    FUNCTION_EXIT();
                     return retcode;
+                }
 
                 msgBodySize = 0;    // Do not include the body in subsequent messages.
 
@@ -1876,8 +1916,10 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
                     add_msg_boundary( CommonData, messageBuffer, TRUE, attachment_boundary );
 
                 multipartHdrs.Clear();
-                if ( retcode )
+                if ( retcode ) {
+                    FUNCTION_EXIT();
                     return retcode;
+                }
 
                 namesFound = 0;
                 parse_email_addresses (CommonData, CommonData.Recipients.Get(), tmpBuf);
@@ -1886,6 +1928,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
                     server_error( CommonData, __T("No email address was found for recipients.\n") \
                                               __T("Have you set the 'To:' field correctly?\n") );
                     finish_server_message(CommonData);
+                    FUNCTION_EXIT();
                     return(-2);
                 }
                 for ( ; *pp != __T('\0'); namesFound++ )
@@ -1979,6 +2022,7 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
             close_server_socket( CommonData );
             serverOpen = 0;
             userAuthenticated = FALSE;
+            FUNCTION_EXIT();
             return 14;
         }
     }
@@ -2000,16 +2044,20 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
         retcode = add_message_body( CommonData, messageBuffer, msgBodySize, multipartHdrs, TRUE,
                                     attachment_boundary, 0, 0, 0 );
 //        printMsg( CommonData, __T(" ... add_message_body() returned %d\n"), retcode );
-        if ( retcode )
+        if ( retcode ) {
+            FUNCTION_EXIT();
             return retcode;
+        }
 
 //        printMsg( CommonData, __T(" ... adding %d attachments\n"), nbrOfAttachments );
         retcode = add_attachments( CommonData, messageBuffer, TRUE, attachment_boundary, nbrOfAttachments );
         add_msg_boundary( CommonData, messageBuffer, TRUE, attachment_boundary );
 
 //        printMsg( CommonData, __T(" ... add_attachments() returned %d\n"), retcode );
-        if ( retcode )
+        if ( retcode ) {
+            FUNCTION_EXIT();
             return retcode;
+        }
 
         namesFound = 0;
 //        printMsg( CommonData, __T(" ... parsing email addresses(), %s\n"), CommonData.Recipients.Get() );
@@ -2143,5 +2191,6 @@ int send_email( COMMON_DATA & CommonData, size_t msgBodySize,
     multipartHdrs.Free();
     messageBuffer.Free();
 
+    FUNCTION_EXIT();
     return(retcode);
 }

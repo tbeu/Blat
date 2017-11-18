@@ -6,10 +6,28 @@ LINK=g++
 LFLAGS= -o
 CPPFLAGS= -O2 -W -Wall
 
-OBJS = blat.o attach.o base64.o blatcgi.o bldhdrs.o filetype.o \
-       gensock.o gssfuncs.o makeargv.o md5.o mime.o msgbody.o \
-       options.o parsing.o reg.o sendnntp.o sendsmtp.o server.o \
-       unicode.o uuencode.o yenc.o
+OBJS  = blat.o \
+	attach.o \
+	base64.o \
+	blatcgi.o \
+	bldhdrs.o \
+	filetype.o \
+	gensock.o \
+	gssfuncs.o \
+	makeargv.o \
+	md5.o \
+	mime.o \
+	msgbody.o \
+	options.o \
+	parsing.o \
+	punycode.o \
+	reg.o \
+	sendnntp.o \
+	sendsmtp.o \
+	server.o \
+	unicode.o \
+	uuencode.o \
+	yenc.o
 
 LIBFILES = -lwsock32
 
@@ -23,27 +41,28 @@ clean:
         rm -f $(OBJS)
         rm -f $(BINNAME)
 
-attach.o       : attach.cpp   blat.h buf.h winfile.h
-base64.o       : base64.cpp   blat.h buf.h
-blat.o         : blat.cpp     blat.h buf.h gensock.h winfile.h
-blatcgi.o      : blatcgi.cpp  blat.h buf.h
-bldhdrs.o      : bldhdrs.cpp  blat.h buf.h gensock.h
-filetype.o     : filetype.cpp blat.h buf.h
-gensock.o      : gensock.cpp  blat.h buf.h gensock.h
-gssfuncs.o     : gssfuncs.cpp blat.h buf.h gensock.h gssapi_generic.h gssapi\gssapi.h win-mac.h
-makeargv.o     : makeargv.cpp
-md5.o          : md5.c        md5.h
-mime.o         : mime.cpp     blat.h buf.h
-msgbody.o      : msgbody.cpp  blat.h buf.h winfile.h
-options.o      : options.cpp  blat.h buf.h gensock.h winfile.h
-parsing.o      : parsing.cpp  blat.h buf.h
-reg.o          : reg.cpp      blat.h buf.h
-sendnntp.o     : sendnntp.cpp blat.h buf.h gensock.h winfile.h
-sendsmtp.o     : sendsmtp.cpp blat.h buf.h gensock.h winfile.h md5.h
-server.o       : server.cpp   blat.h buf.h
-unicode.o      : unicode.cpp  blat.h buf.h
-uuencode.o     : uuencode.cpp blat.h buf.h
-yenc.o         : yenc.cpp     blat.h buf.h
+attach.o       : attach.cpp   declarations.h buf.h blat.h common_data.h attach.hpp base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h unicode.hpp uuencode.hpp win-mac.h winfile.h yenc.hpp
+base64.o       : base64.cpp   declarations.h buf.h blat.h base64.hpp macros.h
+blat.o         : blat.cpp     declarations.h buf.h blat.h common_data.h attach.hpp blatcgi.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h makeargv.hpp options.hpp reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
+blatcgi.o      : blatcgi.cpp  declarations.h buf.h blat.h common_data.h blatcgi.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h win-mac.h winfile.h
+bldhdrs.o      : bldhdrs.cpp  declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp sendsmtp.hpp unicode.hpp win-mac.h
+filetype.o     : filetype.cpp declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h win-mac.h
+gensock.o      : gensock.cpp  declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h punycode.h server.hpp win-mac.h
+gssfuncs.o     : gssfuncs.cpp declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h win-mac.h
+makeargv.o     : makeargv.cpp declarations.h macros.h makeargv.hpp
+md5.o          : md5.c        declarations.h md5.h
+mime.o         : mime.cpp     declarations.h buf.h blat.h common_data.h connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp win-mac.h
+msgbody.o      : msgbody.cpp  declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp bldhdrs.hpp connections.h filetype.hpp gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h mime.hpp msgbody.hpp sendsmtp.hpp unicode.hpp uuencode.hpp win-mac.h winfile.h
+options.o      : options.cpp  declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h options.hpp parsing.hpp reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
+parsing.o      : parsing.cpp  declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h parsing.hpp win-mac.h
+punycode.o     : punycode.cpp declarations.h buf.h blat.h common_data.h macros.h punycode.h
+reg.o          : reg.cpp      declarations.h buf.h blat.h common_data.h base64.hpp blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h reg.hpp sendnntp.hpp sendsmtp.hpp unicode.hpp win-mac.h winfile.h
+sendnntp.o     : sendnntp.cpp declarations.h buf.h blat.h common_data.h attach.hpp blatext.hpp bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h msgbody.hpp sendnntp.hpp server.hpp unicode.hpp win-mac.h winfile.h
+sendsmtp.o     : sendsmtp.cpp declarations.h buf.h blat.h common_data.h attach.hpp base64.hpp blatext.hpp bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h md5.h msgbody.hpp parsing.hpp sendsmtp.hpp server.hpp unicode.hpp win-mac.h winfile.h
+server.o       : server.cpp   declarations.h buf.h blat.h common_data.h blatext.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h server.hpp win-mac.h
+unicode.o      : unicode.cpp  declarations.h buf.h blat.h common_data.h base64.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h unicode.hpp win-mac.h
+uuencode.o     : uuencode.cpp declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h uuencode.hpp win-mac.h
+yenc.o         : yenc.cpp     declarations.h buf.h blat.h common_data.h bldhdrs.hpp connections.h gensock.h gssapi/gssapi.h gssapi_generic.h gssfuncs.h macros.h win-mac.h yenc.hpp
 
 # vi: set noet :
 

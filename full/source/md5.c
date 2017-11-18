@@ -21,6 +21,7 @@
 #include "declarations.h"
 
 #include <tchar.h>
+#include <windows.h>
 #include <string.h>
 #ifndef DWORD
 #define DWORD unsigned long int
@@ -308,7 +309,7 @@ int _tmain( int argc, LPTSTR* argv )
 
             for( j = 0; j < 16; j++ )
             {
-                _stprintf( output + j * 2, __T("%02") _TCHAR_PRINTF_FORMAT __T("x"), md5sum[j] );
+                _stprintf( output + j * 2, __T("%02x"), md5sum[j] );
             }
 
             if( memcmp( output, val[i], 32 ) )
@@ -332,8 +333,19 @@ int _tmain( int argc, LPTSTR* argv )
 
         md5_starts( &ctx );
 
-        while( ( i = fread( buf, 1, sizeof( buf ), f ) ) > 0 )
+        while( ( i = fread( buf, 1, sizeof( buf ) / sizeof(buf[0]), f ) ) > 0 )
         {
+#if defined(_UNICODE) || defined(UNICODE)
+            BYTE * pByte;
+
+            j = i;
+            pByte = (BYTE *)buf;
+            while ( j > 0 )
+            {
+                --j;
+                buf[j] = pByte[j];
+            }
+#endif
             md5_update( &ctx, buf, i );
         }
 
@@ -341,7 +353,7 @@ int _tmain( int argc, LPTSTR* argv )
 
         for( j = 0; j < 16; j++ )
         {
-            _tprintf( __T("%02") _TCHAR_PRINTF_FORMAT __T("x"), md5sum[j] );
+            _tprintf( __T("%02x"), md5sum[j] );
         }
 
         _tprintf( __T("  %s\n"), argv[1] );

@@ -11,6 +11,10 @@
 
 #include "blat.h"
 #include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
+#include "yenc.hpp"
+#include "bldhdrs.hpp"
 
 #if SUPPORT_YENC
 /*
@@ -49,8 +53,6 @@ unsigned long crc_32_table[256] = {
     0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d };
 */
 
-extern void fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString, int headerLen, int linewrap );
-
 // yEnc encoding has been provided via the web.
 // The source code example for the yEncoder can be found at http://www.yenc.org/
 // It is public domain - as well as the yEnc specification.
@@ -80,6 +82,7 @@ static unsigned long crc_32_table[] = { 0x00000000l, 0x1DB71064l, 0x3B6E20C8l, 0
 void yEncode( COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filename, long full_len,
               int part, int lastpart, unsigned long & full_crc_val )
 {
+    FUNCTION_ENTRY();
     DWORD           filesize;
     DWORD           bufsize;
     int             deslen;
@@ -172,5 +175,6 @@ void yEncode( COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filename
         _tcscat( tmpstr, __T("\r\n") );
     }
     out.Add( tmpstr );
+    FUNCTION_EXIT();
 }
 #endif

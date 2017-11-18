@@ -10,30 +10,18 @@
 #include <string.h>
 
 #include "blat.h"
-#include "common_data.h"
 #include "winfile.h"
+#include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
+#include "attach.hpp"
+#include "uuencode.hpp"
+#include "base64.hpp"
+#include "filetype.hpp"
+#include "bldhdrs.hpp"
+#include "unicode.hpp"
+#include "yenc.hpp"
 
-
-#if BLAT_LITE
-#else
-extern void   douuencode(COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filename, int part, int lastpart);
-#endif
-extern void   base64_encode(Buf & source, Buf & out, int inclCrLf, int inclPad);
-extern void   printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );                     // Added 23 Aug 2000 Craig Morrison
-extern void   fixup(COMMON_DATA & CommonData, LPTSTR string, Buf * tempstring2, int headerLen, int linewrap);
-extern LPTSTR getShortFileName (LPTSTR fileName);
-extern void   getContentType(COMMON_DATA & CommonData, Buf & pDestBuffer, LPTSTR foundType, LPTSTR defaultType, LPTSTR sFileName);
-extern void   incrementBoundary( _TCHAR boundary[] );
-extern void   decrementBoundary( _TCHAR boundary[] );
-extern void   convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequested );
-#if defined(_UNICODE) || defined(UNICODE)
-extern void   checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck );
-#endif
-
-#if SUPPORT_YENC
-extern void   yEncode( COMMON_DATA & CommonData, Buf & source, Buf & out, LPTSTR filename, long full_len,
-                       int part, int lastpart, unsigned long &full_crc_val );
-#endif
 
 static void releaseNode ( NODES * &nextNode )
 {
@@ -51,6 +39,7 @@ static void releaseNode ( NODES * &nextNode )
 
 void getAttachmentInfo( COMMON_DATA & CommonData, int attachNbr, LPTSTR & attachName, DWORD & attachSize, int & attachType, LPTSTR & attachDescription )
 {
+    FUNCTION_ENTRY();
     NODES * tmpNode;
 
     tmpNode = CommonData.attachList;
@@ -61,17 +50,21 @@ void getAttachmentInfo( COMMON_DATA & CommonData, int attachNbr, LPTSTR & attach
     attachSize        = tmpNode->fileSize;
     attachType        = tmpNode->fileType;
     attachDescription = tmpNode->description;
+    FUNCTION_EXIT();
 }
 
 
 void releaseAttachmentInfo ( COMMON_DATA & CommonData )
 {
+    FUNCTION_ENTRY();
     releaseNode( CommonData.attachList );
+    FUNCTION_EXIT();
 }
 
 
 int collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t msgBodySize )
 {
+    FUNCTION_ENTRY();
     int      i;
     size_t   x;
     HANDLE   ihandle;
@@ -200,12 +193,14 @@ int collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t 
         path.Free();
     }
 
+    FUNCTION_EXIT();
     return nbrOfFilesFound;
 }
 
 
 void getMaxMsgSize ( COMMON_DATA & CommonData, int buildSMTP, DWORD &length )
 {
+    FUNCTION_ENTRY();
 #if BLAT_LITE
     CommonData = CommonData;
     buildSMTP  = buildSMTP;
@@ -234,6 +229,7 @@ void getMaxMsgSize ( COMMON_DATA & CommonData, int buildSMTP, DWORD &length )
         }
     }
 #endif
+    FUNCTION_EXIT();
 }
 
 
@@ -243,9 +239,11 @@ static _TCHAR getBitSize( LPTSTR pString )
 
     bitSize = __T('7');
     if ( pString ) {
+
+#if defined(_UNICODE) || defined(UNICODE)
         if ( *pString == 0xFEFF )
             pString++;
-
+#endif
         for ( ; ; ) {
             if ( *pString == __T('\0') )
                 break;
@@ -263,6 +261,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
                          DWORD startOffset, DWORD &length,
                          int part, int totalparts, int attachNbr, int * prevAttachType )
 {
+    FUNCTION_ENTRY();
     int           yEnc_This;
     Buf           tmpstr1;
     Buf           tmpstr2;
@@ -652,12 +651,14 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
     localHdr.Free();
     fileBuffer.Free();
     shortNameBuf.Free();
+    FUNCTION_EXIT();
     return(0);
 }
 
 
 int add_attachments ( COMMON_DATA & CommonData, Buf &messageBuffer, int buildSMTP, LPTSTR attachment_boundary, int nbrOfAttachments )
 {
+    FUNCTION_ENTRY();
     int   retval;
     DWORD length;
     int   attachNbr;
@@ -672,5 +673,6 @@ int add_attachments ( COMMON_DATA & CommonData, Buf &messageBuffer, int buildSMT
             return retval;
     }
 
+    FUNCTION_EXIT();
     return(0);
 }

@@ -10,16 +10,23 @@
 
 #include "blat.h"
 #include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
+#include "mime.hpp"
 
 // MIME Quoted-Printable Content-Transfer-Encoding
 
 int CheckIfNeedQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHeader)
 {
+    FUNCTION_ENTRY();
 #if BLAT_LITE
     CommonData = CommonData;
 #endif
     /* get the length of a line created that way */
     int i;
+    int returnValue;
+
+    returnValue = FALSE;
 
     if ( inHeader ) {  // 8bit MIME does not apply to header information.
         for ( i = 0; pszStr[i]; i++ ) {
@@ -30,15 +37,18 @@ int CheckIfNeedQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHe
 
             if ( ((_TUCHAR)pszStr[i] <  32  ) ||
                  ((_TUCHAR)pszStr[i] >= 127 ) ) {
-                return (TRUE);
+                returnValue = TRUE;
+                break;
             }
         }
     } else {
         for ( i = 0; pszStr[i]; i++ ) {
 
 #if defined(_UNICODE) || defined(UNICODE)
-            if ( (_TUCHAR)pszStr[i] > 0x00FF )
-                return (TRUE);
+            if ( (_TUCHAR)pszStr[i] > 0x00FF ) {
+                returnValue = TRUE;
+                break;
+            }
 #endif
             if ( pszStr[i] == __T('\r') ) {
             } else
@@ -52,14 +62,18 @@ int CheckIfNeedQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHe
 #else
                     if ( CommonData.binaryMimeSupported < 2 )
 #endif
-                        return (TRUE);
+                    {
+                        returnValue = TRUE;
+                        break;
+                    }
                 }
             } else
 #if BLAT_LITE
 #else
             if ( CommonData.binaryMimeSupported /* && CommonData.binaryMimeRequested */ ) {
                 if ( !pszStr[i] || ((CommonData.binaryMimeSupported < 2) && (pszStr[i] == __T('='))) ) {
-                    return (TRUE);
+                    returnValue = TRUE;
+                    break;
                 }
             } else
 #endif
@@ -81,7 +95,8 @@ int CheckIfNeedQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHe
                  (pszStr[i] == __T('~') ) ||
                  (pszStr[i] == __T('\x7F') ) ||
                  ((_TUCHAR)pszStr[i] <  __T(' ') ) ) {
-                return (TRUE);
+                returnValue = TRUE;
+                break;
             }
 
             if ( ((_TUCHAR)pszStr[i] > __T('\x7F'))
@@ -90,16 +105,19 @@ int CheckIfNeedQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHe
                   && (!CommonData.eightBitMimeSupported || !CommonData.eightBitMimeRequested)
 #endif
                ) {
-                return (TRUE);
+                returnValue = TRUE;
+                break;
             }
         }
     }
 
-    return(FALSE);
+    FUNCTION_EXIT();
+    return returnValue;
 }
 
 int GetLengthQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHeader)
 {
+    FUNCTION_ENTRY();
     /* get the length of a line created that way */
     int i;
     int iLen;
@@ -199,11 +217,13 @@ int GetLengthQuotedPrintable(COMMON_DATA & CommonData, LPTSTR pszStr, int inHead
         }
     }
 
+    FUNCTION_EXIT();
     return(iLen);
 }
 
 void ConvertToQuotedPrintable(COMMON_DATA & CommonData, Buf & source, Buf & out, int inHeader)
 {
+    FUNCTION_ENTRY();
     size_t length;
     int    CurrPos;
     LPTSTR pszStr;
@@ -356,4 +376,5 @@ void ConvertToQuotedPrintable(COMMON_DATA & CommonData, Buf & source, Buf & out,
             CurrPos = 0;
         }
     }
+    FUNCTION_EXIT();
 }

@@ -8,9 +8,11 @@
 #include <windows.h>
 #include <ctype.h>
 
+#include "makeargv.hpp"
+
 /*
  * Parse the arguments read in from an options file.  Allow the semicolon (';') to
- * be a comment character.  This can be changed by  the user whenn using a new option
+ * be a comment character.  This can be changed by the user when using a new option
  * called -comment followed by the desired character.  For example, -comment #.
  *
  */

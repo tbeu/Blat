@@ -31,13 +31,10 @@ extern "C" {
 }
 #include "blat.h"
 #include "common_data.h"
+#include "blatext.hpp"
+#include "base64.hpp"
 
 #if SUPPORT_GSSAPI  //Added 2003-11-20 Joseph Calzaretta
-
-extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );
-
-extern void base64_encode(_TUCHAR * in, size_t length, LPTSTR out, int inclCrLf);
-extern int  base64_decode(_TUCHAR * in, LPTSTR out);
 
 // Turn results from the server into an integer representing the return code.
 int GssSession::extract_server_retval(LPTSTR str)

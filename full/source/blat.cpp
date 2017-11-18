@@ -9,11 +9,22 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#include <io.h>
 //#include <vld.h>
 
 #include "blat.h"
-#include "common_data.h"
 #include "winfile.h"
+#include "common_data.h"
+#include "blatext.hpp"
+#include "macros.h"
+#include "blatcgi.hpp"
+#include "attach.hpp"
+#include "sendsmtp.hpp"
+#include "sendnntp.hpp"
+#include "reg.hpp"
+#include "options.hpp"
+#include "makeargv.hpp"
+#include "unicode.hpp"
 
 #define VERSION_SUFFIX  __T("")
 
@@ -26,67 +37,10 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.17")
+#define BLAT_VERSION    __T("3.2.19")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
-
-#ifdef __cplusplus
-extern "C" int _tmain( int argc, LPTSTR *argv, LPTSTR *envp );
-#endif
-
-extern BOOL DoCgiWork(int &argc, LPTSTR* &argv,   Buf &lpszMessage,
-                      Buf &lpszCgiSuccessUrl,     Buf &lpszCgiFailureUrl,
-                      Buf &lpszFirstReceivedData, Buf &lpszOtherHeader);
-extern int  collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t msgBodySize );
-extern void releaseAttachmentInfo ( COMMON_DATA & CommonData );
-
-extern void searchReplaceEmailKeyword ( COMMON_DATA & CommonData, Buf & email_addresses );
-extern int  send_email( COMMON_DATA & CommonData,
-                        size_t msgBodySize, Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
-                        LPTSTR attachment_boundary, LPTSTR multipartID,
-                        int nbrOfAttachments, DWORD totalsize );
-
-#if INCLUDE_NNTP
-extern int  send_news( COMMON_DATA & CommonData,
-                       size_t msgBodySize, Buf &lpszFirstReceivedData, Buf &lpszOtherHeader,
-                       LPTSTR attachment_boundary, LPTSTR multipartID,
-                       int nbrOfAttachments, DWORD totalsize );
-#endif
-extern int  GetRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile );
-
-extern void printTitleLine( COMMON_DATA & CommonData, int quiet );
-extern int  printUsage( COMMON_DATA & CommonData, int optionPtr );
-extern int  processOptions( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int startargv, int preprocessing );
-
-extern size_t make_argv( _TCHAR commentChar,
-                         LPTSTR arglist,                /* argument list                     */
-                         LPTSTR*static_argv,            /* pointer to argv to use            */
-                         size_t max_static_entries,     /* maximum number of entries allowed */
-                         size_t starting_entry,         /* entry in argv to begin placing    */
-                         int    from_dll );             /* blat called as .dll               */
-
-void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );              // Added 23 Aug 2000 Craig Morrison
-
-extern void convertPackedUnicodeToUTF( Buf & sourceText, Buf & outputText, int * utf, LPTSTR charset, int utfRequested );
-extern void convertUnicode( Buf &sourceText, int * utf, LPTSTR charset, int utfRequested );
-#if defined(_UNICODE) || defined(UNICODE)
-extern void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck );
-#endif
-extern LPTSTR       defaultSMTPPort;
-
-#if INCLUDE_NNTP
-extern LPTSTR       defaultNNTPPort;
-#endif
-
-#if INCLUDE_POP3
-extern LPTSTR       defaultPOP3Port;
-#endif
-
-#if INCLUDE_IMAP
-extern LPTSTR       defaultIMAPPort;
-#endif
-
 
 _TCHAR  blatVersion[]    = BLAT_VERSION;
 _TCHAR  blatVersionSuf[] = VERSION_SUFFIX;
@@ -105,8 +59,9 @@ LPTSTR days[] = { __T("Sun"),
                   __T("Sat") };
 
 
-void cleanUpBuffers( COMMON_DATA & CommonData, LPTSTR * savedArguments, int argumentCount )
+static void cleanUpBuffers( COMMON_DATA & CommonData, LPTSTR * savedArguments, int argumentCount )
 {
+    //FUNCTION_ENTRY();
     CommonData.Profile.Free();
     CommonData.priority.Free();
     CommonData.sensitivity.Free();
@@ -191,6 +146,9 @@ void cleanUpBuffers( COMMON_DATA & CommonData, LPTSTR * savedArguments, int argu
     CommonData.aheaders2.Free();
 #endif
 
+    CommonData.mdnHeader.Free();
+    CommonData.mimeHeader.Free();
+
     if ( savedArguments ) {
         int x;
 
@@ -200,6 +158,7 @@ void cleanUpBuffers( COMMON_DATA & CommonData, LPTSTR * savedArguments, int argu
 
         free( savedArguments );
     }
+    //FUNCTION_EXIT();
 }
 
 
@@ -229,14 +188,11 @@ static void shrinkWhiteSpace( Buf & buffer )
 }
 
 
-void InitializeCommonData( COMMON_DATA & CommonData )
+static void InitializeCommonData( COMMON_DATA & CommonData )
 {
     // Initialize global variables.
     cleanUpBuffers( CommonData, NULL, 0 );
 
-#if INCLUDE_SUPERDEBUG
-    CommonData.superDebug                   = 0;
-#endif
     CommonData.Profile.Clear();
     CommonData.priority.Clear();
     CommonData.sensitivity.Clear();
@@ -342,7 +298,6 @@ void InitializeCommonData( COMMON_DATA & CommonData )
     CommonData.formattedContent             = 0;
     CommonData.mime                         = 0;
     CommonData.quiet                        = 0;
-    CommonData.debug                        = 0;
     CommonData.haveEmbedded                 = 0;
     CommonData.haveAttachments              = 0;
     CommonData.attach                       = 0;
@@ -427,6 +382,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     DWORD       totalsize; // total size of all attachments and the message body.
     int         nbrOfAttachments;
     _TCHAR      multipartID[1200];
+    int         x;
 #if defined(_UNICODE) || defined(UNICODE)
   #if BLAT_LITE
     _TCHAR      savedMime;
@@ -436,30 +392,54 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     int         savedUTF;
     Buf         sourceText;
     DWORD       dwVersion;
+#endif
 
-#if 0
-    {
-        int x;
-        _tprintf( __T("\nBlat saw the following command line options:\n") );
-        for ( x = 1; x < argc; x++ ) {
-            int y;
-            _tprintf( __T("%s\n"), argv[x] );
-            for ( y = 0; ; y++ ) {
-                _tprintf( __T(" %04X"), argv[x][y] );
-                if ( argv[x][y] == 0 )
-                    break;
+    ZeroMemory( &CommonData, sizeof(CommonData) );
+
+#if 01
+    for ( x = 1; x < argc; x++ ) {
+        if ( 0 == _tcsicmp( argv[x], __T("-showCommandLineArguments") ) ) {
+            _tprintf( __T("\nBlat saw the following command line options:\n") );
+            for ( x = 0; x < argc; x++ ) {
+                int y;
+                _tprintf( __T("argv[%3i] = %s"), x, argv[x] );
+                for ( y = 0; ; y++ ) {
+                    if ( !(y % 16) )
+                        _tprintf(__T("\n           "));
+
+#if defined(_UNICODE) || defined(UNICODE)
+                    _tprintf( __T(" %04X"), (_TUCHAR)argv[x][y] );
+#else
+                    _tprintf( __T(" %02X"), (_TUCHAR)argv[x][y] );
+#endif
+                    if ( argv[x][y] == 0 )
+                        break;
+                }
+                _tprintf( __T("\n") );
             }
             _tprintf( __T("\n") );
+            break;
         }
-        _tprintf( __T("\n") );
     }
 #endif
 
+#if INCLUDE_SUPERDEBUG
+    for ( x = 1; x < argc; x++ ) {
+        if ( 0 == _tcsicmp( argv[x], __T("-superDuperDebug") ) ) {
+            CommonData.superDuperDebug = TRUE;
+            CommonData.superDebug = 1;
+            CommonData.debug = TRUE;
+        }
+    }
+#endif
+
+#if defined(_UNICODE) || defined(UNICODE)
     dwVersion = GetVersion();
     if ( dwVersion & (0x80ul << ((sizeof(DWORD)-1) * 8)) ) {
+        //fprintf( stderr, "dwVersion = %08lX\n", dwVersion );
         fprintf( stderr, "This Unicode version of Blat cannot run in Windows earlier than Windows 2000.\n" \
                          "Please download and use Blat from the Win98 download folder on Yahoo! groups\n" \
-                         "at http://tech.groups.yahoo.com/group/blat/files/Official/32%20bit%20versions/\n" );
+                         "at http://tech.groups.yahoo.com/group/blat/files/Official/32%%20bit%%20versions/\n" );
         exit(14);
     }
 
@@ -480,9 +460,99 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     _tcscpy( blatBuildTime, blatBuildTimeA );
 #endif
 
-    ZeroMemory( &CommonData, sizeof(CommonData) );
+#if INCLUDE_SUPERDEBUG
+    if ( CommonData.superDuperDebug == TRUE ) {
+        _TCHAR savedQuiet = CommonData.quiet;
+        CommonData.quiet = FALSE;
+        printMsg( CommonData, __T("superDuperDebug: calling InitializeCommonData() from line %i\n"), __LINE__ + 4 );
+        CommonData.quiet = savedQuiet;
+    }
+#endif
     InitializeCommonData( CommonData );
 
+#if INCLUDE_SUPERDEBUG
+    if ( CommonData.superDuperDebug == TRUE ) {
+        _TCHAR savedQuiet = CommonData.quiet;
+        CommonData.quiet = FALSE;
+        printMsg( CommonData, __T("superDuperDebug: back from InitializeCommonData()\n") );
+        CommonData.quiet = savedQuiet;
+    }
+#endif
+
+    if ( argc >= 2 ) {
+#ifdef __WACTOMC__
+        //
+        // Attempt to determine if the second argument is the same as the tail end of the first argument, which might indicate
+        // that the user has quotation marks between the path and executable file name.  For example:
+        //      "C:\Program Files\NoInstallReqd\Blat"\blat.exe
+        //
+        // For Open Watcom version 1.9, the first argument (argv[0]) would be the whole path\filename, while the second
+        // argument is just the characters following the closing quotation mark.
+        //
+        // The above command line is given to Blat as:
+        //
+        // argv[0] = C:\Program Files\NoInstallReqd\Blat\blat.exe
+        // argv[1] = \blat.exe
+        //
+        size_t len = _tcslen( argv[1] );
+        if ( 0 == memcmp( &argv[0][_tcslen(argv[0]) - len], argv[1], len * sizeof(_TCHAR) ) ) {
+            for ( x = 1; x < argc; x++ )
+                argv[x] = argv[x+1];
+
+            argc--;
+        }
+#else
+ #ifndef WIN64
+        //
+        // Attempt to determine if the second argument should be part of the first argument.  Using the example in the above
+        // comments, Visual Studio 2010 (and newer) will give just the portion between quotation marks as the first agument,
+        // and give the remainder as the second argument.  This is for 32-bit compiles, not for 64-bit compiles.
+        //
+        // The command line: "C:\Program Files\NoInstallReqd\Blat"\blat.exe
+        // is given to Blat as:
+        //
+        // argv[0] = C:\Program Files\NoInstallReqd\Blat
+        // argv[1] = \blat.exe
+        //
+        if ( (0 != _tcsicmp( &argv[0][_tcslen( argv[0] )-4], __T(".exe") )) && (0 != _tcsicmp( argv[0], __T("blat.dll") )) ) {
+            if ( 0 == _tcsicmp( &argv[1][_tcslen( argv[1] )-4], __T(".exe") ) ) {
+                Buf newArg0;
+
+                newArg0 = argv[0];
+                newArg0.Add( argv[1] );
+                if ( 0 == _taccess( newArg0.Get(), 0 ) ) {
+
+                    //printf( "old argv list\n" );
+                    //for ( x = 0; x < (0x50 * sizeof(_TCHAR)); x++ ) {
+                    //    if ( x && !(x % 16) )
+                    //        _tprintf( __T("\n") );
+                    //
+                    //    _tprintf( __T(" %02X"), *(BYTE *)((BYTE *)argv + x) );
+                    //}
+                    //_tprintf( __T("\n") );
+
+                    _tcscpy( argv[0], newArg0.Get() );
+
+                    for ( x = 1; x < argc; x++ )
+                        argv[x] = argv[x+1];
+
+                    argc--;
+
+                    //printf( "new argv list\n" );
+                    //for ( x = 0; x < (0x50 * sizeof(_TCHAR)); x++ ) {
+                    //    if ( x && !(x % 16) )
+                    //        _tprintf( __T("\n") );
+                    //
+                    //    _tprintf( __T(" %02X"), *(BYTE *)((BYTE *)argv + x) );
+                    //}
+                    //_tprintf( __T("\n") );
+                }
+                newArg0.Free();
+            }
+        }
+ #endif
+#endif
+    }
     savedArguments = (LPTSTR *) malloc( argc * sizeof(LPTSTR) );
 
     for ( i = 1; i < argc; i++ ) {
@@ -528,8 +598,24 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
     envp = envp;    // To remove compiler warnings.
 
+#if INCLUDE_SUPERDEBUG
+    if ( CommonData.superDuperDebug == TRUE ) {
+        _TCHAR savedQuiet = CommonData.quiet;
+        CommonData.quiet = FALSE;
+        printMsg( CommonData, __T("superDuperDebug: calling InitializeCommonData() from line %i\n"), __LINE__ + 4 );
+        CommonData.quiet = savedQuiet;
+    }
+#endif
     InitializeCommonData( CommonData );
 
+#if INCLUDE_SUPERDEBUG
+    if ( CommonData.superDuperDebug == TRUE ) {
+        _TCHAR savedQuiet = CommonData.quiet;
+        CommonData.quiet = FALSE;
+        printMsg( CommonData, __T("superDuperDebug: back from InitializeCommonData()\n") );
+        CommonData.quiet = savedQuiet;
+    }
+#endif
 #if SUPPORT_GSSAPI
     // Check to see if the GSSAPI library is present by trying to initialize the global GssSession object.
     try
@@ -565,8 +651,6 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     }
 /*
     else {
-        int x;
-
         _tprintf( __T("\nBlat saw the following command line:\n") );
         for ( x = 0; x < argc; x++ ) {
             if ( x )
@@ -598,6 +682,14 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     if ( argv[1][0] == 0x2013 )
         argv[1][0] = __T('-');
 #endif
+#if INCLUDE_SUPERDEBUG
+    if ( CommonData.superDuperDebug == TRUE ) {
+        _TCHAR savedQuiet = CommonData.quiet;
+        CommonData.quiet = FALSE;
+        printMsg( CommonData, __T("superDuperDebug: calling processOptions() near line %i\n"), __LINE__ + 4 );
+        CommonData.quiet = savedQuiet;
+    }
+#endif
     if ( ((argv[1][0] == __T('-')) || (argv[1][0] == __T('/'))) && argv[1][1] )
         retcode = processOptions( CommonData, argc, argv, 1, TRUE );        // Preprocess the options
     else
@@ -608,6 +700,14 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     if ( !CommonData.exitRequired && !CommonData.fCgiWork )
         printTitleLine( CommonData, CommonData.quiet );
 
+#if INCLUDE_SUPERDEBUG
+    if ( CommonData.superDuperDebug == TRUE ) {
+        _TCHAR savedQuiet = CommonData.quiet;
+        CommonData.quiet = FALSE;
+        printMsg( CommonData, __T("superDuperDebug: line %i, exitRequired = %i, retcode %i\n"), __LINE__, CommonData.exitRequired, retcode );
+        CommonData.quiet = savedQuiet;
+    }
+#endif
     if ( CommonData.exitRequired || retcode ) {
         printMsg( CommonData, NULL );
         if ( CommonData.logOut )
@@ -625,8 +725,6 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
         secondArgV = (LPTSTR*)malloc( (maxEntries + 1) * sizeof(LPTSTR) );
         if ( secondArgV ) {
-            WinFile fileh;
-            DWORD   filesize;
             DWORD   dummy;
             LPTSTR  tmpstr;
             size_t  nextEntry = 0;
@@ -709,6 +807,14 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     }
 
     if ( secondArgC ) {
+#if INCLUDE_SUPERDEBUG
+        if ( CommonData.superDuperDebug == TRUE ) {
+            _TCHAR savedQuiet = CommonData.quiet;
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDuperDebug: calling processOptions() at line %i\n"), __LINE__ + 4 );
+            CommonData.quiet = savedQuiet;
+        }
+#endif
         retcode = processOptions( CommonData, secondArgC, secondArgV, 0, TRUE );
         if ( CommonData.exitRequired || retcode ) {
             for ( i = 0; secondArgV[ i ]; i++) {
@@ -731,6 +837,14 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     if ( (argv[1][0] != __T('-')) && (argv[1][0] != __T('/')) ) {
         CommonData.bodyFilename = argv[1];
     }
+#if INCLUDE_SUPERDEBUG
+    if ( CommonData.superDuperDebug == TRUE ) {
+        _TCHAR savedQuiet = CommonData.quiet;
+        CommonData.quiet = FALSE;
+        printMsg( CommonData, __T("superDuperDebug: line %i, bodyFileName = >>%s<<\n"), __LINE__, CommonData.bodyFilename.Get() );
+        CommonData.quiet = savedQuiet;
+    }
+#endif
 
     CommonData.regerr = GetRegEntry( CommonData, CommonData.Profile );
 
@@ -757,6 +871,14 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 #if BLAT_LITE
 #else
     if ( secondArgC ) {
+#if INCLUDE_SUPERDEBUG
+        if ( CommonData.superDuperDebug == TRUE ) {
+            _TCHAR savedQuiet = CommonData.quiet;
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDuperDebug: calling processOptions() at line %i\n"), __LINE__ + 4 );
+            CommonData.quiet = savedQuiet;
+        }
+#endif
         retcode = processOptions( CommonData, secondArgC, secondArgV, 0, FALSE );
 
         for ( i = 0; secondArgV[ i ]; i++) {
@@ -764,6 +886,14 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         }
 
         free( secondArgV );
+#if INCLUDE_SUPERDEBUG
+        if ( CommonData.superDuperDebug == TRUE ) {
+            _TCHAR savedQuiet = CommonData.quiet;
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDuperDebug: line %i, exitRequired = %i, retcode %i\n"), __LINE__, CommonData.exitRequired, retcode );
+            CommonData.quiet = savedQuiet;
+        }
+#endif
         if ( CommonData.exitRequired || retcode ) {
             printMsg( CommonData, NULL );
             if ( CommonData.logOut )
@@ -775,14 +905,20 @@ int _tmain( int argc,             /* Number of strings in array argv          */
     }
 #endif
 
+#if INCLUDE_SUPERDEBUG
+        if ( CommonData.superDuperDebug == TRUE ) {
+            _TCHAR savedQuiet = CommonData.quiet;
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDuperDebug: calling processOptions() near line %i\n"), __LINE__ + 4 );
+            CommonData.quiet = savedQuiet;
+        }
+#endif
     if ( ((argv[1][0] == __T('-')) || (argv[1][0] == __T('/'))) && argv[1][1] )
         retcode = processOptions( CommonData, argc, argv, 1, FALSE );
     else
         retcode = processOptions( CommonData, argc, argv, 2, FALSE );
 
     if ( CommonData.logOut && CommonData.logCommands && !CommonData.usagePrinted ) {
-        int x;
-
         printMsg( CommonData, __T("%i command line argument%s received ...\n"), argc - 1, (argc != 2) ? __T("s") : __T("") );
         for ( x = 1; x < argc; x++ ) {
             if ( savedArguments[x] )
@@ -790,6 +926,14 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         }
     }
 
+#if INCLUDE_SUPERDEBUG
+    if ( CommonData.superDuperDebug == TRUE ) {
+        _TCHAR savedQuiet = CommonData.quiet;
+        CommonData.quiet = FALSE;
+        printMsg( CommonData, __T("superDuperDebug: line %i, exitRequired = %i, retcode %i\n"), __LINE__, CommonData.exitRequired, retcode );
+        CommonData.quiet = savedQuiet;
+    }
+#endif
     // If the -install or -profile option was used,
     // then CommonData.exitRequired should be TRUE while retcode is 0.
     if ( CommonData.exitRequired || retcode ) {
@@ -876,13 +1020,29 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         if ( useCreateFile ) {  // For Windows 2000 and newer.
             HANDLE fh;
 
+#if INCLUDE_SUPERDEBUG
+            if ( CommonData.superDuperDebug == TRUE ) {
+                _TCHAR savedQuiet = CommonData.quiet;
+                CommonData.quiet = FALSE;
+                printMsg( CommonData, __T("superDuperDebug: line %i, bodyFileName = >>%s<<\n"), __LINE__, CommonData.bodyFilename.Get() );
+                CommonData.quiet = savedQuiet;
+            }
+#endif
             fh = CreateFile( CommonData.bodyFilename.Get(), FILE_READ_DATA, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
+#if INCLUDE_SUPERDEBUG
+            if ( CommonData.superDuperDebug == TRUE ) {
+                _TCHAR savedQuiet = CommonData.quiet;
+                CommonData.quiet = FALSE;
+                printMsg( CommonData, __T("superDuperDebug: line %i, file handle = %i\n"), __LINE__, fh );
+                CommonData.quiet = savedQuiet;
+            }
+#endif
             if ( fh == INVALID_HANDLE_VALUE ) {
                 DWORD lastError = GetLastError();
-                if ( lastError )
-                    printMsg(CommonData, __T("unknown error code %lu when trying to open %s\n"), lastError, CommonData.bodyFilename.Get());
-                else
+                if ( lastError == 2 )
                     printMsg(CommonData, __T("%s does not exist\n"), CommonData.bodyFilename.Get());
+                else
+                    printMsg(CommonData, __T("unknown error code %lu when trying to open %s\n"), lastError, CommonData.bodyFilename.Get());
 
                 printMsg( CommonData, NULL );
                 if ( CommonData.logOut )
@@ -1042,11 +1202,27 @@ int _tmain( int argc,             /* Number of strings in array argv          */
                 CommonData.TempConsole.Add( __T("\r\n") );
         }
         CommonData.bodyFilename = stdinFileName;
+#if INCLUDE_SUPERDEBUG
+        if ( CommonData.superDuperDebug == TRUE ) {
+            _TCHAR savedQuiet = CommonData.quiet;
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDuperDebug: line %i, bodyFileName = >>%s<<\n"), __LINE__, CommonData.bodyFilename.Get() );
+            CommonData.quiet = savedQuiet;
+        }
+#endif
     }
 
     if (!CommonData.ConsoleDone) {
         DWORD dummy;
 
+#if INCLUDE_SUPERDEBUG
+        if ( CommonData.superDuperDebug == TRUE ) {
+            _TCHAR savedQuiet = CommonData.quiet;
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDuperDebug: line %i, attempting to open bodyFileName = >>%s<<\n"), __LINE__, CommonData.bodyFilename.Get() );
+            CommonData.quiet = savedQuiet;
+        }
+#endif
         //get the text of the file into a string buffer
         if ( !fileh.OpenThisFile(CommonData.bodyFilename.Get()) ) {
             printMsg(CommonData, __T("error reading %s, aborting\n"),CommonData.bodyFilename.Get());
@@ -1070,10 +1246,34 @@ int _tmain( int argc,             /* Number of strings in array argv          */
             return(4);
         }
         filesize = fileh.GetSize();
+#if INCLUDE_SUPERDEBUG
+        if ( CommonData.superDuperDebug == TRUE ) {
+            _TCHAR savedQuiet = CommonData.quiet;
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDuperDebug: line %i, filesize = %lu\n"), __LINE__, filesize );
+            CommonData.quiet = savedQuiet;
+        }
+#endif
         CommonData.TempConsole.Clear();
         if ( filesize ) {
             CommonData.TempConsole.Alloc( filesize + 1 );
+#if INCLUDE_SUPERDEBUG
+        if ( CommonData.superDuperDebug == TRUE ) {
+            _TCHAR savedQuiet = CommonData.quiet;
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDuperDebug: line %i, calling ReadThisFile()\n"), __LINE__ );
+            CommonData.quiet = savedQuiet;
+        }
+#endif
             retcode = fileh.ReadThisFile(CommonData.TempConsole.Get(), filesize, &dummy, NULL);
+#if INCLUDE_SUPERDEBUG
+        if ( CommonData.superDuperDebug == TRUE ) {
+            _TCHAR savedQuiet = CommonData.quiet;
+            CommonData.quiet = FALSE;
+            printMsg( CommonData, __T("superDuperDebug: line %i, ReadThisFile() returned %i\n"), __LINE__, retcode );
+            CommonData.quiet = savedQuiet;
+        }
+#endif
             CommonData.TempConsole.SetLength( filesize );
             *CommonData.TempConsole.GetTail() = __T('\0');
         } else {
@@ -1176,7 +1376,6 @@ int _tmain( int argc,             /* Number of strings in array argv          */
         LPTSTR lpszUrl;
         DWORD  dwLenUrl;
         DWORD  dwSize;
-        int    i;                                 //lint !e578 hiding i
 
         for ( i=0;i<argc;i++ ) free(argv[i]);
         free(argv);
@@ -1222,7 +1421,10 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 
     CommonData.logOut = NULL;
 
-    return(abs(retcode));
+    if ( retcode < 0 )
+        retcode = 0 - retcode;
+
+    return( retcode );
 }
 
 #ifdef BLATDLL_EXPORTS // this is blat.dll, not blat.exe
@@ -1646,7 +1848,7 @@ void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... )
     bool   converted;
     int    len;
 
-    if ( _tcsicmp( CommonData.charset.Get(), __T("UTF-8") ) == 0 ) {
+    if ( (CommonData.charset.Get() != NULL) && (_tcsicmp( CommonData.charset.Get(), __T("UTF-8") ) == 0) ) {
         // Convert UTF-8 data to Unicode for correct string output
         converted = TRUE;
         y = (int)_tcslen(buf);

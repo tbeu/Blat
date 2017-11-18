@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "blat.h"
+#include "base64.hpp"
 
 // MIME base64 Content-Transfer-Encoding
 

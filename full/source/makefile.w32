@@ -6,9 +6,11 @@ LINK=wlink
 LIB=wlib
 
 PROJ=blat
-#disabled for faster compiler
-LFLAGS=sys nt op st=102400 op version=180 op map
-CFLAGS=/wx /zp1 /zq /xs /fpd /5s /fp5 /bm /mf /oantex /bt=nt /DWATCOM=1
+LFLAGS=sys nt op st=2097152 op version=190 op map
+#LFLAGS=sys nt op st=262144 op version=190 op map
+#LFLAGS=sys nt op st=131072 op version=190 op map
+CFLAGS=/wx /zp1 /zq /xs /fpd /5s /fp5 /bm /mf /os /bt=nt /DWATCOM=1 /DUNICODE /D_UNICODE
+#CFLAGS=/wx /zp1 /zq /xs /fpd /5s /fp5 /bm /mf /oantex /bt=nt /DWATCOM=1
 
 .c.obj  :
         $(CC) $(CFLAGS) $*.c
@@ -16,7 +18,27 @@ CFLAGS=/wx /zp1 /zq /xs /fpd /5s /fp5 /bm /mf /oantex /bt=nt /DWATCOM=1
 .cpp.obj:
         $(CC) $(CFLAGS) $*.cpp
 
-OBJECTS =  attach.obj base64.obj blatcgi.obj bldhdrs.obj filetype.obj gensock.obj gssfuncs.obj makeargv.obj md5.obj mime.obj msgbody.obj options.obj parsing.obj reg.obj sendnntp.obj sendsmtp.obj server.obj unicode.obj uuencode.obj yenc.obj
+OBJECTS =  attach.obj   &
+           base64.obj   &
+           blatcgi.obj  &
+           bldhdrs.obj  &
+           filetype.obj &
+           gensock.obj  &
+           gssfuncs.obj &
+           makeargv.obj &
+           md5.obj      &
+           mime.obj     &
+           msgbody.obj  &
+           options.obj  &
+           parsing.obj  &
+           punycode.obj &
+           reg.obj      &
+           sendnntp.obj &
+           sendsmtp.obj &
+           server.obj   &
+           unicode.obj  &
+           uuencode.obj &
+           yenc.obj
 
 ## variables
 BINNAME=$(PROJ).exe
@@ -31,51 +53,53 @@ all     : $(BINNAME)
 clean   :
         @if exist *.obj erase *.obj
 
-$(BINNAME): $(LIBNAME) blat.obj
-        $(LINK) $(LFLAGS) NAME $(BINNAME) FILE blat.obj $(LIBPATH) $(LIBFILES)
+attach.obj   : attach.cpp      .AUTODEPEND
+
+base64.obj   : base64.cpp      .AUTODEPEND
+
+blat.obj     : blat.cpp        .AUTODEPEND
+
+blatcgi.obj  : blatcgi.cpp     .AUTODEPEND
+
+bldhdrs.obj  : bldhdrs.cpp     .AUTODEPEND
+
+filetype.obj : filetype.cpp    .AUTODEPEND
+
+gensock.obj  : gensock.cpp     .AUTODEPEND
+
+gssfuncs.obj : gssfuncs.cpp    .AUTODEPEND
+
+makeargv.obj : makeargv.cpp    .AUTODEPEND
+
+md5.obj      : md5.c           .AUTODEPEND
+
+mime.obj     : mime.cpp        .AUTODEPEND
+
+msgbody.obj  : msgbody.cpp     .AUTODEPEND
+
+options.obj  : options.cpp     .AUTODEPEND
+
+parsing.obj  : parsing.cpp     .AUTODEPEND
+
+punycode.obj : punycode.cpp    .AUTODEPEND
+
+reg.obj      : reg.cpp         .AUTODEPEND
+
+sendnntp.obj : sendnntp.cpp    .AUTODEPEND
+
+sendsmtp.obj : sendsmtp.cpp    .AUTODEPEND
+
+server.obj   : server.cpp      .AUTODEPEND
+
+unicode.obj  : unicode.cpp     .AUTODEPEND
+
+uuencode.obj : uuencode.cpp    .AUTODEPEND
+
+yenc.obj     : yenc.cpp        .AUTODEPEND
 
 $(LIBNAME): $(LINKOBJS)
 	@if exist $(LIBNAME) erase $(LIBNAME)
         $(LIB) -n $(LIBNAME) $(OBJECTS)
 
-attach.obj   : .\attach.cpp      .\blat.h .\buf.h .\winfile.h
-
-base64.obj   : .\base64.cpp      .\blat.h .\buf.h
-
-blat.obj     : .\blat.cpp        .\blat.h .\buf.h .\gensock.h .\winfile.h
-
-blatcgi.obj  : .\blatcgi.cpp     .\blat.h .\buf.h
-
-bldhdrs.obj  : .\bldhdrs.cpp     .\blat.h .\buf.h .\gensock.h
-
-filetype.obj : .\filetype.cpp    .\blat.h .\buf.h
-
-gensock.obj  : .\gensock.cpp     .\blat.h .\buf.h .\gensock.h
-
-gssfuncs.obj : .\gssfuncs.cpp    .\blat.h .\buf.h .\gensock.h .\gssapi_generic.h .\gssapi\gssapi.h .\win-mac.h
-
-makeargv.obj : .\makeargv.cpp
-
-md5.obj      : .\md5.c           .\md5.h
-
-mime.obj     : .\mime.cpp        .\blat.h .\buf.h
-
-msgbody.obj  : .\msgbody.cpp     .\blat.h .\buf.h .\winfile.h
-
-options.obj  : .\options.cpp     .\blat.h .\buf.h .\gensock.h .\winfile.h
-
-parsing.obj  : .\parsing.cpp     .\blat.h .\buf.h
-
-reg.obj      : .\reg.cpp         .\blat.h .\buf.h
-
-sendnntp.obj : .\sendnntp.cpp    .\blat.h .\buf.h .\gensock.h .\winfile.h
-
-sendsmtp.obj : .\sendsmtp.cpp    .\blat.h .\buf.h .\gensock.h .\winfile.h .\md5.h
-
-server.obj   : .\server.cpp      .\blat.h .\buf.h
-
-unicode.obj  : .\unicode.cpp     .\blat.h .\buf.h
-
-uuencode.obj : .\uuencode.cpp    .\blat.h .\buf.h
-
-yenc.obj     : .\yenc.cpp        .\blat.h .\buf.h
+$(BINNAME): $(LIBNAME) blat.obj
+        $(LINK) $(LFLAGS) NAME $(BINNAME) FILE blat.obj $(LIBPATH) $(LIBFILES)
