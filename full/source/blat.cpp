@@ -37,7 +37,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.19")
+#define BLAT_VERSION    __T("3.2.20")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -596,7 +596,7 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 #endif
     }
 
-    envp = envp;    // To remove compiler warnings.
+    (void)envp;     // To remove compiler warnings.
 
 #if INCLUDE_SUPERDEBUG
     if ( CommonData.superDuperDebug == TRUE ) {
@@ -1559,9 +1559,9 @@ BOOL APIENTRY DllMain( HANDLE hModule,
                        LPVOID lpReserved
                      )
 {
-    hModule            = hModule;               // Remove compiler warnings
-    lpReserved         = lpReserved;            // Remove compiler warnings
-    ul_reason_for_call = ul_reason_for_call;    // Remove compiler warnings
+    (void)hModule;              // Remove compiler warnings
+    (void)lpReserved;           // Remove compiler warnings
+    (void)ul_reason_for_call;   // Remove compiler warnings
 
 //    switch (ul_reason_for_call)
 //    {

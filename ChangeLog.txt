@@ -5,6 +5,14 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.20
+[+] Added -force8bit option to make Blat believe the SMTP server supports
+    8bitmime option when the server does not actually advertize this in its
+    250 responses.  It was mentioned by Heiko Mück that his server does support
+    8-bit MIME messages even though the server does not say that in the 250
+    responses.  This option will allow Blat to use UTF-8 character set instead
+    of UTF-7, thus allowing Heiko to pass his certification.
+-------------------------------------------------------------------------------
 3.2.19
 [+] Added -MDN option that allows Blat to be used for sending Message
     Disposition Notifications in response to incoming emails through a third
@@ -53,8 +61,8 @@
     the first argument with the new string, and remove the second argument from
     the argument list given.
 
-    If Tim H had placed his closing quoation mark after \blat.exe instead, Blat
-    would have behaved as expected.
+    If Tim H had placed his closing quotation mark after \blat.exe instead,
+    Blat would have behaved as expected.
 -------------------------------------------------------------------------------
 3.2.17
 [-] Fixed -profile option that could cause the program to crash when using an

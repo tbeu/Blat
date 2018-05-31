@@ -281,9 +281,9 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
     LPTSTR        attachDescription;
 
 #if BLAT_LITE
-    buildSMTP  = buildSMTP; // remove compiler warnings.
-    totalparts = totalparts;
-    part       = part;
+    (void)buildSMTP;    // remove compiler warnings.
+    (void)totalparts;
+    (void)part;
 #endif
 
 #if SUPPORT_YENC

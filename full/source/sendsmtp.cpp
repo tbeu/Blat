@@ -511,6 +511,11 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bA
 //            unsigned count = 0;
 
 //            printMsg( CommonData, __T(" ... About to parse the server response\n") );
+#if BLAT_LITE
+#else
+            if ( CommonData.force8BitMime )
+                CommonData.eightBitMimeSupported = TRUE;
+#endif
             index = responseStr.Get();  // The responses are already individually NULL terminated, with no CR or LF bytes.
             for ( ; ; )
             {

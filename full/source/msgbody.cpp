@@ -609,7 +609,7 @@ void add_msg_boundary ( COMMON_DATA & CommonData, Buf &messageBuffer, int buildS
     if ( buildSMTP && !CommonData.eightBitMimeSupported )
         yEnc_This = FALSE;
 #else
-    buildSMTP = buildSMTP;  // remove compiler warnings
+    (void)buildSMTP;    // remove compiler warnings
 #endif
 
 #if BLAT_LITE

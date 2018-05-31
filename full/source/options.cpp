@@ -785,8 +785,8 @@ static int checkNNTPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkNNTPSrvr ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.NNTPHost = argv[this_arg+1];
     return(1);
@@ -794,8 +794,8 @@ static int checkNNTPSrvr ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkNNTPPort ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.NNTPPort = argv[this_arg+1];
     return(1);
@@ -803,8 +803,8 @@ static int checkNNTPPort ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkNNTPGroups ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( CommonData.groups.Length() ) {
         printMsg(CommonData, __T("Only one -groups can be used at a time.  Aborting.\n"));
@@ -820,10 +820,10 @@ static int checkNNTPGroups ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
 
 static int checkXtndXmit ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.xtnd_xmit_wanted = TRUE;
 
@@ -1117,8 +1117,8 @@ static int checkPOP3Install ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkPOP3Srvr ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.POP3Host = argv[this_arg+1];
     return(1);
@@ -1126,8 +1126,8 @@ static int checkPOP3Srvr ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkPOP3Port ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.POP3Port = argv[this_arg+1];
     return(1);
@@ -1423,8 +1423,8 @@ static int checkIMAPInstall ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkIMAPSrvr ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.IMAPHost = argv[this_arg+1];
     return(1);
@@ -1432,8 +1432,8 @@ static int checkIMAPSrvr ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkIMAPPort ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.IMAPPort = argv[this_arg+1];
     return(1);
@@ -1445,8 +1445,8 @@ static int checkIMAPPort ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkOptionFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( !CommonData.optionsFile.Get()[0] ) {
         CommonData.optionsFile = argv[this_arg+1];
@@ -1457,8 +1457,8 @@ static int checkOptionFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
 
 static int checkToOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( CommonData.destination.Length() ) {
         printMsg(CommonData, __T("Warning: -t/-to is being used with -tf, or another -t/to.\n\t Previous values will be ignored.\n"));
@@ -1477,8 +1477,8 @@ static int checkToFileOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 {
     int ret;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( CommonData.destination.Length() ) {
         printMsg(CommonData, __T("Warning: -tf is being used with  -t/-to, or another -tf.\n\t Previous values will be ignored.\n"));
@@ -1495,8 +1495,8 @@ static int checkToFileOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkCcOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( CommonData.cc_list.Length() ) {
         printMsg(CommonData, __T("Warning: -c/-cc is being used with  -cf, or another -c/-cc.\n\t Previous values will be ignored.\n"));
@@ -1514,8 +1514,8 @@ static int checkCcFileOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 {
     int ret;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( CommonData.cc_list.Length() ) {
         printMsg(CommonData, __T("Warning: -cf is being used with  -c/-cc, or another -cf.\n\t Previous values will be ignored.\n"));
@@ -1532,8 +1532,8 @@ static int checkCcFileOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkBccOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( CommonData.bcc_list.Length() ) {
         printMsg(CommonData, __T("Warning: -b/-bcc is being used with -bf, or another -b/-bcc.\n\t Previous values will be ignored.\n"));
@@ -1551,8 +1551,8 @@ static int checkBccFileOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 {
     int ret;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( CommonData.bcc_list.Length() ) {
         printMsg(CommonData, __T("Warning: -bf is being used with  -b/-bcc, or another -bf.\n\t Previous values will be ignored.\n"));
@@ -1569,10 +1569,10 @@ static int checkBccFileOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 
 static int checkSubjectOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.subject.Free();
     if ( argv[this_arg+1][0] != __T('\0') ) {
@@ -1596,8 +1596,8 @@ static int checkSubjectFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     LPTSTR  pString;
     Buf     tmpSubject;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.subject.Free();
     if ( fileh.OpenThisFile(argv[this_arg+1])) {
@@ -1654,10 +1654,10 @@ static int checkSubjectFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkSkipSubject ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.ssubject = TRUE;                /*$$ASD*/
 
@@ -1668,8 +1668,8 @@ static int checkBodyText ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 {
     Buf tempBodyParameter;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     tempBodyParameter = argv[this_arg+1];
 #if defined(_UNICODE) || defined(UNICODE)
@@ -1683,8 +1683,8 @@ static int checkBodyText ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkBodyFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( !argv[this_arg+1] )
         return(-1);
@@ -1772,8 +1772,8 @@ static int checkProfileEdit ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkProfileToUse ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.Profile = argv[this_arg+1];
     checkProfileNameLength( CommonData );
@@ -1783,8 +1783,8 @@ static int checkProfileToUse ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkServerOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.SMTPHost = argv[this_arg+1];
     return(1);
@@ -1792,8 +1792,8 @@ static int checkServerOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkFromOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.loginname = argv[this_arg+1];
     return(1);
@@ -1801,8 +1801,8 @@ static int checkFromOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
 
 static int checkImpersonate ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.senderid = argv[this_arg+1];
     CommonData.impersonating = TRUE;
@@ -1812,8 +1812,8 @@ static int checkImpersonate ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkPortOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.SMTPPort = argv[this_arg+1];
     return(1);
@@ -1821,8 +1821,8 @@ static int checkPortOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
 
 static int checkUserIDOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.AUTHLogin = argv[this_arg+1];
     return(1);
@@ -1830,8 +1830,8 @@ static int checkUserIDOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkPwdOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.AUTHPassword = argv[this_arg+1];
 
@@ -1841,8 +1841,8 @@ static int checkPwdOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
 #if INCLUDE_POP3
 static int checkPop3UIDOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.POP3Login = argv[this_arg+1];
 
@@ -1851,8 +1851,8 @@ static int checkPop3UIDOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 
 static int checkPop3PwdOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.POP3Password = argv[this_arg+1];
 
@@ -1863,8 +1863,8 @@ static int checkPop3PwdOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 #if INCLUDE_IMAP
 static int checkImapUIDOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.IMAPLogin = argv[this_arg+1];
 
@@ -1873,8 +1873,8 @@ static int checkImapUIDOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 
 static int checkImapPwdOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.IMAPPassword = argv[this_arg+1];
 
@@ -1885,10 +1885,10 @@ static int checkImapPwdOption ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 #if SUPPORT_GSSAPI
 static int checkGssapiMutual ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
 #if SUBMISSION_PORT
     _tcsncpy(CommonData.SMTPPort, SubmissionPort, SERVER_SIZE);
@@ -1901,10 +1901,10 @@ static int checkGssapiMutual ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkGssapiClient ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
 #if SUBMISSION_PORT
     _tcsncpy(CommonData.SMTPPort, SubmissionPort, SERVER_SIZE );
@@ -1917,8 +1917,8 @@ static int checkGssapiClient ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkServiceName ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.servicename = argv[this_arg+1];
     return(1);
@@ -1926,8 +1926,8 @@ static int checkServiceName ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkProtectionLevel ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     switch (argv[this_arg+1][0]) {
     case __T('N'):
@@ -1952,10 +1952,10 @@ static int checkProtectionLevel ( COMMON_DATA & CommonData, int argc, LPTSTR * a
 
 static int checkBypassCramMD5 ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.ByPassCRAM_MD5 = TRUE;
     return(0);
@@ -1963,8 +1963,8 @@ static int checkBypassCramMD5 ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 
 static int checkOrgOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.organization.Add( argv[this_arg+1] );
 
@@ -1973,8 +1973,8 @@ static int checkOrgOption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
 
 static int checkXHeaders ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     // is argv[] "-x"? If so, argv[3] is an X-Header
     // Header MUST start with X-
@@ -1990,10 +1990,10 @@ static int checkXHeaders ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkDisposition ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.disposition = TRUE;
 
@@ -2002,10 +2002,10 @@ static int checkDisposition ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkReadReceipt ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.returnreceipt = TRUE;
 
@@ -2014,10 +2014,10 @@ static int checkReadReceipt ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkNoHeaders ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.noheader = 1;
 
@@ -2026,10 +2026,10 @@ static int checkNoHeaders ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
 
 static int checkNoHeaders2 ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.noheader = 2;
 
@@ -2039,8 +2039,8 @@ static int checkNoHeaders2 ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
 
 static int checkPriority ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     // Toby Korn 8/4/1999
     // Check for priority. 0 is Low, 1 is High - you don't need
@@ -2053,8 +2053,8 @@ static int checkPriority ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkSensitivity ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     // Check for sensitivity. 0 is personal, 1 is private, 2 is company-confidential
     // normal, since omission of a sensitivity is normal.
@@ -2070,8 +2070,8 @@ static int checkMDN ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int thi
 {
     int ret;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     // Check for message disposition notification type.
 
@@ -2118,8 +2118,8 @@ static int checkMDN ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int thi
 
 static int checkCharset ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.charset = argv[this_arg+1];
     _tcsupr( CommonData.charset.Get() );
@@ -2145,8 +2145,8 @@ static int checkCharset ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
 
 static int checkDeliveryStat ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     _tcslwr( argv[this_arg+1] );
     if ( _tcschr(argv[this_arg+1], __T('n')) )
@@ -2167,10 +2167,10 @@ static int checkDeliveryStat ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkHdrEncB ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.forcedHeaderEncoding = __T('b');
 
@@ -2179,10 +2179,10 @@ static int checkHdrEncB ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
 
 static int checkHdrEncQ ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.forcedHeaderEncoding = __T('q');
 
@@ -2193,10 +2193,10 @@ static int checkHdrEncQ ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
 #if SUPPORT_YENC
 static int check_yEnc ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.mime     = 0;
     CommonData.base64   = FALSE;
@@ -2209,10 +2209,10 @@ static int check_yEnc ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int t
 
 static int checkMime ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.mime     = 1;
 #if BLAT_LITE
@@ -2230,10 +2230,10 @@ static int checkMime ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int th
 
 static int checkUUEncode ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     if ( !CommonData.haveEmbedded ) {
         CommonData.mime     = 0;
@@ -2254,10 +2254,10 @@ static int checkLongUUEncode ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkBase64Enc ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     if ( !CommonData.attach ) {
         CommonData.mime     = 0;
@@ -2289,10 +2289,10 @@ static int checkHTML ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int th
 
 static int checkUnicode ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.utf = UTF_REQUESTED;
     return 0;
@@ -2349,10 +2349,10 @@ static int addToAttachments ( COMMON_DATA & CommonData, LPTSTR * argv, int this_
 
 static int checkMissingAttach ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.ignoreMissingAttachmentFiles = TRUE;
     return(0);
@@ -2360,8 +2360,8 @@ static int checkMissingAttach ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 
 static int checkInlineAttach ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     // -attachI added to v2.4.1
     CommonData.haveAttachments = TRUE;
@@ -2371,8 +2371,8 @@ static int checkInlineAttach ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkTxtFileAttach ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     // -attacht added 98.4.16 v1.7.2 tcharron@interlog.com
     CommonData.haveAttachments = TRUE;
@@ -2382,8 +2382,8 @@ static int checkTxtFileAttach ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 
 static int checkBinFileAttach ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     // -attach added 98.2.24 v1.6.3 tcharron@interlog.com
     CommonData.haveAttachments = TRUE;
@@ -2396,8 +2396,8 @@ static int checkBinFileAttach ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 
 static int checkBinFileEmbed ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.haveEmbedded = TRUE;
     checkMime( CommonData, argc, argv, this_arg, startargv );   // Force MIME encoding.
@@ -2454,8 +2454,8 @@ static int checkTxtFileAttFil ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 {
     int retVal;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     retVal = ReadFilenamesFromFile(CommonData, argv[this_arg+1], TEXT_ATTACHMENT );
 
@@ -2469,8 +2469,8 @@ static int checkBinFileAttFil ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 {
     int retVal;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     retVal = ReadFilenamesFromFile(CommonData, argv[this_arg+1], BINARY_ATTACHMENT );
 
@@ -2484,8 +2484,8 @@ static int checkEmbFileAttFil ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 {
     int retVal;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     checkMime( CommonData, argc, argv, this_arg, startargv );   // Force MIME encoding.
 
@@ -2500,10 +2500,10 @@ static int checkEmbFileAttFil ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 
 static int checkHelp ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     printUsage( CommonData, TRUE );
 
@@ -2512,10 +2512,10 @@ static int checkHelp ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int th
 
 static int checkQuietMode ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.quiet = TRUE;
 
@@ -2524,10 +2524,10 @@ static int checkQuietMode ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
 
 static int checkDebugMode ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.debug = TRUE;
 
@@ -2536,10 +2536,10 @@ static int checkDebugMode ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
 
 static int checkLogCommands ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.logCommands = TRUE;
 
@@ -2548,8 +2548,8 @@ static int checkLogCommands ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkLogMessages ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( CommonData.logOut ) {
         if ( CommonData.logOut != stdout ) {
@@ -2589,10 +2589,10 @@ static int checkLogMessages ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkLogOverwrite ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.clearLogFirst = TRUE;
     if ( CommonData.logOut )
@@ -2610,10 +2610,10 @@ static int checkLogOverwrite ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkTimestamp ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.timestamp = TRUE;
 
@@ -2622,8 +2622,8 @@ static int checkTimestamp ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
 
 static int checkTimeout ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.globaltimeout = _tstoi(argv[this_arg+1]);
 
@@ -2632,8 +2632,8 @@ static int checkTimeout ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
 
 static int checkAttempts ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.Try = argv[this_arg+1];
     return(1);
@@ -2641,10 +2641,10 @@ static int checkAttempts ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkFixPipe ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.bodyconvert = FALSE;
 
@@ -2653,8 +2653,8 @@ static int checkFixPipe ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
 
 static int checkHostname ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.my_hostname_wanted = argv[this_arg+1];
     return(1);
@@ -2662,8 +2662,8 @@ static int checkHostname ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkMailFrom ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.loginname = argv[this_arg+1];
     return(1);
@@ -2671,8 +2671,8 @@ static int checkMailFrom ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkWhoFrom ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.fromid = argv[this_arg+1];
     return(1);
@@ -2680,8 +2680,8 @@ static int checkWhoFrom ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
 
 static int checkReplyTo ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.replytoid = argv[this_arg+1];
     return(1);
@@ -2689,8 +2689,8 @@ static int checkReplyTo ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
 
 static int checkReturnPath ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.returnpathid = argv[this_arg+1];
     return(1);
@@ -2698,8 +2698,8 @@ static int checkReturnPath ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
 
 static int checkSender ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.sendername = argv[this_arg+1];
     return(1);
@@ -2707,10 +2707,10 @@ static int checkSender ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int 
 
 static int checkRaw ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.formattedContent = FALSE;
     return(0);
@@ -2725,8 +2725,8 @@ static int checkA1Headers ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
     unsigned needCap;
     LPTSTR   pString;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.aheaders1.Add( argv[this_arg+1] );
     pString = CommonData.aheaders1.Get();
@@ -2758,8 +2758,8 @@ static int checkA2Headers ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
     unsigned needCap;
     LPTSTR   pString;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.aheaders2.Add( argv[this_arg+1] );
     pString = CommonData.aheaders2.Get();
@@ -2792,6 +2792,17 @@ static int check8bitMime ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
     return checkMime( CommonData, argc, argv, this_arg, startargv );
 }
 
+static int checkForce8bit ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
+{
+    (void)argc;   // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
+
+    CommonData.force8BitMime = TRUE;
+    return(0);
+}
+
 static int checkAltTextFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
     Buf     tmpstr;
@@ -2801,8 +2812,8 @@ static int checkAltTextFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
     DWORD   fileSize;
     DWORD   dummy;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     parseCommaDelimitString( CommonData, argv[this_arg+1], tmpstr, TRUE );
     srcptr = tmpstr.Get();
@@ -2837,8 +2848,8 @@ static int checkAltTextFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkAltText ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     CommonData.alternateText = argv[this_arg+1];
     return(1);
@@ -2852,8 +2863,8 @@ static int checkSigFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
     DWORD   sigsize;
     DWORD   dummy;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     this_arg++;
     if ( !fileh.OpenThisFile(argv[this_arg]) ) {
@@ -2890,8 +2901,8 @@ static int checkTagFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
     LPTSTR  p;
     Buf     tmpBuf;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     this_arg++;
     if ( !fileh.OpenThisFile(argv[this_arg]) ) {
@@ -2950,8 +2961,8 @@ static int checkPostscript ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
     DWORD   sigsize;
     DWORD   dummy;
 
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     this_arg++;
     if ( !fileh.OpenThisFile(argv[this_arg]) ) {
@@ -2980,10 +2991,10 @@ static int checkPostscript ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
 
 static int checkUserAgent ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.includeUserAgent = TRUE;
 
@@ -2997,8 +3008,8 @@ static int checkUserAgent ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
 
 static int checkMultiPartSize ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( argc ) {
         long mps = _tstol( argv[this_arg+1] );
@@ -3023,10 +3034,10 @@ static int checkMultiPartSize ( COMMON_DATA & CommonData, int argc, LPTSTR * arg
 
 static int checkDisableMPS ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.disableMPS = TRUE;
 
@@ -3037,10 +3048,10 @@ static int checkDisableMPS ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
 
 static int checkUnDisROption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    this_arg  = this_arg;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
 
     CommonData.sendUndisclosed = TRUE;
 
@@ -3051,9 +3062,9 @@ static int checkUnDisROption ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 #else
 static int checkUserContType ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    argv      = argv;
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)argv;
+    (void)startargv;
 
     CommonData.userContentType = argv[this_arg+1];
     return(1);
@@ -3062,8 +3073,8 @@ static int checkUserContType ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
 
 static int checkMaxNames ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     int maxn = _tstoi( argv[this_arg+1] );
 
@@ -3075,8 +3086,8 @@ static int checkMaxNames ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, in
 
 static int checkCommentChar ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     if ( _tcslen( argv[++this_arg] ) == 1 ) {
         if ( argv[this_arg][0] != __T('-') )
@@ -3090,8 +3101,8 @@ static int checkCommentChar ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
 static int checkDelayTime ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
-    argc      = argc;   // For eliminating compiler warnings.
-    startargv = startargv;
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
 
     int timeDelay = _tstoi( argv[this_arg+1] );
 
@@ -3442,6 +3453,8 @@ _BLATOPTIONS blatOptionsList[] = {
 #if BLAT_LITE
 #else
     { __T("-8bitmime")      ,              NULL      , FALSE, 0, check8bitMime       ,          __T("       : ask for 8bit data support when sending MIME") },
+    { __T("-force8bit")     ,              NULL      , FALSE, 0, checkForce8bit      ,           __T("      : force Blat to believe the SMTP server supports 8-bit MIME") },
+    {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  when the server does not say that it supports 8BITMIME") },
 #endif
 #if SUPPORT_YENC
     { __T("-yenc")          ,              NULL      , FALSE, 0, check_yEnc          ,      __T("           : send binary files encoded with yEnc") },

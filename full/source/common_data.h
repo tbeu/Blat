@@ -166,6 +166,7 @@ typedef struct _COMMON_DATA
     _TCHAR        eightBitMimeRequested;
     _TCHAR        binaryMimeSupported;
     //_TCHAR  binaryMimeRequested;
+    _TCHAR        force8BitMime;
 
     Buf           optionsFile;
     FILE *        optsFile;
