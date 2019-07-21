@@ -37,7 +37,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.20")
+#define BLAT_VERSION    __T("3.2.21")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -618,18 +618,17 @@ int _tmain( int argc,             /* Number of strings in array argv          */
 #endif
 #if SUPPORT_GSSAPI
     // Check to see if the GSSAPI library is present by trying to initialize the global GssSession object.
-    try
-    {
+    try {
         CommonData.pGss = &CommonData.TheSession;
     }
-    catch (GssSession::GssNoLibrary&) // If no library present, disallow the AUTH GSSAPI options
-    {
+    catch (GssSession::GssNoLibrary&) {
+        // If no library present, disallow the AUTH GSSAPI options
         CommonData.bSuppressGssOptionsAtRuntime = TRUE;
         CommonData.pGss = NULL;
     }
-    catch (GssSession::GssException&) // Silently fail if any other GssException shows up.  Only complain later
+    catch (GssSession::GssException&) {
+        // Silently fail if any other GssException shows up.  Only complain later
         // if someone actually tries to use AUTH GSSAPI.
-    {
         CommonData.pGss = NULL;
     }
 #endif
@@ -1688,8 +1687,7 @@ static void printDLLW(LPTSTR pString) {
             delete [] pWCharString;
         }
 #endif
-    }
-    else
+    } else
         _fputts( pString, stdout );
 }
 
@@ -1710,8 +1708,7 @@ static void printDLLA(LPTSTR pString) {
 #else
         pPrintDLL( (LPTSTR)pString );
 #endif
-    }
-    else
+    } else
         _fputts( pString, stdout );
 }
 
@@ -1860,8 +1857,7 @@ void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... )
             }
             if ( c < 0x80 )
                 tmpStr.Add( c );
-            else
-            {
+            else {
                 if ( (c & 0xE0) == 0xC0 ) {
                     lValue = (DWORD)c & 0x1F;
                     len = 1;

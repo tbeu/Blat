@@ -138,8 +138,7 @@ int collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t 
                     if ( fileh.IsDiskFile() ) {
                         if ( FindFileData.nFileSizeHigh ) {
                             printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but it is too large (>= 4GB), therefore will not be attached or sent.\n"), attachedfile.Get(), fileToSearchFor.Get());
-                        }
-                        else {
+                        } else {
                             DWORD tmpSize = totalsize;
 
                             totalsize += FindFileData.nFileSizeLow;
@@ -164,8 +163,7 @@ int collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t 
                                     x = (description.Length() + 1) * sizeof(_TCHAR);
                                     tmpNode->description = (LPTSTR) malloc( x );
                                     memcpy( tmpNode->description, description.Get(), x );
-                                }
-                                else
+                                } else
                                     tmpNode->description = NULL;
 
                                 tmpNode->fileType = CommonData.attachtype[i];
@@ -174,13 +172,11 @@ int collectAttachmentInfo ( COMMON_DATA & CommonData, DWORD & totalsize, size_t 
                                 nbrOfFilesFound++;
                             }
                         }
-                    }
-                    else {
+                    } else {
                         printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but it appears to not be a file that can be opened.\n"), attachedfile.Get(), fileToSearchFor.Get());
                     }
                     fileh.Close();
-                }
-                else {
+                } else {
                     printMsg(CommonData, __T("Found \"%s\" matching search string \"%s\", but the file cannot be opened.\n"), attachedfile.Get(), fileToSearchFor.Get());
                 }
                 attachedfile.Free();
@@ -359,6 +355,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
             localHdr.Free();
             fileBuffer.Free();
             shortNameBuf.Free();
+            FUNCTION_EXIT();
             return(3);
         }
         attachSize = fullFileSize;
@@ -372,6 +369,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
             localHdr.Free();
             fileBuffer.Free();
             shortNameBuf.Free();
+            FUNCTION_EXIT();
             return(5);
         }
         *fileBuffer.GetTail() = __T('\0');
@@ -463,8 +461,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
                         tmpstr1.Add( __T(" name=\"") );
                         tmpstr1.Add( tmpstr3 );
                         tmpstr1.Add( __T("\"") );
-                    }
-                    else {
+                    } else {
                         tmpstr1.Remove();
                         tmpstr1.Remove();
                     }
@@ -495,8 +492,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
                     if ( attachType == INLINE_ATTACHMENT ) {
                         tmpstr1 = __T("Content-Type: text/");
                         tmpstr1.Add( CommonData.textmode );
-                    }
-                    else {
+                    } else {
                         tmpstr1.Remove();               // remove the line feed ('\n')
                         tmpstr1.Remove();               // remove the carriage return ('\r')
                     }
@@ -525,8 +521,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
                         tmpstr1.Add( __T("\"") );
                         tmpstr2.Add( attachDescription );
                         tmpstr1.Add( __T("\"") );
-                    }
-                    else
+                    } else
                         tmpstr2.Add( attachDescription );
 
                     tmpstr2.Add( __T("\r\n") );
@@ -568,6 +563,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
             localHdr.Free();
             fileBuffer.Free();
             shortNameBuf.Free();
+            FUNCTION_EXIT();
             return(3);
         }
 
@@ -581,6 +577,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
                 localHdr.Free();
                 fileBuffer.Free();
                 shortNameBuf.Free();
+                FUNCTION_EXIT();
                 return(5);
             }
         }
@@ -600,6 +597,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
             localHdr.Free();
             fileBuffer.Free();
             shortNameBuf.Free();
+            FUNCTION_EXIT();
             return(5);
         }
         *fileBuffer.GetTail() = __T('\0');
@@ -664,15 +662,16 @@ int add_attachments ( COMMON_DATA & CommonData, Buf &messageBuffer, int buildSMT
     int   attachNbr;
     int   prevAttachType;
 
+    retval = 0;
     prevAttachType = -1;
     for ( attachNbr = 0; attachNbr < nbrOfAttachments; attachNbr++ ) {
         length = (DWORD)-1;
         retval = add_one_attachment( CommonData, messageBuffer, buildSMTP, attachment_boundary,
                                      0, length, 1, 1, attachNbr, &prevAttachType );
         if ( retval )
-            return retval;
+            break;
     }
 
     FUNCTION_EXIT();
-    return(0);
+    return retval;
 }

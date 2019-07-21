@@ -19,12 +19,13 @@
 #include "sendnntp.hpp"
 #include "unicode.hpp"
 
-static const _TCHAR SoftwareRegKey[]     = __T("SOFTWARE");
+static const _TCHAR SoftwareRegKey[]     = __T("SOFTWARE\\");
+static const _TCHAR VirtualStoreKey[]    = __T("Classes\\VirtualStore\\MACHINE\\");
 
 #if defined(_WIN64)
-static const _TCHAR Wow6432NodeKey[]     = __T("\\Wow6432Node");
+static const _TCHAR Wow6432NodeKey[]     = __T("Wow6432Node\\");
 #endif
-static const _TCHAR MainRegKey[]         = __T("\\Public Domain\\Blat");
+static const _TCHAR MainRegKey[]         = __T("Public Domain\\Blat");
 
 static const _TCHAR RegKeySMTPHost[]     = __T("SMTP Server");
 static const _TCHAR RegKeySMTPPort[]     = __T("SMTP Port");
@@ -48,6 +49,11 @@ static const _TCHAR RegKeyLogin[]        = __T("Login");
 static const _TCHAR RegKeyPassword[]     = __T("Pwd");
 static const _TCHAR RegKeySender[]       = __T("Sender");
 static const _TCHAR RegKeyTry[]          = __T("Try");
+
+#if defined(_WIN64)
+#else
+#define LSTATUS LONG
+#endif
 
 #if defined(_UNICODE) || defined(UNICODE)
 
@@ -189,11 +195,11 @@ static void encodeThis( _TUCHAR * in, LPTSTR out, int inclCrLf )
 static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
 {
     FUNCTION_ENTRY();
-    HKEY   hKey1;
-    DWORD  dwDisposition;
-    LONG   lRetCode;
-    Buf    strRegisterKey;
-    Buf    tmpstr;
+    HKEY    hKey1;
+    DWORD   dwDisposition;
+    LSTATUS lRetCode;
+    Buf     strRegisterKey;
+    Buf     tmpstr;
 
 #if defined(_WIN64)
     strRegisterKey = SoftwareRegKey;
@@ -210,6 +216,25 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
                                 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey1, &dwDisposition
                               );
 
+    /* if we failed the normal location, try under VirtualStore */
+    if ( lRetCode != ERROR_SUCCESS )
+    {
+        strRegisterKey = SoftwareRegKey;
+        strRegisterKey.Add( VirtualStoreKey );
+        strRegisterKey.Add( SoftwareRegKey );
+        strRegisterKey.Add( Wow6432NodeKey );
+        strRegisterKey.Add( MainRegKey );
+        if ( CommonData.Profile.Get()[0] != __T('\0') ) {
+            strRegisterKey.Add(__T("\\"));
+            strRegisterKey.Add(CommonData.Profile);
+        }
+        /* try to create the registry key */
+        lRetCode = RegCreateKeyEx ( rootKeyLevel,
+                                    strRegisterKey.Get(),
+                                    0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey1, &dwDisposition
+                                  );
+    }
+
     /* if we failed, note it, and leave */
     if ( lRetCode != ERROR_SUCCESS )
 #endif
@@ -221,6 +246,24 @@ static int CreateRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel )
             strRegisterKey.Add(CommonData.Profile);
         }
         /* try to create the .INI file key */
+        lRetCode = RegCreateKeyEx ( rootKeyLevel,
+                                    strRegisterKey.Get(),
+                                    0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey1, &dwDisposition
+                                  );
+    }
+
+    /* if we failed the normal location, try under VirtualStore */
+    if ( lRetCode != ERROR_SUCCESS )
+    {
+        strRegisterKey = SoftwareRegKey;
+        strRegisterKey.Add( VirtualStoreKey );
+        strRegisterKey.Add( SoftwareRegKey );
+        strRegisterKey.Add( MainRegKey );
+        if ( CommonData.Profile.Get()[0] != __T('\0') ) {
+            strRegisterKey.Add(__T("\\"));
+            strRegisterKey.Add(CommonData.Profile);
+        }
+        /* try to create the registry key */
         lRetCode = RegCreateKeyEx ( rootKeyLevel,
                                     strRegisterKey.Get(),
                                     0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey1, &dwDisposition
@@ -553,46 +596,100 @@ void ShowRegHelp( COMMON_DATA & CommonData )
     printMsg( CommonData, __T("\n") );
 }
 
+/*
+ * The following paths are currently supported:
+ *
+ * Computer\HKEY_LOCAL_MACHINE\Software\Public Domain\Blat
+ * Computer\HKEY_LOCAL_MACHINE\Software\Wow6432Node\Public Domain\Blat
+ * Computer\HKEY_LOCAL_MACHINE\Software\Classes\VirtualStore\MACHINE\SOFTWARE\Public Domain\Blat
+ * Computer\HKEY_LOCAL_MACHINE\Software\Classes\VirtualStore\MACHINE\SOFTWARE\Wow6432Node\Public Domain\Blat
+ *
+ * Computer\HKEY_CURRENT_USER\Software\Public Domain\Blat
+ * Computer\HKEY_CURRENT_USER\Software\Wow6432Node\Public Domain\Blat
+ * Computer\HKEY_CURRENT_USER\Software\Classes\VirtualStore\MACHINE\SOFTWARE\Public Domain\Blat
+ * Computer\HKEY_CURRENT_USER\Software\Classes\VirtualStore\MACHINE\SOFTWARE\Wow6432Node\Public Domain\Blat
+ *
+ * Add support for searching these areas:
+ *
+ * Computer\HKEY_USERS\S-???????\Software\Classes\VirtualStore\MACHINE\SOFTWARE\Public Domain\Blat
+ * Computer\HKEY_USERS\S-???????\Software\Classes\VirtualStore\MACHINE\SOFTWARE\Wow6432Node\Public Domain\Blat
+ * Computer\HKEY_USERS\S-???????_Classes\VirtualStore\MACHINE\SOFTWARE\Public Domain\Blat
+ * Computer\HKEY_USERS\S-???????_Classes\VirtualStore\MACHINE\SOFTWARE\Wow6432Node\Public Domain\Blat
+ *
+ * The ? does not matter, normally numerics and hyphens.
+ */
+typedef enum {
+    VirtualStore_PublicDomain = 0,
+    Software_VirtualStore_PublicDomain,
+    Software_PublicDomain,
+#if defined(_WIN64)
+    VirtualStore_Wow6432_PublicDomain,
+    Software_VirtualStore_Wow6432_PublicDomain,
+    Software_Wow6432_PublicDomain,
+#endif
+    LAST_REG_LEVEL
+} REGISTRY_LEVEL;
 
-static int DeleteRegTree( COMMON_DATA & CommonData, HKEY rootKeyLevel, Buf & pstrProfile )
+
+static LSTATUS DeleteRegTree( COMMON_DATA & CommonData, HKEY rootKeyLevel, Buf & pstrProfile )
 {
     FUNCTION_ENTRY();
-    HKEY     hKey1=NULL;
+    HKEY     hKey1;
     DWORD    dwBytesRead;
-    LONG     lRetCode;
-    DWORD    dwIndex;                               // index of subkey to enumerate
+    LSTATUS  lRetCode;
+    DWORD    dwIndex;                                                       // index of subkey to enumerate
     FILETIME lftLastWriteTime;
     Buf      newProfile;
+    Buf      tempBuffer;
+
+
+    tempBuffer.Alloc(256);
 
     // open the registry key in read mode
     lRetCode = RegOpenKeyEx( rootKeyLevel, pstrProfile.Get(), 0, KEY_ALL_ACCESS, &hKey1 );
     dwIndex = 0;
-    for ( ; lRetCode == 0; ) {
-        dwBytesRead = TRY_SIZE+1;
-        CommonData.Profile.Clear();
-        CommonData.Profile.Alloc(dwBytesRead * 4);
-        lRetCode = RegEnumKeyEx(  hKey1,                                // handle of key to enumerate
-                                  dwIndex++,                            // index of subkey to enumerate
-                                  CommonData.Profile.Get(),             // address of buffer for subkey name
-                                  &dwBytesRead,                         // address for size of subkey buffer
-                                  NULL,                                 // reserved
-                                  NULL,                                 // address of buffer for class string
-                                  NULL,                                 // address for size of class buffer
-                                  &lftLastWriteTime                     // address for time key last written to);
+    while ( lRetCode == ERROR_SUCCESS ) {
+        dwBytesRead = 256;
+        tempBuffer.Clear();
+        lRetCode = RegEnumValue( hKey1,                                     // handle of value to enumerate
+                                 dwIndex++,                                 // index of subkey to enumerate
+                                 tempBuffer.Get(),                          // address of buffer for subkey name
+                                 &dwBytesRead,                              // address for size of subkey buffer
+                                 NULL,                                      // reserved
+                                 NULL,                                      // address of buffer for key type
+                                 NULL,                                      // address of buffer for value data
+                                 NULL                                       // address for length of value data );
                                );
-        if ( lRetCode == ERROR_NO_MORE_ITEMS ) {
-            lRetCode = 0;
-            break;
+        if ( lRetCode == ERROR_SUCCESS ) {
+            lRetCode = RegDeleteValue( hKey1, tempBuffer.Get() );
+            dwIndex--;
         }
+    }
+    RegCloseKey(hKey1);
 
-        if ( lRetCode == 0 ) {
+    lRetCode = RegOpenKeyEx( rootKeyLevel, pstrProfile.Get(), 0, KEY_ALL_ACCESS, &hKey1 );
+    dwIndex = 0;
+    while ( lRetCode == ERROR_SUCCESS ) {
+        dwBytesRead = 256;
+        tempBuffer.Clear();
+        tempBuffer.Alloc(dwBytesRead * 4);
+        lRetCode = RegEnumKeyEx( hKey1,                                     // handle of key to enumerate
+                                 dwIndex++,                                 // index of subkey to enumerate
+                                 tempBuffer.Get(),                          // address of buffer for subkey name
+                                 &dwBytesRead,                              // address for size of subkey buffer
+                                 NULL,                                      // reserved
+                                 NULL,                                      // address of buffer for class string
+                                 NULL,                                      // address for size of class buffer
+                                 &lftLastWriteTime                          // address for time key last written to;
+                               );
+        if ( lRetCode == ERROR_SUCCESS ) {
             newProfile = pstrProfile;
             newProfile.Add(__T("\\"));
-            newProfile.Add(CommonData.Profile);
+            newProfile.Add(tempBuffer.Get());
             lRetCode = DeleteRegTree( CommonData, rootKeyLevel, newProfile );
         }
-        if ( lRetCode == 0 ) {
-            lRetCode = RegDeleteKey( hKey1, CommonData.Profile.Get() );
+        if ( lRetCode == ERROR_SUCCESS ) {
+            lRetCode = RegDeleteKey( hKey1, tempBuffer.Get() );
             if ( lRetCode != ERROR_SUCCESS ) {
                 if ( !CommonData.quiet ) {
                     pMyPrintDLL( __T("Error in deleting profile ") );
@@ -605,146 +702,251 @@ static int DeleteRegTree( COMMON_DATA & CommonData, HKEY rootKeyLevel, Buf & pst
             dwIndex--;
         }
     }
+    if ( lRetCode == ERROR_NO_MORE_ITEMS )
+        lRetCode = ERROR_SUCCESS;
 
     RegCloseKey(hKey1);
+
+    tempBuffer.Free();
     FUNCTION_EXIT();
     return lRetCode;
 }
 
 // Delete registry entries for this program
-int DeleteRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile, int useHKCU )
+int DeleteRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrSubDirectory, Buf & pstrProfile )
 {
     FUNCTION_ENTRY();
-    HKEY   rootKeyLevel;
-    HKEY   hKey1=NULL;
-    LONG   lRetCode;
-    Buf    strRegisterKey;
+    LSTATUS lRetCode;
+    HKEY    hKey1;
 
+    if ( pstrSubDirectory == NULL )
+        pstrSubDirectory = __T("");
 
-    if ( useHKCU )
-        rootKeyLevel = HKEY_CURRENT_USER;
-    else
-        rootKeyLevel = HKEY_LOCAL_MACHINE;
+    if ( (rootKeyLevel == HKEY_USERS) && (pstrSubDirectory[0] == __T('\0')) ) {
+        /*
+         * Search first level below HKEY_USERS, calling ourselves with the first level entries we find.
+         */
+        lRetCode = RegOpenKeyEx ( rootKeyLevel, NULL, 0, KEY_ALL_ACCESS, &hKey1 );
+        if ( lRetCode == ERROR_SUCCESS ) {
+            DWORD  dwBytesRead;
+            DWORD  dwIndex;     // index of subkey to enumerate
+            Buf    subKey;
+            _TCHAR quiet;
 
-#if defined(_WIN64)
-    strRegisterKey = SoftwareRegKey;
-    strRegisterKey.Add( Wow6432NodeKey );
-    strRegisterKey.Add( MainRegKey );
-    if ( RegOpenKeyEx ( rootKeyLevel, strRegisterKey.Get(), 0, KEY_ALL_ACCESS, &hKey1 ) == ERROR_SUCCESS )
-        RegCloseKey(hKey1);
-    else
-#endif
-    {
-        strRegisterKey = SoftwareRegKey;
-        strRegisterKey.Add(MainRegKey);
-    }
-    if ( !_tcscmp(pstrProfile.Get(), __T("<default>")) ) {
-        DWORD dwBytesRead;
-        DWORD dwIndex;      // index of subkey to enumerate
+            quiet = CommonData.quiet;
+            CommonData.quiet = TRUE;
 
-        lRetCode = RegOpenKeyEx ( rootKeyLevel, strRegisterKey.Get(), 0, KEY_ALL_ACCESS, &hKey1 );
+            dwIndex = 0;
+            for ( ; ; ) {
+                LPTSTR pKeyName;
 
-        /* if we failed, note it, and leave */
-        if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !CommonData.quiet )  pMyPrintDLL( __T("Error in finding blat default profile in the registry\n") );
-
-            strRegisterKey.Free();
-            FUNCTION_EXIT();
-            return(10);
+                dwBytesRead = 256;
+                subKey.Clear();
+                pKeyName = subKey.Get();
+                lRetCode = RegEnumKeyEx( hKey1,                             // handle of value to enumerate
+                                         dwIndex,                           // index of subkey to enumerate
+                                         pKeyName,                          // address of buffer for subkey name
+                                         &dwBytesRead,                      // address for size of subkey buffer
+                                         NULL,                              // reserved
+                                         NULL,                              // address of buffer for user defined class
+                                         NULL,                              // address for length of user defined class
+                                         NULL                               // address for FILETIME structure, time at which was last written to
+                                       );
+                if ( lRetCode == ERROR_SUCCESS ) {
+                    subKey.SetLength();
+                    subKey.Add( __T('\\') );
+                    DeleteRegEntry( CommonData, rootKeyLevel, subKey.Get(), pstrProfile );
+                    dwIndex++;
+                } else
+                    break;
+            }
+            RegCloseKey( hKey1 );
+            subKey.Free();
+            CommonData.quiet = quiet;
         }
+    } else {
+        Buf      strRegisterKey;
+        unsigned regLevel;
+        bool     foundSomething;
 
-        dwIndex = 0;
-        for ( ; lRetCode == 0; ) {
-            dwBytesRead = TRY_SIZE+1;
-            CommonData.Profile.Clear();
-            CommonData.Profile.Alloc(dwBytesRead);
-            lRetCode = RegEnumValue(  hKey1,                            // handle of value to enumerate
-                                      dwIndex++,                        // index of subkey to enumerate
-                                      CommonData.Profile.Get(),         // address of buffer for subkey name
-                                      &dwBytesRead,                     // address for size of subkey buffer
-                                      NULL,                             // reserved
-                                      NULL,                             // address of buffer for key type
-                                      NULL,                             // address of buffer for value data
-                                      NULL                              // address for length of value data );
-                                   );
-            if ( lRetCode == ERROR_NO_MORE_ITEMS ) {
-                lRetCode = 0;
+        foundSomething = FALSE;
+
+        hKey1=NULL;
+        regLevel = LAST_REG_LEVEL;
+        do {
+            regLevel--;
+            strRegisterKey.Clear();
+            strRegisterKey.Add( pstrSubDirectory );
+            switch( (REGISTRY_LEVEL) regLevel )
+            {
+#if defined(_WIN64)
+            case Software_VirtualStore_Wow6432_PublicDomain:
+                strRegisterKey.Add( SoftwareRegKey );
+                /* fall through */
+
+            case VirtualStore_Wow6432_PublicDomain:
+                strRegisterKey.Add( VirtualStoreKey );
+                /* fall through */
+
+            case Software_Wow6432_PublicDomain:
+                strRegisterKey.Add( SoftwareRegKey );
+                strRegisterKey.Add( Wow6432NodeKey );
+                break;
+#endif
+            case Software_VirtualStore_PublicDomain:
+                strRegisterKey.Add( SoftwareRegKey );
+                /* fall through */
+
+            case VirtualStore_PublicDomain:
+                strRegisterKey.Add( VirtualStoreKey );
+                /* fall through */
+
+            default:
+            case Software_PublicDomain:
+                strRegisterKey.Add( SoftwareRegKey );
                 break;
             }
-
-            if ( lRetCode == 0 ) {
-                lRetCode = RegDeleteValue( hKey1, CommonData.Profile.Get() );
-                if ( lRetCode != ERROR_SUCCESS ) {
-                    if ( !CommonData.quiet ) {
-                        pMyPrintDLL( __T("Error in deleting profile ") );
-                        pMyPrintDLL( pstrProfile.Get() );
-                        pMyPrintDLL( __T(" in the registry\n") );
-                    }
-                    strRegisterKey.Free();
-                    FUNCTION_EXIT();
-                    return(11);
-                }
-                dwIndex--;
-            }
-        }
-
-        RegCloseKey(hKey1);
-    } else
-    if ( !_tcscmp(pstrProfile.Get(), __T("<all>")) ) {
-        DeleteRegTree( CommonData, rootKeyLevel, strRegisterKey );
-
-        // Attempt to delete the main Blat key.
-        lRetCode = RegOpenKeyEx ( rootKeyLevel, strRegisterKey.Get(), 0, KEY_ALL_ACCESS, &hKey1 );
-        if ( lRetCode == ERROR_SUCCESS ) {
-            lRetCode = RegDeleteKey( hKey1, __T("") );
-            RegCloseKey(hKey1);
-            *_tcsrchr(strRegisterKey.Get(),__T('\\')) = __T('\0');
-
-            // Attempt to delete the Public Domain key
+            strRegisterKey.Add( MainRegKey );
             lRetCode = RegOpenKeyEx ( rootKeyLevel, strRegisterKey.Get(), 0, KEY_ALL_ACCESS, &hKey1 );
             if ( lRetCode == ERROR_SUCCESS ) {
-                lRetCode = RegDeleteKey( hKey1, __T("") );
+                DWORD dwBytesRead;
+                DWORD dwIndex;      // index of subkey to enumerate
+                Buf   strMainRegKey;
+                Buf   tempBuffer;
+
+                tempBuffer.Alloc(256);
+                strMainRegKey = strRegisterKey;
                 RegCloseKey(hKey1);
+
+                if ( !_tcscmp(pstrProfile.Get(), __T("<all>")) ) {
+                    DeleteRegTree( CommonData, rootKeyLevel, strRegisterKey );
+                } else
+                if ( !_tcscmp(pstrProfile.Get(), __T("<default>")) ) {
+                    lRetCode = RegOpenKeyEx ( rootKeyLevel, strRegisterKey.Get(), 0, KEY_ALL_ACCESS, &hKey1 );
+
+                    dwIndex = 0;
+                    while ( lRetCode == ERROR_SUCCESS ) {
+                        dwBytesRead = 256;
+                        tempBuffer.Clear();
+                        lRetCode = RegEnumValue( hKey1,                     // handle of value to enumerate
+                                                 dwIndex++,                 // index of subkey to enumerate
+                                                 tempBuffer.Get(),          // address of buffer for subkey name
+                                                 &dwBytesRead,              // address for size of subkey buffer
+                                                 NULL,                      // reserved
+                                                 NULL,                      // address of buffer for key type
+                                                 NULL,                      // address of buffer for value data
+                                                 NULL                       // address for length of value data );
+                                               );
+                        if ( lRetCode == ERROR_SUCCESS ) {
+                            lRetCode = RegDeleteValue( hKey1, tempBuffer.Get() );
+                            if ( lRetCode == ERROR_SUCCESS ) {
+                                foundSomething = TRUE;
+                            }
+                            dwIndex--;
+                        }
+                    }
+                    RegCloseKey(hKey1);
+                } else
+                if ( pstrProfile.Get()[0] != __T('\0') ) {
+                    strRegisterKey.Add(__T("\\"));
+                    strRegisterKey.Add(pstrProfile);
+
+                    dwIndex = 0;
+                    lRetCode = RegOpenKeyEx ( rootKeyLevel, strRegisterKey.Get(), 0, KEY_ALL_ACCESS, &hKey1 );
+                    while ( lRetCode == ERROR_SUCCESS ) {
+                        dwBytesRead = 256;
+                        tempBuffer.Clear();
+                        lRetCode = RegEnumValue( hKey1,                     // handle of value to enumerate
+                                                 dwIndex++,                 // index of subkey to enumerate
+                                                 tempBuffer.Get(),          // address of buffer for subkey name
+                                                 &dwBytesRead,              // address for size of subkey buffer
+                                                 NULL,                      // reserved
+                                                 NULL,                      // address of buffer for key type
+                                                 NULL,                      // address of buffer for value data
+                                                 NULL                       // address for length of value data );
+                                               );
+                        if ( lRetCode == ERROR_SUCCESS ) {
+                            lRetCode = RegDeleteValue( hKey1, tempBuffer.Get() );
+                            if ( lRetCode == ERROR_SUCCESS ) {
+                                foundSomething = TRUE;
+                            }
+                            dwIndex--;
+                        }
+                    }
+
+                    RegCloseKey(hKey1);
+                    RegDeleteKey( rootKeyLevel, strRegisterKey.Get() );
+                }
+
+                /*
+                 * Check if there are more keys or data under \Public Domain\Blat.
+                 * If nothing exists, then try to delete \Public Domain\Blat.
+                 */
+                lRetCode = RegOpenKeyEx ( rootKeyLevel, strMainRegKey.Get(), 0, KEY_ALL_ACCESS, &hKey1 );
+                if ( lRetCode == ERROR_SUCCESS ) {
+                    dwIndex = 0;
+                    dwBytesRead = 256;
+                    tempBuffer.Clear();
+                    lRetCode = RegEnumValue( hKey1,                         // handle of value to enumerate
+                                             dwIndex,                       // index of subkey to enumerate
+                                             tempBuffer.Get(),              // address of buffer for subkey name
+                                             &dwBytesRead,                  // address for size of subkey buffer
+                                             NULL,                          // reserved
+                                             NULL,                          // address of buffer for key type
+                                             NULL,                          // address of buffer for value data
+                                             NULL                           // address for length of value data );
+                                           );
+                    if ( lRetCode == ERROR_NO_MORE_ITEMS ) {                // No data items below \Blat ?
+                        Buf subKey;
+
+                        RegCloseKey( hKey1 );
+                        lRetCode = RegOpenKeyEx ( rootKeyLevel, strMainRegKey.Get(), 0, KEY_ALL_ACCESS, &hKey1 );
+                        subKey.Clear();
+                        dwIndex = 0;
+                        dwBytesRead = 256;
+                        lRetCode = RegEnumKeyEx( hKey1,                     // handle of value to enumerate
+                                                 dwIndex,                   // index of subkey to enumerate
+                                                 subKey.Get(),              // address of buffer for subkey name
+                                                 &dwBytesRead,              // address for size of subkey buffer
+                                                 NULL,                      // reserved
+                                                 NULL,                      // address of buffer for user defined class
+                                                 NULL,                      // address for length of user defined class
+                                                 NULL                       // address for FILETIME structure, time at which was last written to
+                                               );
+                    }
+                    RegCloseKey( hKey1 );
+                    if ( lRetCode == ERROR_NO_MORE_ITEMS ) {                // No data items or keys below \Blat ?
+
+                        // Attempt to delete the Blat key
+                        lRetCode = RegDeleteKey( rootKeyLevel, strMainRegKey.Get() );   // Delete "\Blat"
+                        if ( lRetCode == ERROR_SUCCESS ) {
+                            LPTSTR pKeyName;
+
+                            dwIndex = (DWORD)strMainRegKey.Length();
+                            pKeyName = strMainRegKey.Get();
+                            pKeyName[dwIndex-5] = __T('\0');                // Remove "\Blat" from the key string.
+
+                            // Attempt to delete the Public Domain key
+                            RegDeleteKey( rootKeyLevel, pKeyName );         // Delete "\Public Domain"
+                        }
+                    }
+                }
+                tempBuffer.Free();
             }
-        }
-    } else
-    if ( pstrProfile.Get()[0] != __T('\0') ) {
-        strRegisterKey.Add(__T("\\"));
-        strRegisterKey.Add(pstrProfile);
+        } while ( regLevel > 0 );
 
-        lRetCode = DeleteRegTree( CommonData, rootKeyLevel, strRegisterKey );
-
-        /* if we failed, note it, and leave */
-        if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !CommonData.quiet ) {
-                pMyPrintDLL( __T("Error in deleting profile ") );
-                pMyPrintDLL( pstrProfile.Get() );
-                pMyPrintDLL( __T(" in the registry\n") );
-            }
-            strRegisterKey.Free();
-            FUNCTION_EXIT();
-            return(11);
+        if ( !foundSomething ) {
+            if ( rootKeyLevel == HKEY_LOCAL_MACHINE ) {
+                DeleteRegEntry( CommonData, HKEY_CURRENT_USER, NULL, pstrProfile );
+            } else
+            if ( rootKeyLevel == HKEY_CURRENT_USER ) {
+                DeleteRegEntry( CommonData, HKEY_USERS, NULL, pstrProfile );
+            } else
+            if ( !CommonData.quiet )
+                pMyPrintDLL( __T("Error in finding or accessing blat profile in the registry\n") );
         }
-
-        lRetCode = RegOpenKeyEx ( rootKeyLevel, strRegisterKey.Get(), 0, KEY_ALL_ACCESS, &hKey1 );
-        if ( lRetCode == ERROR_SUCCESS ) {
-            lRetCode = RegDeleteKey( hKey1, __T("") );
-            RegCloseKey(hKey1);
-        }
-        /* if we failed, note it, and leave */
-        if ( lRetCode != ERROR_SUCCESS ) {
-            if ( !CommonData.quiet ) {
-                pMyPrintDLL( __T("Error in finding blat profile ") );
-                pMyPrintDLL( pstrProfile.Get() );
-                pMyPrintDLL( __T(" in the registry\n") );
-            }
-            strRegisterKey.Free();
-            FUNCTION_EXIT();
-            return(10);
-        }
-
+        strRegisterKey.Free();
     }
-    strRegisterKey.Free();
     FUNCTION_EXIT();
     return(0);
 }
@@ -753,53 +955,38 @@ int DeleteRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile, int useHKCU )
  **************************************************************/
 
 // get the registry entries for this program
-static int GetRegEntryKeyed( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile )
+static int GetRegEntryKeyed( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrRegistryKey, LPTSTR pstrProfile )
 {
     FUNCTION_ENTRY();
-    HKEY   hKey1=NULL;
-    DWORD  dwType;
-    DWORD  dwBytesRead;
-    LONG   lRetCode;
-    Buf    register_key;
-    _TCHAR tmpstr[(MAXOUTLINE + 2) * 2];
-    int    retval;
+    HKEY    hKey1;
+    DWORD   dwType;
+    DWORD   dwBytesRead;
+    LSTATUS lRetCode;
+    _TCHAR  tmpstr[(MAXOUTLINE + 2) * 2];
+    int     retval;
+    Buf     regKey;
 
 
     hKey1 = NULL;
 
-#if defined(_WIN64)
-    register_key = SoftwareRegKey;
-    register_key.Add( Wow6432NodeKey );
-    register_key.Add( MainRegKey );
-
+    regKey = pstrRegistryKey;
     if ( pstrProfile && *pstrProfile ) {
-        register_key.Add( __T("\\") );
-        register_key.Add( pstrProfile );
+        regKey.Add( "\\" );
+        regKey.Add( pstrProfile );
     }
 
     // open the registry key in read mode
-    lRetCode = RegOpenKeyEx( rootKeyLevel, register_key.Get(), 0, KEY_READ, &hKey1 );
-    if ( lRetCode != ERROR_SUCCESS )
-#endif
-    {
-        register_key = SoftwareRegKey;
-        register_key.Add( MainRegKey );
-
-        if ( pstrProfile && *pstrProfile ) {
-            register_key.Add( __T("\\") );
-            register_key.Add( pstrProfile );
-        }
-
-        // open the registry key in read mode
-        lRetCode = RegOpenKeyEx( rootKeyLevel, register_key.Get(), 0, KEY_READ, &hKey1 );
-    }
-    register_key.Free();
+    lRetCode = RegOpenKeyEx( rootKeyLevel, regKey.Get(), 0, KEY_READ, &hKey1 );
+    regKey.Free();
 
     if ( lRetCode != ERROR_SUCCESS ) {
 //       printMsg( CommonData, __T("Failed to open registry key for Blat\n") );
+         if ( hKey1 )
+            RegCloseKey(hKey1);
+
         retval = 12;
         if ( pstrProfile && *pstrProfile ) {
-            retval = GetRegEntryKeyed( CommonData, rootKeyLevel, NULL );
+            retval = GetRegEntryKeyed( CommonData, rootKeyLevel, pstrRegistryKey, NULL );
         }
 
         FUNCTION_EXIT();
@@ -810,7 +997,7 @@ static int GetRegEntryKeyed( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR
     // thanks to Beverly Brown "beverly@datacube.com" and "chick@cyberspace.com" for spotting it...
     dwBytesRead = SENDER_SIZE;
     // read the value of the SMTP server entry
-    lRetCode = RegQueryValueEx( hKey1, RegKeySender, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead );    //lint !e545
+    lRetCode = RegQueryValueEx( hKey1, RegKeySender, NULL, &dwType, (LPBYTE)tmpstr, &dwBytesRead ); //lint !e545
     if ( dwBytesRead && (lRetCode == ERROR_SUCCESS) )
         CommonData.Sender = tmpstr;
     else
@@ -1009,29 +1196,114 @@ static int GetRegEntryKeyed( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR
     return retval;
 }
 
+static LSTATUS SearchForRegEntry( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile )
+{
+    FUNCTION_ENTRY();
+    HKEY    hKey1;
+    LSTATUS lRetCode;
+    Buf     register_key;
+    Buf     register_key_saved;
+
+    hKey1 = NULL;
+
+#if defined(_WIN64)
+    register_key = SoftwareRegKey;
+    register_key.Add( Wow6432NodeKey );
+    register_key.Add( MainRegKey );
+    register_key_saved = register_key;
+
+    if ( pstrProfile && *pstrProfile ) {
+        register_key.Add( __T("\\") );
+        register_key.Add( pstrProfile );
+    }
+
+    // open the registry key in read mode
+    lRetCode = RegOpenKeyEx( rootKeyLevel, register_key.Get(), 0, KEY_READ, &hKey1 );
+
+    /* if we failed the normal location, try under VirtualStore */
+    if ( lRetCode != ERROR_SUCCESS )
+    {
+        register_key = SoftwareRegKey;
+        register_key.Add( VirtualStoreKey );
+        register_key.Add( register_key_saved.Get() );
+        register_key_saved = register_key;
+
+        if ( pstrProfile && *pstrProfile ) {
+            register_key.Add( __T("\\") );
+            register_key.Add( pstrProfile );
+        }
+
+        // open the registry key in read mode
+        lRetCode = RegOpenKeyEx( rootKeyLevel, register_key.Get(), 0, KEY_READ, &hKey1 );
+    }
+    if ( lRetCode != ERROR_SUCCESS )
+#endif
+    {
+        register_key = SoftwareRegKey;
+        register_key.Add( MainRegKey );
+        register_key_saved = register_key;
+
+        if ( pstrProfile && *pstrProfile ) {
+            register_key.Add( __T("\\") );
+            register_key.Add( pstrProfile );
+        }
+
+        // open the registry key in read mode
+        lRetCode = RegOpenKeyEx( rootKeyLevel, register_key.Get(), 0, KEY_READ, &hKey1 );
+
+        /* if we failed the normal location, try under VirtualStore */
+        if ( lRetCode != ERROR_SUCCESS )
+        {
+            register_key = SoftwareRegKey;
+            register_key.Add( VirtualStoreKey );
+            register_key.Add( register_key_saved.Get() );
+            register_key_saved = register_key;
+
+            if ( pstrProfile && *pstrProfile ) {
+                register_key.Add( __T("\\") );
+                register_key.Add( pstrProfile );
+            }
+
+            // open the registry key in read mode
+            lRetCode = RegOpenKeyEx( rootKeyLevel, register_key.Get(), 0, KEY_READ, &hKey1 );
+        }
+    }
+
+    if ( hKey1 )
+        RegCloseKey(hKey1);
+
+    if ( lRetCode == ERROR_SUCCESS )
+        lRetCode = GetRegEntryKeyed( CommonData, rootKeyLevel, register_key_saved.Get(), pstrProfile );
+
+    register_key_saved.Free();
+    register_key.Free();
+    FUNCTION_EXIT();
+    return lRetCode;
+}
 
 int GetRegEntry( COMMON_DATA & CommonData, Buf & pstrProfile )
 {
     FUNCTION_ENTRY();
     int lRetVal;
+    Buf register_key;
 
     if (pstrProfile.Length() == 0)
         pstrProfile.Clear();
 
-    lRetVal = GetRegEntryKeyed( CommonData, HKEY_CURRENT_USER, pstrProfile.Get() );
+    lRetVal = SearchForRegEntry( CommonData, HKEY_CURRENT_USER, pstrProfile.Get() );
     if ( lRetVal )
-        lRetVal = GetRegEntryKeyed( CommonData, HKEY_LOCAL_MACHINE, pstrProfile.Get() );
+        lRetVal = SearchForRegEntry( CommonData, HKEY_LOCAL_MACHINE, pstrProfile.Get() );
 
     FUNCTION_EXIT();
     return lRetVal;
 }
 
-static void DisplayThisProfile( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile )
+static void DisplayThisProfile( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrRegistryKey, LPTSTR pstrProfile )
 {
     FUNCTION_ENTRY();
     LPTSTR tmpstr;
 
-    GetRegEntryKeyed( CommonData, rootKeyLevel, pstrProfile );
+    GetRegEntryKeyed( CommonData, rootKeyLevel, pstrRegistryKey, pstrProfile );
 
     tmpstr = __T("");
     if ( CommonData.AUTHLogin.Get()[0] || CommonData.AUTHPassword.Get()[0] )
@@ -1075,115 +1347,122 @@ static void DisplayThisProfile( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPT
     FUNCTION_EXIT();
 }
 
-static void DumpProfiles( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile )
+static bool DumpProfiles( COMMON_DATA & CommonData, HKEY rootKeyLevel, LPTSTR pstrProfile, unsigned regLevel )
 {
     FUNCTION_ENTRY();
-    HKEY     hKey1=NULL;
+    HKEY     hKey1;
     DWORD    dwBytesRead;
-    LONG     lRetCode;
-    DWORD    dwIndex;                               // index of subkey to enumerate
-    FILETIME lftLastWriteTime;                      // address for time key last written to
+    LSTATUS  lRetCode;
+    DWORD    dwIndex;                                                       // index of subkey to enumerate
+    FILETIME lftLastWriteTime;                                              // address for time key last written to
     Buf      strRegisterKey;
+    bool     foundSomething;
 
+    hKey1 = NULL;
+    foundSomething = FALSE;
 
+    strRegisterKey.Clear();
+    switch( (REGISTRY_LEVEL) regLevel )
+    {
 #if defined(_WIN64)
-    strRegisterKey = SoftwareRegKey;
-    strRegisterKey.Add( Wow6432NodeKey );
+    case Software_VirtualStore_Wow6432_PublicDomain:
+        strRegisterKey.Add( SoftwareRegKey );
+        /* fall through */
+
+    case VirtualStore_Wow6432_PublicDomain:
+        strRegisterKey.Add( VirtualStoreKey );
+        /* fall through */
+
+    case Software_Wow6432_PublicDomain:
+        strRegisterKey.Add( SoftwareRegKey );
+        strRegisterKey.Add( Wow6432NodeKey );
+        break;
+#endif
+    case Software_VirtualStore_PublicDomain:
+        strRegisterKey.Add( SoftwareRegKey );
+        /* fall through */
+
+    case VirtualStore_PublicDomain:
+        strRegisterKey.Add( VirtualStoreKey );
+        /* fall through */
+
+    default:
+    case Software_PublicDomain:
+        strRegisterKey.Add( SoftwareRegKey );
+        break;
+    }
     strRegisterKey.Add( MainRegKey );
+
     /* try to open the registry key */
     lRetCode = RegOpenKeyEx( rootKeyLevel,
                              strRegisterKey.Get(),
                              0, KEY_READ, &hKey1
                            );
-    /* if we failed, check the standard 64-bit tree */
-    if ( lRetCode != ERROR_SUCCESS )
-#endif
-    {
-        strRegisterKey = SoftwareRegKey;
-        strRegisterKey.Add( MainRegKey );
-        /* try to open the registry key */
-        lRetCode = RegOpenKeyEx( rootKeyLevel,
-                                 strRegisterKey.Get(),
-                                 0, KEY_READ, &hKey1
-                               );
-    }
-    if ( lRetCode != ERROR_SUCCESS ) {
-        printMsg( CommonData, __T("Failed to open registry key for Blat using default.\n") );
-    } else {
+    if ( lRetCode == ERROR_SUCCESS ) {
+        foundSomething = TRUE;
         CommonData.quiet = FALSE;
         CommonData.Profile.Clear();
         CommonData.Profile.Alloc(SERVER_SIZE * 4);
 
         if ( !_tcscmp(pstrProfile, __T("<default>")) || !_tcscmp(pstrProfile, __T("<all>")) ) {
-            DisplayThisProfile( CommonData, rootKeyLevel, __T("") );
+            DisplayThisProfile( CommonData, rootKeyLevel, strRegisterKey.Get(), __T("") );
         }
 
         dwIndex = 0;
         do {
             dwBytesRead = SERVER_SIZE;
-            lRetCode = RegEnumKeyEx(  hKey1,                            // handle of key to enumerate
-                                      dwIndex++,                        // index of subkey to enumerate
-                                      CommonData.Profile.Get(),         // address of buffer for subkey name
-                                      &dwBytesRead,                     // address for size of subkey buffer
-                                      NULL,                             // reserved
-                                      NULL,                             // address of buffer for class string
-                                      NULL,                             // address for size of class buffer
-                                      &lftLastWriteTime                 // address for time key last written to);
+            lRetCode = RegEnumKeyEx( hKey1,                                 // handle of key to enumerate
+                                     dwIndex++,                             // index of subkey to enumerate
+                                     CommonData.Profile.Get(),              // address of buffer for subkey name
+                                     &dwBytesRead,                          // address for size of subkey buffer
+                                     NULL,                                  // reserved
+                                     NULL,                                  // address of buffer for class string
+                                     NULL,                                  // address for size of class buffer
+                                     &lftLastWriteTime                      // address for time key last written to
                                    );
-            if ( lRetCode == 0 ) {
+            if ( lRetCode == ERROR_SUCCESS ) {
                 CommonData.Profile.SetLength();
                 if ( !_tcscmp(pstrProfile, CommonData.Profile.Get()) ||
                      !_tcscmp(pstrProfile, __T("<all>")) ) {
-                    DisplayThisProfile( CommonData, rootKeyLevel, CommonData.Profile.Get() );
+                    DisplayThisProfile( CommonData, rootKeyLevel, strRegisterKey.Get(), CommonData.Profile.Get() );
                 }
             }
-        } while ( lRetCode == 0 );
+        } while ( lRetCode == ERROR_SUCCESS );
 
         RegCloseKey(hKey1);
     }
     strRegisterKey.Free();
     FUNCTION_EXIT();
+    return foundSomething;
 }
 
 // List all profiles
 void ListProfiles( COMMON_DATA & CommonData, LPTSTR pstrProfile )
 {
     FUNCTION_ENTRY();
-    HKEY     hKey1=NULL;
-    LONG     lRetCode;
-    Buf      strRegisterKey;
+    bool     foundSomething;
+    unsigned regLevel;
 
+    foundSomething = 0;
 
-#if defined(_WIN64)
-    strRegisterKey = SoftwareRegKey;
-    strRegisterKey.Add( Wow6432NodeKey );
-    strRegisterKey.Add( MainRegKey );
-    // open the HKCU registry key in read mode
-    lRetCode = RegOpenKeyEx( HKEY_CURRENT_USER,
-                             strRegisterKey.Get(),
-                             0, KEY_READ, &hKey1
-                           );
-    /* if we failed, check the standard 64-bit tree */
-    if ( lRetCode != ERROR_SUCCESS )
-#endif
-    {
-        strRegisterKey = SoftwareRegKey;
-        strRegisterKey.Add( MainRegKey );
-        // open the HKCU registry key in read mode
-        lRetCode = RegOpenKeyEx( HKEY_CURRENT_USER,
-                                 strRegisterKey.Get(),
-                                 0, KEY_READ, &hKey1
-                               );
-    }
-    if ( lRetCode == ERROR_SUCCESS ) {
-        RegCloseKey(hKey1);
-        printMsg( CommonData, __T("Profile(s) for current user --\n") );
-        DumpProfiles( CommonData, HKEY_CURRENT_USER, pstrProfile );
-        printMsg( CommonData, __T("\n") );
-    }
+    printMsg( CommonData, __T("Profile(s) for current user --\n") );
+    regLevel = LAST_REG_LEVEL;
+    do {
+        regLevel--;
+        foundSomething |= DumpProfiles( CommonData, HKEY_CURRENT_USER, pstrProfile, regLevel );
+    } while ( regLevel > 0 );
+    printMsg( CommonData, __T("\n") );
 
     printMsg( CommonData, __T("Profile(s) for all users of this computer --\n") );
-    DumpProfiles( CommonData, HKEY_LOCAL_MACHINE, pstrProfile );
-    strRegisterKey.Free();
+    regLevel = LAST_REG_LEVEL;
+    do {
+        regLevel--;
+        foundSomething |= DumpProfiles( CommonData, HKEY_LOCAL_MACHINE, pstrProfile, regLevel );
+    } while ( regLevel > 0 );
+    printMsg( CommonData, __T("\n") );
+
+    if ( !foundSomething )
+        printMsg( CommonData, __T("Failed to open registry key for Blat to list any profiles.\n") );
+
     FUNCTION_EXIT();
 }

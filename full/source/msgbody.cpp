@@ -518,8 +518,7 @@ int add_message_body ( COMMON_DATA & CommonData,
                     douuencode( CommonData, fileBuffer, messageBuffer, stdinFileName, 1, 1 );
                 else
                     douuencode( CommonData, fileBuffer, messageBuffer, getShortFileName(CommonData.bodyFilename.Get()), 1, 1 );
-            }
-            else
+            } else
 #endif
                 messageBuffer.Add( fileBuffer );
 
@@ -570,8 +569,7 @@ int add_message_body ( COMMON_DATA & CommonData,
 #else
                 tmpstr.Add( CommonData.Recipients );
 #endif
-            }
-            else
+            } else
                 tmpstr.Add( __T("<unspecified>") );
         }
 #if INCLUDE_NNTP
@@ -665,8 +663,7 @@ void add_msg_boundary ( COMMON_DATA & CommonData, Buf &messageBuffer, int buildS
         }
         messageBuffer.Add( __T("\r\n") );
         messageBuffer.Add( __T("Disposition: automatic-action/MDN-sent-automatically") );
-        switch( CommonData.mdn_type )
-        {
+        switch( CommonData.mdn_type ) {
             case MDN_DISPLAYED:
                 messageBuffer.Add( __T("; displayed") );
                 break;

@@ -5,9 +5,40 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.21
+[+] Added support for Blat registry entries to be located in VirtualStore.  For
+    example, HKEY_CURRENT_USER\Software\Classes\VirtualStore\MACHINE\SOFTWARE\
+    WOW6432Node\Public Domain\Blat.  Malcolm Sokol reported Blat was not able
+    to print the profiles, including the default.  This appears to be because
+    his Windows 10 system had moved the Blat profiles to be in the above
+    location, which Blat had no knowledge of.  My guess is this had occurred
+    when Windows was upgraded to Windows 10 Home from an earlier version.  Blat
+    will not attempt to place profiles into VirtualStore, but it can read from
+    that location.
+
+    Malcolm also stated he found Blat entries under HKEY_USERS, now Blat will
+    look there when listing profiles, or attempting to get a profile to use.
+    However, Blat will not attempt to create files in HKEY_USERS.
+
+[*] When deleting a profile, including the default, if there are no further
+    data entries or keys below \Public Domain\Blat, Blat will attempt to delete
+    \Public Domain\Blat.  The benefit to users comes when those users no longer
+    want Blat to be on their system, Blat will attempt to remove its registry
+    keys when using -delete with the -profile option.  As part of this effort,
+    I made "<all>" work with -delete so all of your profiles will be deleted at
+    once.
+
+[*] The message about not being able to access Blat's registry keys could be
+    annoying, or downright misleading.  I am now setting a flag to show this
+    message only when BLat is unable to access its registry keys anywhere in
+    the registry.  Based on the above changes, Blat will search for keys in
+    HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER, and HKEY_USERS.  It is not desirable
+    to see warning messages for all registry locations, so I try to limit this
+    to just one instance when Blat is unable to find keys anywhere.
+-------------------------------------------------------------------------------
 3.2.20
 [+] Added -force8bit option to make Blat believe the SMTP server supports
-    8bitmime option when the server does not actually advertize this in its
+    8bitmime option when the server does not actually advertise this in its
     250 responses.  It was mentioned by Heiko Mück that his server does support
     8-bit MIME messages even though the server does not say that in the 250
     responses.  This option will allow Blat to use UTF-8 character set instead

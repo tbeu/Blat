@@ -1638,8 +1638,7 @@ static int checkSubjectFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             }
             tmpSubject.SetLength();
             CommonData.subject = tmpSubject;
-        }
-        else {
+        } else {
             CommonData.subject.Add( argv[this_arg+1] );
             fileh.Close();
             tmpSubject.Free();
@@ -1730,7 +1729,7 @@ static int checkProfileEdit ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
                     continue;
                 }
                 profileKey = argv[this_arg];
-                DeleteRegEntry( CommonData, profileKey, useHKCU );
+                DeleteRegEntry( CommonData, useHKCU ? HKEY_CURRENT_USER : HKEY_LOCAL_MACHINE, NULL, profileKey );
                 profileKey.Free();
                 this_arg++;
             }
@@ -1745,6 +1744,9 @@ static int checkProfileEdit ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             if ( argc == 0 ) {
                 ListProfiles(CommonData, __T("<all>"));
             } else {
+                bool listAll;
+
+                listAll = TRUE;
                 for ( ; argc; argc-- ) {
                     if ( !_tcscmp( argv[this_arg], __T("-hkcu") ) ) {
                         this_arg++; // ignore this option if found
@@ -1753,7 +1755,10 @@ static int checkProfileEdit ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
 
                     ListProfiles(CommonData, argv[this_arg]);
                     this_arg++;
+                    listAll = FALSE;
                 }
+                if ( listAll )
+                    ListProfiles(CommonData, __T("<all>"));
             }
         }
     }
@@ -2076,38 +2081,27 @@ static int checkMDN ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int thi
     // Check for message disposition notification type.
 
     ret = 0;
-    if ( 0 == _tcscmp( argv[this_arg+1], __T("displayed") ) )
-    {
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("displayed") ) ) {
         CommonData.mdn_type = MDN_DISPLAYED;
         ret = 1;
-    }
-    else
-    if ( 0 == _tcscmp( argv[this_arg+1], __T("dispatched") ) )
-    {
+    } else
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("dispatched") ) ) {
         CommonData.mdn_type = MDN_DISPATCHED;
         ret = 1;
-    }
-    else
-    if ( 0 == _tcscmp( argv[this_arg+1], __T("processed") ) )
-    {
+    } else
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("processed") ) ) {
         CommonData.mdn_type = MDN_PROCESSED;
         ret = 1;
-    }
-    else
-    if ( 0 == _tcscmp( argv[this_arg+1], __T("deleted") ) )
-    {
+    } else
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("deleted") ) ) {
         CommonData.mdn_type = MDN_DELETED;
         ret = 1;
-    }
-    else
-    if ( 0 == _tcscmp( argv[this_arg+1], __T("denied") ) )
-    {
+    } else
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("denied") ) ) {
         CommonData.mdn_type = MDN_DENIED;
         ret = 1;
-    }
-    else
-    if ( 0 == _tcscmp( argv[this_arg+1], __T("failed") ) )
-    {
+    } else
+    if ( 0 == _tcscmp( argv[this_arg+1], __T("failed") ) ) {
         CommonData.mdn_type = MDN_FAILED;
         ret = 1;
     }
@@ -2575,8 +2569,7 @@ static int checkLogMessages ( COMMON_DATA & CommonData, int argc, LPTSTR * argv,
             if ( CommonData.logOut )
                 _ftprintf( CommonData.logOut, __T("%s"), utf8BOM );
 #endif
-        }
-        else
+        } else
             CommonData.logOut = _tfopen(CommonData.logFile.Get(), fileAppendAttribute);
     }
 
@@ -2595,8 +2588,7 @@ static int checkLogOverwrite ( COMMON_DATA & CommonData, int argc, LPTSTR * argv
     (void)startargv;
 
     CommonData.clearLogFirst = TRUE;
-    if ( CommonData.logOut )
-    {
+    if ( CommonData.logOut ) {
         fclose( CommonData.logOut );
         CommonData.logOut = _tfopen(CommonData.logFile.Get(), fileCreateAttribute);
 #if (defined(_UNICODE) || defined(UNICODE)) && defined(_MSC_VER) && (_MSC_VER < 1400)
@@ -2879,8 +2871,7 @@ static int checkSigFile ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int
     if ( !fileh.ReadThisFile(CommonData.signature.Get(), sigsize, &dummy, NULL) ) {
         printMsg( CommonData, __T("Error reading signature file %s, signature will not be added\n"), argv[this_arg] );
         CommonData.signature.Free();
-    }
-    else {
+    } else {
         *CommonData.signature.GetTail() = __T('\0');
   #if defined(_UNICODE) || defined(UNICODE)
         checkInputForUnicode( CommonData, CommonData.signature );
@@ -2977,8 +2968,7 @@ static int checkPostscript ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, 
     if ( !fileh.ReadThisFile(CommonData.postscript.Get(), sigsize, &dummy, NULL) ) {
         printMsg( CommonData, __T("Error reading P.S. file %s, postscript will not be added\n"), argv[this_arg] );
         CommonData.postscript.Free();
-    }
-    else {
+    } else {
         *CommonData.postscript.GetTail() = __T('\0');
   #if defined(_UNICODE) || defined(UNICODE)
         checkInputForUnicode( CommonData, CommonData.postscript );
@@ -3597,8 +3587,7 @@ void print_usage_line( COMMON_DATA & CommonData, LPTSTR pUsageLine )
     if ( _tcsstr( pUsageLine, __T("GSSAPI") ) ) {
         if ( !CommonData.have_mechtype ) {
             try {
-                if (!CommonData.pGss)
-                {
+                if (!CommonData.pGss) {
                     CommonData.pGss = &CommonData.TheSession;
                 }
                 CommonData.pGss->MechtypeText(CommonData.mechtype.Get());
@@ -3716,10 +3705,8 @@ int processOptions( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int start
     // If the GSSAPI library is unavailable, make the GSSAPI options simply
     // unavailable at runtime.  It's less efficient to do it this way but
     // it doesn't intrude into the rest of the code below.
-    if (CommonData.bSuppressGssOptionsAtRuntime)
-    {
-         for (i = 0; blatOptionsList[i].optionString; i++)
-         {
+    if (CommonData.bSuppressGssOptionsAtRuntime) {
+         for (i = 0; blatOptionsList[i].optionString; i++) {
              if ( (blatOptionsList[i].initFunction == checkGssapiMutual   ) ||
                   (blatOptionsList[i].initFunction == checkGssapiClient   ) ||
                   (blatOptionsList[i].initFunction == checkServiceName    ) ||

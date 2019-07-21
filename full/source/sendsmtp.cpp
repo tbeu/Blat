@@ -517,8 +517,7 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bA
                 CommonData.eightBitMimeSupported = TRUE;
 #endif
             index = responseStr.Get();  // The responses are already individually NULL terminated, with no CR or LF bytes.
-            for ( ; ; )
-            {
+            for ( ; ; ) {
                 if ( index[0] == __T('\0') )
                     break;
 
@@ -699,6 +698,7 @@ static int say_hello ( COMMON_DATA & CommonData, LPTSTR wanted_hostname, BOOL bA
             server_error( CommonData, __T("SMTP server error\n") );
             finish_server_message(CommonData);
         }
+        FUNCTION_EXIT();
         return(-1);
     }
 
@@ -853,8 +853,7 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
             return(-2);
         }
         try{
-            if (!CommonData.pGss)
-            {
+            if (!CommonData.pGss) {
                 CommonData.pGss = &CommonData.TheSession;
             }
 
@@ -867,16 +866,14 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
 
             CommonData.pGss->Authenticate(CommonData,getline,putline,CommonData.AUTHLogin.Get(),servname,CommonData.mutualauth,CommonData.gss_protection_level);
 
-            if (CommonData.pGss->GetProtectionLevel()!=GSSAUTH_P_NONE)
-            {
+            if (CommonData.pGss->GetProtectionLevel() != GSSAUTH_P_NONE) {
                 if (say_hello_again(CommonData, CommonData.my_hostname_wanted.Get())!=0) {
                     FUNCTION_EXIT();
                     return (-5);
                 }
             }
         }
-        catch (GssSession::GssException& e)
-        {
+        catch (GssSession::GssException& e) {
             _TCHAR szMsg[1024];
             _stprintf(szMsg, __T("Cannot do AUTH GSSAPI: %s"), e.message());
             server_error(CommonData, szMsg);
@@ -885,6 +882,7 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
             FUNCTION_EXIT();
             return (-5);
         }
+        FUNCTION_EXIT();
         return(0);
     }
 #endif
@@ -942,12 +940,14 @@ static int authenticate_smtp_user(COMMON_DATA & CommonData, LPTSTR loginAuth, LP
         base64_encode((_TUCHAR *)&str[11], (size_t)(out - outstart), outstart, FALSE);
         _tcscat(str, __T("\r\n"));
 
-        if ( put_message_line( CommonData, CommonData.ServerSocket, str ) )
+        if ( put_message_line( CommonData, CommonData.ServerSocket, str ) ) {
+            FUNCTION_EXIT();
             return(-1);
-
-        if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) == 235 )
+        }
+        if ( get_server_response( CommonData, NULL, &enhancedStatusCode ) == 235 ) {
+            FUNCTION_EXIT();
             return(0);                  // plain authentication successful
-
+        }
         server_warning( CommonData, __T("The SMTP server did not accept Auth PLAIN value.\n") \
                                     __T("Are your login userid and password correct?\n") );
     }
