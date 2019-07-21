@@ -88,10 +88,12 @@ int open_server_socket( COMMON_DATA & CommonData, LPTSTR host, LPTSTR userPort, 
             gensockSaveLastError(CommonData, retval);
             if ( retval ) {
                 gensock_error (CommonData, __T("gensock_connect"), retval, host);
+                FUNCTION_EXIT();
                 return(-1);
             }
         } else { // error other than can't resolve service
             gensock_error (CommonData, __T("gensock_connect"), retval, host);
+            FUNCTION_EXIT();
             return(-1);
         }
     }
@@ -107,6 +109,7 @@ int open_server_socket( COMMON_DATA & CommonData, LPTSTR host, LPTSTR userPort, 
         gensockSaveLastError(CommonData, retval);
         if ( retval ) {
             gensock_error (CommonData, __T("gensock_gethostname"), retval, host);
+            FUNCTION_EXIT();
             return(-1);
         }
     }
@@ -121,6 +124,7 @@ int close_server_socket( COMMON_DATA & CommonData )
     FUNCTION_ENTRY();
     int retval;
 
+    retval = 0;
     if ( CommonData.ServerSocket ) {
         retval = gensock_close(CommonData, CommonData.ServerSocket);
         CommonData.ServerSocket = 0;
@@ -133,12 +137,12 @@ int close_server_socket( COMMON_DATA & CommonData )
 
         if ( retval ) {
             gensock_error (CommonData, __T("gensock_close"), retval, __T(""));
-            return(-1);
+            retval = -1;
         }
     }
 
     FUNCTION_EXIT();
-    return(0);
+    return(retval);
 }
 
 
@@ -197,6 +201,7 @@ int get_server_response( COMMON_DATA & CommonData, Buf * responseStr, int * vali
             if ( retval ) {
                 gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
+                FUNCTION_EXIT();
                 return(-1);
             }
 
@@ -341,6 +346,7 @@ int get_pop3_server_response( COMMON_DATA & CommonData, Buf * responseStr )
             if ( retval ) {
                 gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
+                FUNCTION_EXIT();
                 return(-1);
             }
 
@@ -442,6 +448,7 @@ int get_imap_untagged_server_response( COMMON_DATA & CommonData, Buf * responseS
             if ( retval ) {
                 gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
+                FUNCTION_EXIT();
                 return(-1);
             }
 
@@ -545,6 +552,7 @@ int get_imap_tagged_server_response( COMMON_DATA & CommonData, Buf * responseStr
             if ( retval ) {
                 gensock_error (CommonData, __T("gensock_getchar"), retval, __T(""));
                 received.Free();
+                FUNCTION_EXIT();
                 return(-1);
             }
 
@@ -647,6 +655,7 @@ int put_message_line( COMMON_DATA & CommonData, socktag sock, LPTSTR line )
             default:
                 gensock_error (CommonData, __T("gensock_put_data"), retval, __T(""));
             }
+            FUNCTION_EXIT();
             return(-1);
         }
 
@@ -661,19 +670,16 @@ int put_message_line( COMMON_DATA & CommonData, socktag sock, LPTSTR line )
                 pStr[11] = __T('\0');
                 printMsg(CommonData, maskedLine, line);
                 pStr[11] = c;
-            }
-            else
+            } else
             if ( (pStr = _tcsstr( line, __T("PASS ") )) != NULL ) {
                 c = pStr[4];
                 pStr[4] = __T('\0');
                 printMsg(CommonData, maskedLine, line);
                 pStr[4] = c;
-            }
-            else
+            } else
                 printMsg(CommonData, __T(">>>putline>>> %s\n"),line);
         }
-    }
-    else
+    } else
         retval = -retval;
 
     FUNCTION_EXIT();
@@ -703,8 +709,7 @@ int finish_server_message( COMMON_DATA & CommonData )
             // or a 205 message from the nntp server.
             get_server_response( CommonData, NULL, &enhancedStatusCode );
         }
-    }
-    else
+    } else
         ret = -ret;
 
     FUNCTION_EXIT();
@@ -856,8 +861,7 @@ int transform_and_send_edit_data( COMMON_DATA & CommonData, LPTSTR editptr )
                         int size = MulDiv( (int)(index - lastIndex), attachmentSize, msgLength );
                         if ( pProcessDataProcW ) {
                             retval = (pProcessDataProcW( NULL, max( 0, size ) ) == 0) ? 20 : 0;
-                        }
-                        else
+                        } else
                         if ( pProcessDataProc ) {
                             retval = (pProcessDataProc( NULL, max( 0, size ) ) == 0) ? 20 : 0;
                         }

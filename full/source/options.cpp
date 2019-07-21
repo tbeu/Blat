@@ -2777,6 +2777,15 @@ static int checkA2Headers ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
     return(1);
 }
 
+static int checkMsgId ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
+{
+    (void)argc;         // For eliminating compiler warnings.
+    (void)startargv;
+
+    CommonData.messageId.Add( argv[this_arg+1] );
+    return(1);
+}
+
 static int check8bitMime ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
 {
     CommonData.eightBitMimeRequested = TRUE;
@@ -2792,6 +2801,17 @@ static int checkForce8bit ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, i
     (void)startargv;
 
     CommonData.force8BitMime = TRUE;
+    return(0);
+}
+
+static int checkAddCh2Bin ( COMMON_DATA & CommonData, int argc, LPTSTR * argv, int this_arg, int startargv )
+{
+    (void)argc;   // For eliminating compiler warnings.
+    (void)argv;
+    (void)this_arg;
+    (void)startargv;
+
+    CommonData.addCharsetToBinAttachments = TRUE;
     return(0);
 }
 
@@ -3393,6 +3413,7 @@ _BLATOPTIONS blatOptionsList[] = {
 #else
     { __T("-a1")            ,              NULL      , FALSE, 1, checkA1Headers      ,    __T(" <header>    : add custom header line at the end of the regular headers") },
     { __T("-a2")            ,              NULL      , FALSE, 1, checkA2Headers      ,    __T(" <header>    : same as -a1, for a second custom header line") },
+    { __T("-msgid")         ,              NULL      , FALSE, 1, checkMsgId          ,       __T(" <id>     : use this string <id> for the Message-ID: header value") },
     { __T("-dsn")           ,              NULL      , FALSE, 1, checkDeliveryStat   ,     __T(" <nsfd>     : use Delivery Status Notifications (RFC 3461)") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  n = never, s = successful, f = failure, d = delayed") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  can be used together, however N takes precedence") },
@@ -3445,6 +3466,7 @@ _BLATOPTIONS blatOptionsList[] = {
     { __T("-8bitmime")      ,              NULL      , FALSE, 0, check8bitMime       ,          __T("       : ask for 8bit data support when sending MIME") },
     { __T("-force8bit")     ,              NULL      , FALSE, 0, checkForce8bit      ,           __T("      : force Blat to believe the SMTP server supports 8-bit MIME") },
     {                  NULL ,              NULL      , 0    , 0, NULL                , __T("                  when the server does not say that it supports 8BITMIME") },
+    { __T("-addch2bin")     ,              NULL      , FALSE, 0, checkAddCh2Bin      ,           __T("      : add 'charset=' to Content-Type: header for binary attachments") },
 #endif
 #if SUPPORT_YENC
     { __T("-yenc")          ,              NULL      , FALSE, 0, check_yEnc          ,      __T("           : send binary files encoded with yEnc") },

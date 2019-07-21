@@ -5,6 +5,27 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.22
+[+] Added new command line options -msgid and -addch2bin.  The -msgid option
+    takes a string which will be used in the Message-ID: header instead of the
+    string created by Blat.  The string will work best when enclosed by
+    quotation marks (").  This request came from Christophe Ross on
+    SourceForge.net, for use in sending control messages.  For example:
+        -msgid "ThisIsAUniqueMsgId"
+
+    Heiko Mück, also on SourceForge.net, requested the ability to add
+    charset="utf-8" to the Content-Type: header for binary attachments.  This
+    request allows him to be certified with his recipient.  It seems to me his
+    recipient might be receiving a mixture of ASCII and UTF-8 files from
+    different locations, and want some to force senders to use UTF-8 for
+    binary attachments (XML files).
+
+[-] If sending Unicode attachments as text, and 8bitmime is forced with the
+    -force8bit command line option, attachments were being sent as UTF-7 when
+    the SMTP server did not say that it supports 8bitmime.  This -force8bit
+    option will now force text attachments to use UTF8 instead of UTF-7 when
+    UTF-7 would have otherwise been used.
+-------------------------------------------------------------------------------
 3.2.21
 [+] Added support for Blat registry entries to be located in VirtualStore.  For
     example, HKEY_CURRENT_USER\Software\Classes\VirtualStore\MACHINE\SOFTWARE\

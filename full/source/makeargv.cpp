@@ -148,39 +148,39 @@ size_t make_argv( _TCHAR commentChar,
 
                     if ( foundQuote ) {
                         switch ( startArgs[ ++z ] ) {
-                        default:
-                            nextarg[ y ] = startArgs[ z ];
-                            break;
+                            default:
+                                nextarg[ y ] = startArgs[ z ];
+                                break;
 
-                        case __T('a'):
-                            nextarg[ y ] = __T('\a');
-                            break;
+                            case __T('a'):
+                                nextarg[ y ] = __T('\a');
+                                break;
 
-                        case __T('b'):
-                            nextarg[ y ] = __T('\b');
-                            break;
+                            case __T('b'):
+                                nextarg[ y ] = __T('\b');
+                                break;
 
-                        case __T('f'):
-                            nextarg[ y ] = __T('\f');
-                            break;
+                            case __T('f'):
+                                nextarg[ y ] = __T('\f');
+                                break;
 
-                        case __T('n'):
-                            nextarg[ y ] = __T('\n');
-                            break;
+                            case __T('n'):
+                                nextarg[ y ] = __T('\n');
+                                break;
 
-                        case __T('r'):
-                            nextarg[ y ] = __T('\r');
-                            break;
+                            case __T('r'):
+                                nextarg[ y ] = __T('\r');
+                                break;
 
-                        case __T('t'):
-                            nextarg[ y ] = __T('\t');
-                            break;
+                            case __T('t'):
+                                nextarg[ y ] = __T('\t');
+                                break;
 
-                        case __T('v'):
-                            nextarg[ y ] = __T('\v');
-                            break;
+                            case __T('v'):
+                                nextarg[ y ] = __T('\v');
+                                break;
 
-                        case __T('x'):       /* hex conversion */
+                            case __T('x'):       /* hex conversion */
                             {
                                 int hexValue = 0;
                                 int c;
@@ -210,15 +210,15 @@ size_t make_argv( _TCHAR commentChar,
                                 break;
                             }
 
-                        /* octal conversion */
-                        case __T('0'):
-                        case __T('1'):
-                        case __T('2'):
-                        case __T('3'):
-                        case __T('4'):
-                        case __T('5'):
-                        case __T('6'):
-                        case __T('7'):
+                            /* octal conversion */
+                            case __T('0'):
+                            case __T('1'):
+                            case __T('2'):
+                            case __T('3'):
+                            case __T('4'):
+                            case __T('5'):
+                            case __T('6'):
+                            case __T('7'):
                             {
                                 int octalValue = 0;
 

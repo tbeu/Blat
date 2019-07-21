@@ -217,8 +217,7 @@ static void convertHostnameUsingPunycode( LPWSTR _Thostname, char * punycodeName
                         (start[1] >= 0xDC00) && (start[1] <= 0xDFFF)) {
                         input[input_length] = 0x10000l + ((start[0] & 0x3FFl) << 10) + (start[1] & 0x3FFl);
                         start++;
-                    }
-                    else
+                    } else
                         input[input_length] = (punycode_uint)start[0];
 
                     input_length++;
@@ -317,8 +316,7 @@ int
                 _wcslwr( pWhostname );
                 convertHostnameUsingPunycode( pWhostname, hostname );
                 delete [] pWhostname;
-            }
-            else {
+            } else {
                 wchar_t Whostname[MAX_HOSTNAME_LENGTH];
 
                 for ( byteCount = 0; _Thostname[byteCount] && (byteCount < (MAX_HOSTNAME_LENGTH-1)); byteCount++ ) {
@@ -1366,8 +1364,7 @@ int
                 _wcslwr( pWhostname );
                 convertHostnameUsingPunycode( pWhostname, name );
                 delete [] pWhostname;
-            }
-            else {
+            } else {
                 wchar_t Whostname[MAX_HOSTNAME_LENGTH];
 
                 for ( byteCount = 0; pChar[byteCount] && (byteCount < (MAX_HOSTNAME_LENGTH-1)); byteCount++ ) {

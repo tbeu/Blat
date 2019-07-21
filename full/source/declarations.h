@@ -33,6 +33,6 @@
 #ifdef  _WCTYPE_INLINE_DEFINED
 #undef  _WCTYPE_INLINE_DEFINED
 #endif
-#define _WCTYPE_INLINE_DEFINED	// fix for error LNK2005: _iswdigit already defined in ... (older VC)
+#define _WCTYPE_INLINE_DEFINED  // fix for error LNK2005: _iswdigit already defined in ... (older VC)
 
 

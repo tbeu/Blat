@@ -151,6 +151,7 @@ typedef struct _COMMON_DATA
     Buf           xheaders;
     Buf           aheaders1;
     Buf           aheaders2;
+    Buf           messageId;
     _TCHAR        uuencode;                         // by default Blat does not use UUEncode // Added by Gilles Vollant
 
     _TCHAR        base64;                           // by default Blat does not use base64 Quoted-Printable Content-Transfer-Encoding!
@@ -167,6 +168,7 @@ typedef struct _COMMON_DATA
     _TCHAR        binaryMimeSupported;
     //_TCHAR  binaryMimeRequested;
     _TCHAR        force8BitMime;
+    _TCHAR        addCharsetToBinAttachments;
 
     Buf           optionsFile;
     FILE *        optsFile;

@@ -175,8 +175,7 @@ void fixup( COMMON_DATA & CommonData, LPTSTR string, Buf * outString, int header
                 ) {
                 tempUTF = NATIVE_16BIT_UTF;
                 convertPackedUnicodeToUTF( tempstring, fixupString, &tempUTF, localCharset, utfRequested );
-                if ( tempUTF )
-                {
+                if ( tempUTF ) {
                     tempstring = fixupString;
                     charsetLen = 12;    // =?utf-8?q? ?=
                 }
@@ -321,9 +320,10 @@ void fixupFileName ( COMMON_DATA & CommonData, LPTSTR filename, Buf & outString,
     FUNCTION_ENTRY();
     LPTSTR  shortname;
 
-    if ( !filename )
+    if ( !filename ) {
+        FUNCTION_EXIT();
         return;
-
+    }
     shortname = getShortFileName(filename);
 
 #if defined(_UNICODE) || defined(UNICODE)
@@ -531,8 +531,7 @@ void fixupEmailHeaders(COMMON_DATA & CommonData, LPTSTR string, Buf * outString,
                 CommonData.binaryMimeSupported   = savedBinaryMimeSupported;
 #endif
                 holdingPen.Free();
-            }
-            else {
+            } else {
                 // quoting not necessary
                 if ( i )
                     addStringToHeaderNoQuoting(tempstring.Get(), outS, headerLen, linewrap );
@@ -558,8 +557,7 @@ void fixupEmailHeaders(COMMON_DATA & CommonData, LPTSTR string, Buf * outString,
 
                 if ( CommonData.forcedHeaderEncoding == __T('q') ) {
                     bLen = qLen + 1;
-                }
-                else
+                } else
                 if ( CommonData.forcedHeaderEncoding == __T('b') ) {
                     qLen = bLen + 1;
                 }
@@ -922,8 +920,7 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                 bldHdrs.header->Add( tempstring );
                 bldHdrs.header->Add( __T("\r\n") );
                 tempstring.Clear();
-            }
-            else if ( !CommonData.cc_list.Length() ) {
+            } else if ( !CommonData.cc_list.Length() ) {
                 if ( CommonData.sendUndisclosed )
                     bldHdrs.header->Add( __T("To: Undisclosed recipients:;\r\n") );
             }
@@ -979,8 +976,7 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                 bldHdrs.header->Add( __T("X-MimeOLE: Produced by Blat v") );
                 bldHdrs.header->Add( blatVersion );
                 bldHdrs.header->Add( __T("\r\n") );
-            }
-            else if (CommonData.priority.Get()[0] == __T('1')) {
+            } else if (CommonData.priority.Get()[0] == __T('1')) {
                 bldHdrs.header->Add( __T("X-MSMail-Priority: High\r\n") \
                                      __T("X-Priority: 1\r\n") \
                                      __T("Priority: urgent\r\n") \
@@ -993,11 +989,9 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
             // These are X.400
             if ( CommonData.sensitivity.Get()[0] == __T('0')) {
                 bldHdrs.header->Add( __T("Sensitivity: Personal\r\n") );
-            }
-            else if (CommonData.sensitivity.Get()[0] == __T('1')) {
+            } else if (CommonData.sensitivity.Get()[0] == __T('1')) {
                 bldHdrs.header->Add( __T("Sensitivity: Private\r\n") );
-            }
-            else if (CommonData.sensitivity.Get()[0] == __T('2')) {
+            } else if (CommonData.sensitivity.Get()[0] == __T('2')) {
                 bldHdrs.header->Add( __T("Sensitivity: Company-Confidential\r\n") );
             }
 #if INCLUDE_NNTP
@@ -1088,11 +1082,20 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
         popad
     }
 #endif
-    _stprintf(tmpstr, __T("Message-ID: <%08lx$Blat.v%s$%08lx$%lx%lx@%s>\r\n"),
-              today.dwHighDateTime, blatVersion, today.dwLowDateTime, GetCurrentProcessId(), cpuTime, bldHdrs.server_name );
-    bldHdrs.header->Add( tmpstr );
-
-    tmpstr[0] = __T('\0');
+#if BLAT_LITE
+#else
+    if ( CommonData.messageId.Length() ) {
+        bldHdrs.header->Add( __T("Message-ID: <") );
+        bldHdrs.header->Add( CommonData.messageId );
+        bldHdrs.header->Add( __T(">\r\n") );
+    } else
+#endif
+    {
+        _stprintf(tmpstr, __T("Message-ID: <%08lx$Blat.v%s$%08lx$%lx%lx@%s>\r\n"),
+                  today.dwHighDateTime, blatVersion, today.dwLowDateTime, GetCurrentProcessId(), cpuTime, bldHdrs.server_name );
+        bldHdrs.header->Add( tmpstr );
+        tmpstr[0] = __T('\0');
+    }
     shortNameBuf.Clear();
 
     if ( !CommonData.subject.Length() ) {
@@ -1279,8 +1282,7 @@ void build_headers( COMMON_DATA & CommonData, BLDHDRS & bldHdrs )
                 contentType.Add( getCharsetString(CommonData) );
                 contentType.Add( __T("\"\r\n") );
             }
-        }
-        else {
+        } else {
             if ( bldHdrs.attachNbr ) {
 #if BLAT_LITE
                 CommonData.mimeHeader = __T("MIME-Version: 1.0\r\n");

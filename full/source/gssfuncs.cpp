@@ -40,8 +40,7 @@ extern "C" {
 int GssSession::extract_server_retval(LPTSTR str)
 {
     int ret = 0;
-    for (int i=0; i<3; i++)
-    {
+    for (int i=0; i<3; i++) {
         if (!str[i]) return -1;
         if (str[i]<__T('0')) return -1;
         if (str[i]>__T('9')) return -1;
@@ -58,8 +57,7 @@ LPTSTR GssSession::GssException::status_message()
     if (statusmsginit) return statusmsg;
 
     // major==0 & minor==0 means no message
-    if (!major_status && !minor_status)
-    {
+    if (!major_status && !minor_status) {
         _tcscpy(statusmsg, __T(""));
         statusmsginit = TRUE;
         return statusmsg;
@@ -89,8 +87,7 @@ LPTSTR GssSession::GssException::message()
 {
     _tcscpy(bothmsgs,error_message());
     LPTSTR stat = status_message();
-    if (*stat)
-    {
+    if (*stat) {
         _tcscat(bothmsgs,__T("\n  "));
         _tcscat(bothmsgs,stat);
     }
@@ -202,27 +199,27 @@ void GssSession::Cleanup()
     case ReadyToCommunicate:
     case Authenticated:
     case GettingContext:
-
-        /* flush security context */
-        //if (CommonData.debug) printMsg( CommonData, __T("Releasing GSS credentials\n") );
         {
+            /* flush security context */
+            //if (CommonData.debug) printMsg( CommonData, __T("Releasing GSS credentials\n") );
             gss_buffer_desc send_token;
             my_gss_delete_sec_context(&min_stat, &context, &send_token);
             my_gss_release_buffer(&min_stat, &send_token);
         }
+        // fall through
 
     case Initialized:
     case LoadedLibrary:
         //unload library
         if (hinstLib) FreeLibrary(hinstLib);
         hinstLib = NULL;
+        // fall through
 
     case Nothing:
     default:
         // nothing left to do
         state = Nothing;
     }
-
 }
 
 //  Destroy a GssSession object (see gssfuncs.h)
@@ -236,8 +233,7 @@ LPTSTR GssSession::StatusText(OM_uint32 major_status, OM_uint32 minor_status, LP
 {
 
     LPTSTR szStatusMsg;
-    if (szBuffer)
-    {
+    if (szBuffer) {
         szStatusMsg = szBuffer;
     } else {
         static _TCHAR szStaticBuffer[1024]=__T("");
@@ -250,20 +246,17 @@ LPTSTR GssSession::StatusText(OM_uint32 major_status, OM_uint32 minor_status, LP
     gss_buffer_desc stng;
     BOOL firsttime = TRUE;
     ctxt=0;
-    do
-    {
+    do {
         my_gss_display_status(&mst, major_status, GSS_C_GSS_CODE, GSS_C_NO_OID, &ctxt, &stng);
         if (!firsttime) _tcsncat(szStatusMsg,__T(", "),1023-_tcslen(szStatusMsg));
         _tcsncat(szStatusMsg,(LPTSTR)stng.value,1023-_tcslen(szStatusMsg));
         firsttime = FALSE;
     } while (ctxt);
-    if (minor_status)
-    {
+    if (minor_status) {
         _tcsncat(szStatusMsg,__T(": "),1023-_tcslen(szStatusMsg));
         firsttime = TRUE;
         ctxt=0;
-        do
-        {
+        do {
             my_gss_display_status(&mst, minor_status, GSS_C_MECH_CODE, GSS_C_NO_OID, &ctxt, &stng);
             if (!firsttime) _tcsncat(szStatusMsg,__T(", "),1023-_tcslen(szStatusMsg));
             _tcsncat(szStatusMsg,(LPTSTR)stng.value,1023-_tcslen(szStatusMsg));
@@ -283,8 +276,7 @@ LPTSTR GssSession::MechtypeText(LPTSTR szBuffer)
     OM_uint32 maj_stat, min_stat;
     gss_OID_set mech_set;
 
-    if (szBuffer)
-    {
+    if (szBuffer) {
         mechtype = szBuffer;
     } else {
         static _TCHAR szStaticBuffer[1024]=__T("");
@@ -297,20 +289,16 @@ LPTSTR GssSession::MechtypeText(LPTSTR szBuffer)
     if ( my_gss_indicate_mechs ) {
         maj_stat = my_gss_indicate_mechs(&min_stat, &mech_set);
 
-        if ((!maj_stat) && (mech_set->count))
-        {
-            {
-                gss_OID oid = &(mech_set->elements[0]);
+        if ((!maj_stat) && (mech_set->count)) {
+            gss_OID oid = &(mech_set->elements[0]);
 
-                gss_buffer_desc buf;
+            gss_buffer_desc buf;
 
-                maj_stat = my_gss_oid_to_str(&min_stat, oid, &buf);
+            maj_stat = my_gss_oid_to_str(&min_stat, oid, &buf);
 
-                if (!maj_stat)
-                {
-                    _tcscpy(mechtype, (LPTSTR) buf.value);
-                    my_gss_release_buffer(&min_stat, &buf);
-                }
+            if (!maj_stat) {
+                _tcscpy(mechtype, (LPTSTR) buf.value);
+                my_gss_release_buffer(&min_stat, &buf);
             }
 
             if ( my_gss_release_oid_set )
@@ -380,8 +368,7 @@ void GssSession::Authenticate(COMMON_DATA & CommonData, BOOL (*getline) (struct 
     }
 
 
-    if (CommonData.debug)
-    {
+    if (CommonData.debug) {
         maj_stat = my_gss_display_name(&min_stat, target_name, &request_buf, &mech_name);
         printMsg(CommonData, __T("Using service name [%s]\n"),request_buf.value);
         maj_stat = my_gss_release_buffer(&min_stat, &request_buf);
@@ -419,8 +406,7 @@ void GssSession::Authenticate(COMMON_DATA & CommonData, BOOL (*getline) (struct 
             throw GssNonzeroStatus(maj_stat,min_stat,__T("Error exchanging credentials"));
         }
 
-        if (firsttime)
-        {
+        if (firsttime) {
             _stprintf (out_data, __T("AUTH GSSAPI\r\n"));
             if (!(putline(CommonData, out_data))) {
                 OM_uint32 tmpstat; my_gss_release_name(&tmpstat, &target_name);
@@ -438,8 +424,7 @@ void GssSession::Authenticate(COMMON_DATA & CommonData, BOOL (*getline) (struct 
             }
         }
 
-        if (send_token.length)
-        {
+        if (send_token.length) {
             base64_encode((_TUCHAR *)send_token.uchar_value, (size_t)send_token.length, buf1, FALSE);
             my_gss_release_buffer(&min_stat, &send_token);
             _stprintf (out_data, __T("%s\r\n"), buf1);
@@ -536,8 +521,7 @@ void GssSession::Authenticate(COMMON_DATA & CommonData, BOOL (*getline) (struct 
 
     /* now respond in kind */
 
-    if (protection_level != GSSAUTH_P_NONE)
-    {
+    if (protection_level != GSSAUTH_P_NONE) {
         maj_stat = my_gss_wrap_size_limit(&min_stat, context, (protection_level==GSSAUTH_P_PRIVACY), GSS_C_QOP_DEFAULT, buf_size, (unsigned int*)&max_prewrapped);
 
         if (maj_stat != GSS_S_COMPLETE){
@@ -620,8 +604,7 @@ Buf GssSession::Encrypt(COMMON_DATA & CommonData, Buf& msg)
     outp.Clear();
     unsigned int bytes_encrypted = 0;
 
-    while (bytes_encrypted < msg.Length())
-    {
+    while (bytes_encrypted < msg.Length()) {
 
         OM_uint32 maj_stat, min_stat;
         gss_buffer_desc request_buf, send_token;
@@ -669,15 +652,16 @@ Buf GssSession::Decrypt(Buf& msg)
     gss_buffer_desc request_buf, send_token;
     int cflags;
 
-    if (msg.Length()<4)
-    {Cleanup(); throw GssException(__T("Encrypted response too short... size byte missing\n"));}
+    if (msg.Length() < 4) {
+        Cleanup();
+        throw GssException(__T("Encrypted response too short... size byte missing\n"));
+    }
 
     pStr = msg.Get();
     u_long claimed_len = (u_long)((pStr[0] & 0xFFl) << 24) | (u_long)((pStr[1] & 0xFFl) << 16) | (u_long)((pStr[2] & 0xFFl) << 8) | (u_long)((pStr[3] & 0xFFl) << 0);
     u_long actual_len = (u_long)(msg.Length()-4);
 
-    if (claimed_len != actual_len)
-    {
+    if (claimed_len != actual_len) {
         Cleanup();
         _TCHAR szMsg[1024];
         _stprintf(szMsg,__T("Encrypted response size mismatch: the server claims the message is %lu bytes, but actually sent %lu bytes."),

@@ -37,7 +37,7 @@
 #endif
 
 
-#define BLAT_VERSION    __T("3.2.21")
+#define BLAT_VERSION    __T("3.2.22")
 // Major revision level      *      Update this when a major change occurs, such as a complete rewrite.
 // Minor revision level        *    Update this when the user experience changes, such as when new options/features are added.
 // Bug   revision level          *  Update this when bugs are fixed, but no other user experience changes.
@@ -144,6 +144,7 @@ static void cleanUpBuffers( COMMON_DATA & CommonData, LPTSTR * savedArguments, i
     CommonData.xheaders.Free();
     CommonData.aheaders1.Free();
     CommonData.aheaders2.Free();
+    CommonData.messageId.Free();
 #endif
 
     CommonData.mdnHeader.Free();

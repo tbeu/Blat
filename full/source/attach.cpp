@@ -377,7 +377,7 @@ int add_one_attachment ( COMMON_DATA & CommonData, Buf &messageBuffer, int build
         tempUTF = 0;
 #if BLAT_LITE
 #else
-        if ( CommonData.eightBitMimeSupported )
+        if ( CommonData.eightBitMimeSupported || CommonData.force8BitMime )
             utfRequested = 8;
         else
 #endif

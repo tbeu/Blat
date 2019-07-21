@@ -29,7 +29,7 @@ extern void printMsg(COMMON_DATA & CommonData, LPTSTR p, ... );
 #if defined(__cplusplus)
 extern "C" {
 #endif
-	extern void(*pMyPrintDLL)(LPTSTR);
+extern void(*pMyPrintDLL)(LPTSTR);
 #if defined(__cplusplus)
 }
 #endif

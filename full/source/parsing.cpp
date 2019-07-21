@@ -46,8 +46,7 @@ void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & pa
                 *srcptr = (_TCHAR)x;
                 _tcscpy( srcptr+1, srcptr+3 );
                 srcptr++;
-            }
-            else
+            } else
                 break;
         }
 
@@ -93,8 +92,7 @@ void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & pa
                     for ( x = 2; ; x++ ) {
                         if ( _istdigit( srcptr[x] ) ) {
                             val = (val * 10) + (srcptr[x] - __T('0'));
-                        }
-                        else
+                        } else
                             break;
                     }
                     if ( srcptr[x] == __T(';') ) {
@@ -112,16 +110,16 @@ void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & pa
                     }
                 }
                 srcptr++;
-            }
-            else
+            } else
                 break;
         }
         len = _tcslen( source );
     }
     tmpstr = (LPTSTR)malloc( (len + 2)*sizeof(_TCHAR) );
-    if ( !tmpstr )
+    if ( !tmpstr ) {
+        FUNCTION_EXIT();
         return;
-
+    }
     _tcscpy( tmpstr, source );
     tmpstr[len + 1] = __T('\0');
     srcptr = tmpstr;

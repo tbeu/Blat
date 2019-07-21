@@ -104,6 +104,17 @@ void getContentType (COMMON_DATA & CommonData, Buf & sDestBuffer, LPTSTR foundTy
     fixupFileName( CommonData, sFileName, shortNameBuf, 7, TRUE );
     sDestBuffer    = __T("Content-Type: ");
     sDestBuffer.Add( tmpStr );
+#if BLAT_LITE
+#else
+    if ( CommonData.addCharsetToBinAttachments ) {
+        sDestBuffer.Add( __T(";\r\n charset=\"") );
+        if ( CommonData.charset.Get() != NULL )
+            sDestBuffer.Add( CommonData.charset );
+        else
+            sDestBuffer.Add( defaultCharset );
+        sDestBuffer.Add( __T("\"") );
+    }
+#endif
     sDestBuffer.Add( __T(";\r\n name=\"") );
     sDestBuffer.Add( shortNameBuf );
     sDestBuffer.Add( __T("\"\r\n") );

@@ -453,8 +453,7 @@ void convertUnicode( Buf &sourceText, int * pUTF, LPTSTR charset, int pUTFReques
             if ( pUTF8Found ) {
                 if ( pUTF )
                     *pUTF = UTF_REQUESTED;
-            }
-            else {
+            } else {
                 if ( pUTF )
                     *pUTF = 0;
             }
@@ -574,15 +573,13 @@ void compactUnicodeFileData( Buf &sourceText )
             sourceText = outputText;
             pp = sourceText.Get();
             outputText.Clear();
-        }
-        else {
+        } else {
             if ( ((pp[0] == 0x00FF) && (pp[1] == 0x00FE) && (pp[2] == 0x0000) && (pp[3] == 0x0000)) ||
                  ((pp[0] == 0x0000) && (pp[1] == 0x0000) && (pp[2] == 0x00FE) && (pp[3] == 0x00FF)) ||
                  ((pp[0] == 0x00FF) && (pp[1] == 0x00FE))                                           ||
                  ((pp[0] == 0x00FE) && (pp[1] == 0x00FF))                                           ||
                  (memcmp( pp, utf8BOM, 3*sizeof(_TCHAR) ) == 0)                                   ) {
-            }
-            else {
+            } else {
                 for ( x = 1; x < sourceText.Length(); x += 2 ) {
                     if ( pp[x] == 0x0000 ) {
                         haveNulls = true;
@@ -613,8 +610,7 @@ void compactUnicodeFileData( Buf &sourceText )
             pp = sourceText.Get();
             outputText.Clear();
         }
-    }
-    else
+    } else
     if ( sourceText.Length() == 2 ) {
         if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) ) {
             sourceText.Clear();
@@ -623,8 +619,7 @@ void compactUnicodeFileData( Buf &sourceText )
         if ( (pp[0] == 0x00FE) && (pp[1] == 0x00FF) ) {
             sourceText.Clear();
             sourceText.Add( (_TCHAR)0xFEFF );
-        }
-        else
+        } else
         if ( *pp != (_TCHAR)0xFEFF ) {
             if ( ( pp[0] <  0x00FE) &&
                  ( pp[0] >= 0x00C0) &&
@@ -637,8 +632,7 @@ void compactUnicodeFileData( Buf &sourceText )
                 outputText.Clear();
             }
         }
-    }
-    else {
+    } else {
         // sourceText.Length() > 2
 
         if ( memcmp( pp, utf8BOM, 3*sizeof(_TCHAR) ) == 0 ) {
@@ -725,8 +719,7 @@ void compactUnicodeFileData( Buf &sourceText )
             }
             sourceText = outputText;
             outputText.Free();
-        }
-        else {
+        } else {
             if ( (pp[0] == 0x00FF) && (pp[1] == 0x00FE) && (pp[2] == 0x0000) && (pp[3] == 0x0000) && !(sourceText.Length() & 1) ) {
                 tempUTF = NATIVE_32BIT_UTF;     /* Looks like Unicode 32-bit in native format */
             } else
@@ -793,8 +786,7 @@ void compactUnicodeFileData( Buf &sourceText )
                     bufL--;
                 }
                 sourceText = outputText;
-            }
-            else
+            } else
             if ( pp[0] != (_TCHAR)0xFEFF ) {
                 bool bUtf8detected;
 
@@ -809,26 +801,22 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+1] & 0xFFC0) == 0x0080) ) {
                             x++;
                             bUtf8detected = true;
-                        }
-                        else {
+                        } else {
                             bUtf8detected = false;
                             break;
                         }
-                    }
-                    else
+                    } else
                     if ( pp[x] == 0x00E0 ) {
                         if ( ((x+2) < sourceText.Length())  &&
                              ((pp[x+1] & 0xFFE0) == 0x00A0) &&
                              ((pp[x+2] & 0xFFC0) == 0x0080) ) {
                             x += 2;
                             bUtf8detected = true;
-                        }
-                        else {
+                        } else {
                             bUtf8detected = false;
                             break;
                         }
-                    }
-                    else
+                    } else
                     if ( (pp[x] >= 0x00E1) &&
                          (pp[x] <= 0x00EC) ) {
                         if ( ((x+2) < sourceText.Length())  &&
@@ -836,26 +824,22 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+2] & 0xFFC0) == 0x0080) ) {
                             x += 2;
                             bUtf8detected = true;
-                        }
-                        else {
+                        } else {
                             bUtf8detected = false;
                             break;
                         }
-                    }
-                    else
+                    } else
                     if ( pp[x] == 0x00ED ) {
                         if ( ((x+2) < sourceText.Length())  &&
                              ((pp[x+1] & 0xFFE0) == 0x0080) &&
                              ((pp[x+2] & 0xFFC0) == 0x0080) ) {
                             x += 2;
                             bUtf8detected = true;
-                        }
-                        else {
+                        } else {
                             bUtf8detected = false;
                             break;
                         }
-                    }
-                    else
+                    } else
                     if ( (pp[x] == 0x00EE) ||
                          (pp[x] == 0x00EF) ) {
                         if ( ((x+2) < sourceText.Length())  &&
@@ -863,13 +847,11 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+2] & 0xFFC0) == 0x0080) ) {
                             x += 2;
                             bUtf8detected = true;
-                        }
-                        else {
+                        } else {
                             bUtf8detected = false;
                             break;
                         }
-                    }
-                    else
+                    } else
                     if ( pp[x] == 0x00F0 ) {
                         if ( ((x+3) < sourceText.Length())  &&
                              ( pp[x+1]           >= 0x0090) &&
@@ -878,13 +860,11 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+3] & 0xFFC0) == 0x0080) ) {
                             x += 3;
                             bUtf8detected = true;
-                        }
-                        else {
+                        } else {
                             bUtf8detected = false;
                             break;
                         }
-                    }
-                    else
+                    } else
                     if ( (pp[x] >= 0x00F1) &&
                          (pp[x] <= 0x00F3) ) {
                         if ( ((x+3) < sourceText.Length())  &&
@@ -893,13 +873,11 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+3] & 0xFFC0) == 0x0080) ) {
                             x += 3;
                             bUtf8detected = true;
-                        }
-                        else {
+                        } else {
                             bUtf8detected = false;
                             break;
                         }
-                    }
-                    else
+                    } else
                     if ( pp[x] == 0x00F4 ) {
                         if ( ((x+3) < sourceText.Length())  &&
                              ((pp[x+1] & 0xFFF0) == 0x0080) &&
@@ -907,8 +885,7 @@ void compactUnicodeFileData( Buf &sourceText )
                              ((pp[x+3] & 0xFFC0) == 0x0080) ) {
                             x += 3;
                             bUtf8detected = true;
-                        }
-                        else {
+                        } else {
                             bUtf8detected = false;
                             break;
                         }
@@ -989,8 +966,7 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
   #else
                     CommonData.eightBitMimeRequested = TRUE;
   #endif
-                }
-                else {
+                } else {
                     pStr = (_TUCHAR *)stringToCheck.Get();
                     for ( savedLength = 0; savedLength < stringToCheck.Length(); savedLength++ ) {
                         if ( *pStr > 0x007F ) {
@@ -1003,8 +979,7 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
                         }
                     }
                 }
-            }
-            else {
+            } else {
                 pStr = (_TUCHAR *)stringToCheck.Get();
                 for ( savedLength = 0; savedLength < stringToCheck.Length(); savedLength++ ) {
                     if ( *pStr > 0x007F ) {
@@ -1023,8 +998,7 @@ void checkInputForUnicode ( COMMON_DATA & CommonData, Buf & stringToCheck )
             if ( pStr[x+1] == 0x0000 ) {
                 haveNulls = true;
                 x++;
-            }
-            else
+            } else
             if ( !haveNulls )
                 break;
         }
