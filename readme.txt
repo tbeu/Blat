@@ -42,5 +42,5 @@ before you can follow these steps:
 1) Copy the file "Blat.exe" to your "\WINNT\SYSTEM32" directory, or to
    any other directory in your path.
 
-2) Optionaly, run "Blat -install smtp.yoursite.tld youruserid@yoursite.tld"
+2) Optionally, run "Blat -install smtp.yoursite.tld youruserid@yoursite.tld"
 
