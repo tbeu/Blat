@@ -129,7 +129,7 @@ void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & pa
         // if there's only one token left, then len will = startLen,
         // and we'll iterate once only
         int foundQuote;
-
+        int lengthToCopy;
 
         while ( *srcptr && (_tcschr (__T(" ,\n\t\r"), *srcptr)) ) // eat leading white space
             srcptr++;
@@ -180,15 +180,17 @@ void parseCommaDelimitString ( COMMON_DATA & CommonData, LPTSTR source, Buf & pa
                 len--;
         }
 
+        lengthToCopy = len + 1;
         srcptr[len] = __T('\0');             // replace delim with NULL char
         if ( pathNames &&
              (srcptr[0]     == __T('"')) &&
              (srcptr[len-1] == __T('"')) ) {
             srcptr[len-1] = __T('\0');
-            len -= 2;
+            lengthToCopy -= 2;
+            len--;
             srcptr++;
         }
-        parsed_strings.Add( srcptr, len + 1 );
+        parsed_strings.Add( srcptr, lengthToCopy );
     }
 
     parsed_strings.Add( __T('\0') ); // The end of strings is identified by a null.

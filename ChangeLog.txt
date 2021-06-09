@@ -5,6 +5,12 @@
 [ - Bug fixed (we hope)      ]
  ============================
 
+3.2.23
+[-] When parsing attachment names, the parser would stop after the first
+    closing quotation mark (") if found.  Any filenames that are present after
+    the first closing quotation mark were not identified, therefore not sent
+    as attachments.  This bug has existed since at least version 2.50.
+-------------------------------------------------------------------------------
 3.2.22
 [+] Added new command line options -msgid and -addch2bin.  The -msgid option
     takes a string which will be used in the Message-ID: header instead of the
